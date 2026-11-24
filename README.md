@@ -83,6 +83,7 @@ A project is a folder with a `spliced.json`. Run commands from inside it, or pas
 | --- | --- |
 | `spliced.json` | Its name, whose films these are (`brand`), motion profiles it adds, who reads imports (`agent`), and where your app's real code is (`app`) |
 | `library/` | Reference films broken down scene by scene, your uploads, your boards and reviews (`state.json`) |
+| `profiles/` | The looks your films are made in, one folder each (Profiles) |
 | `reference/` | The downloaded films |
 | `remotion/`, `videos/` | Films in production, if you make them here |
 | `.cache/`, `.env` | Rebuilt on demand; your API keys. Neither is ever served or committed |
@@ -137,10 +138,21 @@ spliced kit update               # after updating Spliced: its files replaced wi
 
 The kit's files (`remotion/src/lib`, `src/specimen`, `docs/CRAFT.md`, `MOTION-SYSTEMS.md`, `SOUND.md`, the UI sounds)
 are Spliced's, and `update` replaces them; a file you changed by hand is listed and left alone. Your films, your
-`Root.tsx` and your own motion profiles (`remotion/src/profiles.ts`) are yours and never touched. House rules for
-your films (brand, type, sound direction, where your product's code is) go in `remotion/docs/HOUSE.md`; your AI reads
-them before the kit's defaults. Ask your AI to make a film and it follows the `make-film` skill (`spliced agents install`
-puts it in the project). Remotion is free for individuals and small teams and needs a paid licence above that.
+`Root.tsx` and your own motion profiles (`remotion/src/profiles.ts`) are yours and never touched. Ask your AI to make
+a film and it follows the `make-film` skill (`spliced agents install` puts it in the project). Remotion is free for
+individuals and small teams and needs a paid licence above that.
+
+### Profiles
+
+A profile is a look your films are made in: your company's own (its brand, type, sound direction, where its product's
+code is) or a look you want to explore. Each one is a folder in the project, `profiles/<name>/`: its motion profile,
+palette and type, its own words in `PROFILE.md`, the scenes that show the look, and the rules your AI learns while
+making films ("never bounce the logo"). Your AI reads it before the kit's defaults.
+
+One profile can be the default. Every brief you copy (a board's build prompt, a scene, a whole reference film) can
+choose another, or **No profile**: then the film recreates its references as they are, in their own look. In the app:
+Profiles, under Make. A project from before profiles keeps its brand and `remotion/docs/HOUSE.md`; `spliced setup`
+makes them its first profile.
 
 ## Commands
 
@@ -157,6 +169,7 @@ puts it in the project). Remotion is free for individuals and small teams and ne
 | `spliced import <folder>`, `--go` | Look at a folder of pictures, clips and films you already have; bring it in, each thing once |
 | `spliced imports list`, `next`, `done <id>` | The import queue, and an agent picking a job up |
 | `spliced board find "<words>"`, `show "<board>"` | Search the library; read a board as a script |
+| `spliced profile`, `show <profile>`, `new`, `learn` | The looks your films are made in, the default marked; what your AI reads before building in one |
 | `spliced film status <slug>`, `render`, `note` | A film in production, beat by beat |
 | `spliced library --check` | Is every breakdown valid? |
 | `spliced keys`, `keys set <service>` | Which service keys the project has (ElevenLabs, footage libraries); paste one into `.env` without it showing |

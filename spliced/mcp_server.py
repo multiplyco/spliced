@@ -153,6 +153,28 @@ def film_new(a):
                      *(["--folder", str(a["folder"])] if a.get("folder") else [])))
 
 
+def profile_tool(a):
+    action = a.get("action") or "list"
+    if action == "list":
+        return text(*run("profile"))
+    prof = need(a, "profile", r"[a-z0-9][a-z0-9-]*", "a profile's name, as list shows it") if action != "new" else ""
+    if action == "show":
+        return text(*run("profile", "show", prof))
+    if action == "learn":
+        return text(*run("profile", "learn", prof, need(a, "text", what="the rule, in a sentence"), *(["--from", str(a["from"])] if a.get("from") else [])))
+    if action in ("pin", "unpin"):
+        return text(*run("profile", action, prof, need(a, "scene", what="a scene id (film/sNN)")))
+    if action == "new":
+        args = ["profile", "new", need(a, "name", what="the profile's name"), "--kind", a.get("kind") or "exploration"]
+        for k in ("motion", "about"):
+            if a.get(k):
+                args += [f"--{k}", str(a[k])]
+        if a.get("from_film"):
+            args += ["--from-film", str(a["from_film"])]
+        return text(*run(*args))
+    raise Bad("`action` is list, show, learn, pin, unpin or new")
+
+
 def folders_tool(a):
     action = a.get("action") or "list"
     if action == "list":
@@ -319,6 +341,15 @@ TOOLS = [
      "A board's folder is set with board_edit (board.create / board.set with folder). The library is shared by every folder.",
      S({"action": {"type": "string", "enum": ["list", "add", "move"]}, "folder": {"type": "string", "description": "The folder's path in the project, e.g. branding-videos"},
         "name": {"type": "string", "description": "add: the name the app shows (default: from the folder's name)"}, "film": FILM})),
+    ("profile", profile_tool, "The project's profiles: the looks its films are made in (a house look, looks to explore), each with its motion profile, palette, type, "
+     "its own text and the rules learned while making films. list: every profile, the default marked. show: everything to read before building in one (do this first when a "
+     "prompt names a profile). learn: keep a lasting preference the person stated (\"never bounce the logo\") in the profile, with where it came from. pin / unpin: a scene "
+     "that shows the look. new: a profile (from_film starts it from a reference film's look). A build in no profile recreates its references as they are.",
+     S({"action": {"type": "string", "enum": ["list", "show", "learn", "pin", "unpin", "new"]}, "profile": {"type": "string", "description": "The profile's name, as list shows it"},
+        "text": {"type": "string", "description": "learn: the rule, in a sentence"}, "from": {"type": "string", "description": "learn: where it came from, e.g. launch-film note 3"},
+        "scene": {"type": "string", "description": "pin / unpin: a scene id like acme-launch/s05"}, "name": {"type": "string", "description": "new: its name"},
+        "kind": {"type": "string", "enum": ["house", "exploration"]}, "motion": {"type": "string", "description": "new: its motion profile"},
+        "about": {"type": "string", "description": "new: one line about it"}, "from_film": {"type": "string", "description": "new: a reference film's slug to start from"}})),
     ("film_sheet", film_sheet, "See a film's newest render against its plan: storyboard, reference frames and render frames, beat by beat, as one picture. Ask for one beat to see it larger.",
      S({"film": FILM, "beat": {"type": "string", "description": "One beat's id"}}, ["film"])),
     ("film_render", film_render, "Render a film, or one beat of it, in the background (a render takes minutes). start returns at once; ask again with action status until it has finished, then look at it with film_sheet. `fixes` closes the notes this render fixes.",

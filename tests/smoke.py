@@ -22,7 +22,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 SENTINEL = "SENTINEL_DO_NOT_SERVE"
 VIEWS = ["#/scenes", "#/scene/demo-one/s01", "#/scenes?role=hook", "#/films", "#/film/demo-two", "#/styles", "#/moves", "#/moments",
-         "#/boards", "#/boards/Fixture%20board", "#/build", "#/build/demo", "#/assets", "#/assets?view=sound", "#/settings", "#/setup"]
+         "#/boards", "#/boards/Fixture%20board", "#/build", "#/build/demo", "#/assets", "#/assets?view=sound", "#/profiles", "#/settings", "#/setup"]
 
 fails, checks = [], [0]
 
@@ -423,7 +423,7 @@ def main():
             ready = page.wait_for_function("() => { const v = document.querySelector('#detail video'); return v && v.readyState >= 1 && v.videoWidth }", timeout=8000).json_value()
             src = page.evaluate("() => document.querySelector('#detail video').currentSrc")
             detail = page.evaluate("() => document.querySelector('#detail').innerText")
-            check("copy names this project's brand, not ours", "Recreate for Fixture" in detail and not support.named(detail), detail[:200].replace("\n", " | "))
+            check("the scene's copy names no company (Recreate is plain: the profile is chosen where the brief is copied)", "Recreate" in detail and "Recreate for" not in detail and not support.named(detail), detail[:200].replace("\n", " | "))
             check("a reference film with a space and brackets in its name plays", ready == 320 and "/project/reference/Demo%20two%20%5Babc123%5D.mp4" in src, f"{ready} {src}")
             # a note on a scene: N puts the caret in the note, and what is typed is on the scene, its button and the Library's count
             page.evaluate("() => document.activeElement?.blur()")

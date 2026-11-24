@@ -34,6 +34,7 @@ API:
   POST /api/projects/new {folder}   a new project in a new or empty folder, started   POST /api/pick-folder {for}   the system's folder picker
   GET  /api/connect          the agents and chat apps this project is connected to   POST /api/connect {agents, apps: {id: bool}}
   GET  /api/update           is a newer Spliced out (updates.py)
+  GET  /api/profiles         the project's profiles (profiles.py)   POST /api/profiles {op: new|set|default|learn|forget|pin|unpin|remove, ...}
 Data: .cache/library.json, built by `spliced library` (run it after changing breakdowns) and served as
 /api/library.js; the server builds it itself when it is missing or older than the breakdowns.
 
@@ -86,6 +87,7 @@ import stock
 import runners
 import folder
 import folders
+import profiles
 import doctor
 import apikeys
 import updates
@@ -265,6 +267,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._library(url.path.endswith(".js"))
         if url.path == "/api/folders":
             return self._json(200, {"folders": paths.reload_folders()})
+        if url.path == "/api/profiles":  # the looks the project's films are made in (profiles.py; spliced profile)
+            return self._json(200, {"profiles": profiles.every(), "default": profiles.default(), "motion": paths.PROFILES})
         if url.path == "/api/productions":
             paths.reload_folders()   # (a command may have added one since)
             return self._json(200, film.summaries())
@@ -568,7 +572,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             # Start a Remotion film from a board: {slug, board, items, profile, folder?}.
             try:
                 with LOCK:
-                    p = film.new_from_board(body.get("slug", ""), body.get("board", ""), body.get("items"), body.get("profile"), body.get("folder"))
+                    p = film.new_from_board(body.get("slug", ""), body.get("board", ""), body.get("items"), body.get("profile"), body.get("folder"), body.get("style"))
                 return self._json(200, p)
             except (KeyError, ValueError, FileExistsError) as e:
                 return self._json(400, {"error": str(e).strip("'\"")})
@@ -584,6 +588,35 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 ts.save(new)
                 publish({"type": "state", "rev": new["rev"], "by": by, "client": client, "summary": summary})
                 return self._json(200, {"rev": new["rev"], "results": results, "summary": summary})
+        if self.path == "/api/profiles":
+            # A change to the project's profiles, the same operations as `spliced profile`: {op, profile?, ...}
+            op, slug = str(body.get("op", "")), str(body.get("profile", ""))
+            try:
+                with LOCK:
+                    if op == "new":
+                        p = profiles.create(body.get("name", ""), body.get("kind") or "exploration", body.get("motion"), body.get("about", ""),
+                                            body.get("from_film"), is_default=bool(body.get("default")))
+                        slug = p["slug"]
+                    elif op == "house":
+                        p = profiles.take_in_house()
+                        slug = p["slug"] if p else slug
+                    elif op == "set":
+                        profiles.update(slug, {k: body.get(k) for k in ("name", "kind", "motion", "about", "type", "palette", "md")})
+                    elif op == "default":
+                        profiles.set_default("" if slug == profiles.NONE else slug)
+                    elif op == "learn":
+                        profiles.learn(slug, body.get("text", ""), body.get("from", ""))
+                    elif op == "forget":
+                        profiles.forget(slug, body.get("n", 0))
+                    elif op in ("pin", "unpin"):
+                        profiles.pin(slug, body.get("scene", ""), op == "pin")
+                    elif op == "remove":
+                        profiles.remove(slug)
+                    else:
+                        return self._json(400, {"error": "op is new, set, default, learn, forget, pin, unpin or remove"})
+            except (KeyError, ValueError, OSError) as e:
+                return self._json(400, {"error": str(e.args[0]) if e.args else str(e)})
+            return self._json(200, {"profile": slug, "profiles": profiles.every(), "default": profiles.default()})
         if self.path == "/api/keys":
             # Save or remove a service key: {id: "elevenlabs", value} or {id, remove: true} -> .env (owner-only, git ignores it).
             # The answer says what changed and never carries the value back.

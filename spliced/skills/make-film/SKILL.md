@@ -9,9 +9,17 @@ The pipeline: **references and system moves** (the library) → **a board** (ord
 profile** → **storyboard** → **build in Remotion, beat by beat** → **sound** → **checks** → **render**. Read only what
 each step names; don't preload the docs.
 
-**Before anything, read the project's own rules if it has them:** `remotion/docs/HOUSE.md` (its brand, type, stage,
-where its product's code is, its approved sound direction) and the films it has already made. They win over the
-kit's defaults in `remotion/docs/CRAFT.md`.
+**Before anything, know which profile the film is made in.** A profile is a look the project keeps: a house look (its
+brand, type, stage, product and sound direction) or a look to explore, with its motion profile and the rules learned
+on earlier films. The prompt names it, or `spliced film status <slug>` does once the film is started; with neither,
+it is the project's default (`spliced profile` marks it). Read it with `spliced profile show <profile>`: it wins over
+the kit's defaults in `remotion/docs/CRAFT.md`. **No profile** ("none", or "as the reference") means recreate what the
+references show, in their own look: see "A study of one film". A project with no profiles but a
+`remotion/docs/HOUSE.md` keeps its rules there.
+
+**A profile grows.** When the person states a lasting preference ("never bounce the logo", "our type is always
+left-aligned"), not a fix for one frame, ask whether to keep it in the profile, then `spliced profile learn <profile>
+"<the rule>" --from "<film> note <id>"`. Don't learn a rule into a profile the film isn't made in.
 
 **The kit.** Films are built on Spliced's film kit in `remotion/`: the motion library (`src/lib/motion`), its
 specimens, `docs/CRAFT.md`, `docs/MOTION-SYSTEMS.md`, `docs/SOUND.md` and the UI sounds. `spliced kit` says whether
@@ -71,8 +79,8 @@ Assets view shows it.
 
 ## 0. Start from what you're given
 
-- **A build prompt from Spliced** (a board's "copy build prompt"): it has the beats, the scene IDs and the motion
-  profile. Start the film with `spliced film new <slug> --board "<board>"` (skip if the board already has one: the
+- **A build prompt from Spliced** (a board's "copy build prompt"): it has the beats, the scene IDs, the profile and
+  the motion profile. Start the film with `spliced film new <slug> --board "<board>"` (skip if the board already has one: the
   Boards view's "start film" does the same), then go to step 1. If the project sorts its work into folders
   (`spliced folders`), the film goes in the board's folder, or the one you were opened in; `--folder` picks another.
 - **A film brief from Spliced** (a reference film's "Copy build brief", or "recreate this film"): a study, not a new
@@ -91,7 +99,7 @@ Assets view shows it.
 
 When the person asks to recreate a reference film as closely as you can, match what you see and change nothing to
 suit the project:
-- **Its look, not the house's.** Skip `HOUSE.md`, the project's brand and its motion profile for this film. Its
+- **Its look, not a profile's.** Skip the project's profiles, `HOUSE.md` and its motion profile for this film. Its
   palette, type, stage, framing, copy and pacing come from the reference: the breakdown's palette and style signature,
   and the frames (`library/references/<ref>/scenes/<id>.jpg`, `sheets/` when the analysis made them). Its own words
   are the copy.
@@ -124,7 +132,7 @@ roles carry the motion: enter, move, ui, emphasis, camera, textReveal, viewChang
 Set `composition` once it's registered in `remotion/src/Root.tsx`. The person reads and approves it in the Build view
 (it shows each beat next to its references before anything is rendered). For each borrowed scene, read its section in
 `library/references/<film>/breakdown.md` (how it moves, recreate). Rules for copy, type, stage, camera and sound:
-`remotion/docs/CRAFT.md` (§2 to §5, §8), then the project's `HOUSE.md`.
+`remotion/docs/CRAFT.md` (§2 to §5, §8), then the film's profile.
 
 ## 3. Screens
 
@@ -169,7 +177,7 @@ with timings always from the film's motion profile.
 
 ## 4b. Sound (once the picture is close to locked)
 
-Follow `remotion/docs/SOUND.md`: ask for the direction first (or take it from `HOUSE.md`), then music takes split into
+Follow `remotion/docs/SOUND.md`: ask for the direction first (or take it from the film's profile), then music takes split into
 stems and arranged to the cuts (drums alone from the first click, then bass, then the band), and the shared UI kit
 placed on the film's cues. Music can come from any generator your AI is connected to, from a track the person has the
 rights to, or be left out: SOUND.md section 2 says how each is filed. The UI kit ships with Spliced and needs no service.

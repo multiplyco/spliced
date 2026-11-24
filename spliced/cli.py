@@ -41,7 +41,8 @@ COMMANDS = {
     "soundkit": ("soundkit.py", "Make a film's sound: stems, score, UI sounds, loudness"),
     "voice": ("voice.py", "Voice-over line by line"),
     "kit": ("kit.py", "The film kit in remotion/: install, update, starter (example films to read, render and borrow from)"),
-    "motion": ("check_motion.py", "Check that a film's motion comes from its profile"),
+    "profile": ("profiles.py", "Profiles: the looks your films are made in (a house look, looks to explore); the default; rules learned"),
+    "motion": ("check_motion.py", "Check that a film's motion comes from its motion profile"),
     "moves": ("build_system_moves.py", "Rebuild the library's film of the kit's own moves"),
     "connect": ("connect.py", "Add this project's tools to an AI app: claude-desktop, cursor, codex; --remove, --dry-run"),
     "mcp": ("mcp_server.py", "Spliced's tools for an AI agent, over MCP (your agent starts this, not you)"),
@@ -52,7 +53,7 @@ BUILT_IN = {
     "projects": "The projects opened on this machine, and which are running now; --json",
     "agents": "`agents install`: Spliced's skills, a section in AGENTS.md and its MCP server (Claude Code, Codex, Cursor, Gemini CLI)",
 }
-ALIASES = {"serve": "open", "toolbox": "open", "boards": "board", "films": "film", "importer": "imports", "folder": "folders",
+ALIASES = {"serve": "open", "profiles": "profile", "toolbox": "open", "boards": "board", "films": "film", "importer": "imports", "folder": "folders",
            "build": "library", "build_library": "library", "add_reference": "reference", "analyze_reference": "analyze", "check_motion": "motion"}
 
 
@@ -151,6 +152,8 @@ def setup(args):
     os.environ["SPLICED_PROJECT"] = project
     run = lambda *x: subprocess.run([sys.executable, os.path.abspath(__file__), "--project", project, *x]).returncode
 
+    run("profile", "setup")   # a project from before profiles: its brand and HOUSE.md become its first profile, once
+
     # 2. the person's AI: the skills, the section in AGENTS.md, the MCP server
     step(2, "Your AI: Spliced's skills, a section in AGENTS.md, its tools over MCP")
     agents(["install"], project, quiet=True)
@@ -233,8 +236,8 @@ built from those scenes, and films in production. `spliced.json` holds its setti
 - A folder the person already has (pictures, clips, films): `{cli} import <folder>` says what is in it and what reading it
   will ask of you; tell them, and bring it in with `--go` once they agree.
 - Making a film: follow `.claude/skills/make-film/SKILL.md`. Films are built on Spliced's film kit in `remotion/`
-  (`{cli} kit` says whether it is in; its files are Spliced's, so don't edit them). The project's own rules, if it has
-  them, are in `remotion/docs/HOUSE.md`.
+  (`{cli} kit` says whether it is in; its files are Spliced's, so don't edit them). A film is made in a profile (its
+  look: `{cli} profile` lists them, `{cli} profile show <profile>` before building in one), or in none, as the reference.
 - Films in production: `{cli} film status <slug>`. File the person's feedback on its frame with `{cli} film note`, and
   close every note you fix with `{cli} film done`.
 - The project may sort its films, boards and assets into folders (`{cli} folders`), say one per kind of video or per

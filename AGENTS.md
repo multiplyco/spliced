@@ -19,6 +19,7 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
 | `spliced/toolbox.py` | The server: `/app/` (the web app), `/project/<path>` (media only), `/api/` |
 | `spliced/toolbox_state.py`, `board.py` | Boards, reviews, moments: named operations on `library/state.json` |
 | `spliced/film.py`, `sound.py`, `soundkit.py`, `voice.py` | Films in production |
+| `spliced/profiles.py`, `web/profiles.js` | Profiles: the looks a project's films are made in (`profiles/<slug>/`: profile.json and PROFILE.md), the default, the rules learned on films. A board, a brief or a film names one, or none (as the reference) |
 | `spliced/folders.py`, `web/folders.js` | The project's folders (spliced.json "folders"): films, boards and assets sorted by kind of video or by client. Build, Boards and Assets group and filter by them; the Library never |
 | `spliced/add_reference.py`, `analyze_reference.py`, `build_library.py`, `importer.py`, `runners.py`, `uploads.py`, `stock.py` | The library and what feeds it |
 | `spliced/web/` | The app: plain HTML, CSS and JavaScript, no build step |
@@ -63,6 +64,10 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
 - **Stacks.** Images in one folder whose names differ only by a number (three or more) are a stack
   (`film.stack_assets`). The asset lists still carry every frame, marked with `stack` and `frame`, so an agent reaches
   each one; only the app folds them into one card. Don't drop frames from an API to make a list shorter.
+- **A film is made in a profile, or in none.** What a film looks like is the project's, in `profiles/`, never the
+  tool's: a prompt names the profile (`Profiles.line` in `web/profiles.js`), and the make-film skill reads it with
+  `spliced profile show`. "none" recreates the references as they are. A board's `style` is its profile and its
+  `profile` its motion profile; a film keeps the profile it was started in (storyboard.json `style`).
 - **A new main view gets an explainer**: an entry in `VIEWS` in `web/explain.js` (a title and two or three lines, for
   someone who has never edited a film). Views don't call it; it places itself under the view's heading. A loop can
   sit beside the words when `web/explainers/<key>.mp4` exists.

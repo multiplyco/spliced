@@ -79,7 +79,7 @@ class Cli(unittest.TestCase):
         code, out = self.run_cli("board", "new", "First", cwd=new)
         self.assertEqual(code, 0, out)
         code, out = self.run_cli("board", "show", "First", cwd=new)
-        self.assertIn("Profile: soft", out)
+        self.assertIn("Profile: none (recreate the references as they are) · motion soft", out)
 
     def test_a_board_can_hold_a_whole_reference_film(self):
         code, out = self.run_cli("--project", self.root, "board", "new", "Study: Demo two", "--from-film", "demo-two")

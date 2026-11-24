@@ -2415,3 +2415,57 @@ html:not(.dark) .su-row.s-missing .su-state { color: #9A5B00; }
 .upd-pill .i { width: 13px; height: 13px; }
 .upd-pill.busy { background: var(--splice-bg-hover); color: var(--splice-text-secondary); }
 .upd-pill.fail { background: var(--splice-bg-hover); color: var(--splice-text); }
+
+/* ---------- profiles (profiles.js): the looks films are made in ---------- */
+.pf-split { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.pf-for, .pf-pick { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 6px 0 9px; border-radius: 7px; border: 1px solid var(--border); background: transparent; color: var(--muted-foreground); font-size: 12px; max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-for:hover, .pf-pick:hover { background: var(--splice-bg-hover); color: var(--foreground); }
+.pf-for .i, .pf-pick .i { width: 13px; height: 13px; flex: none; }
+.pf-pick { max-width: none; margin-right: 12px; font-size: 13px; }
+.pf-pick b { font-weight: 500; color: var(--foreground); }
+.pf-pick small { font-size: 11.5px; color: var(--subtle-foreground); }
+.pf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.pf-card { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; color: inherit; text-decoration: none; background: var(--splice-bg-surface); transition: border-color 0.15s; }
+.pf-card:hover { border-color: var(--border-strong); }
+.pf-thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; aspect-ratio: 3 / 1; background: var(--splice-bg-raised); }
+.pf-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pf-noscene { grid-column: 1 / -1; display: flex; }
+.pf-noscene i { flex: 1; }
+.pf-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; }
+.pf-body p { margin: 0; font-size: 13px; color: var(--muted-foreground); }
+.pf-t { display: flex; align-items: center; gap: 8px; }
+.pf-t b { font-size: 15px; font-weight: 600; margin-right: auto; }
+.pf-badge { font-size: 11px; padding: 2px 7px; border-radius: 6px; background: var(--splice-bg-raised); color: var(--muted-foreground); }
+.pf-badge.on { background: var(--splice-volt-tint); color: var(--foreground); }
+.pf-meta { display: flex; gap: 12px; font-size: 12px; color: var(--subtle-foreground); }
+.pf-foot { margin-top: 20px; font-size: 13px; color: var(--muted-foreground); }
+.pf-empty b { display: block; font-size: 15px; color: var(--foreground); margin-bottom: 8px; }
+.pf-empty p { max-width: 520px; margin: 6px auto; }
+.pf-empty-acts { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+.pf-page { display: flex; flex-direction: column; gap: 28px; max-width: 920px; }
+.pf-fields { display: grid; grid-template-columns: 1fr auto auto; gap: 14px 18px; align-items: start; }
+.pf-fields label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted-foreground); }
+.pf-fields label.wide { grid-column: 1 / -1; }
+.pf-fields input, .pf-md, .pf-add input { height: 34px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); font: inherit; font-size: 13.5px; }
+.pf-fields .swatches { margin-top: 4px; }
+.pf-sec h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+.pf-sec > .meta { display: block; margin: 0 0 10px; font-size: 12.5px; color: var(--muted-foreground); }
+.pf-md { width: 100%; height: auto; min-height: 180px; padding: 10px 12px; line-height: 1.55; resize: vertical; }
+.pf-rules { margin: 0 0 10px; padding-left: 22px; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
+.pf-rules li { padding-left: 4px; }
+.pf-rules li > span { display: inline-flex; flex-direction: column; gap: 1px; vertical-align: middle; }
+.pf-rules small { font-size: 11.5px; color: var(--subtle-foreground); }
+.pf-rules .icon-btn { vertical-align: middle; margin-left: 4px; }
+.pf-add { display: flex; gap: 8px; }
+.pf-add input { flex: 1; }
+.pf-scenes { display: flex; flex-wrap: wrap; gap: 12px; }
+.pf-scene { position: relative; width: 180px; }
+.pf-scene a { display: flex; flex-direction: column; gap: 4px; color: inherit; text-decoration: none; font-size: 12px; }
+.pf-scene img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; display: block; background: var(--splice-bg-raised); }
+.pf-scene small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted-foreground); }
+.pf-scene .icon-btn { position: absolute; top: 4px; right: 4px; background: rgb(0 0 0 / 0.55); color: #fff; }
+.pf-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf-chip { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 7px; border-radius: 13px; border: 1px solid var(--border); background: transparent; color: var(--muted-foreground); font-size: 12px; }
+.pf-chip:hover { color: var(--foreground); background: var(--splice-bg-hover); }
+.pf-chip.on { color: var(--foreground); border-color: var(--border-strong); background: var(--splice-bg-raised); }
+.pf-chip .i { width: 12px; height: 12px; }

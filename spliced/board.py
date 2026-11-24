@@ -8,6 +8,8 @@ picks up the file within ~2s). SPLICED_OFFLINE=1 forces the file path.
   spliced board show "Areas launch v1" [--md]           the board as a script (brief, beats, copy, timecode)
   spliced board new "Areas launch v1" [--profile soft] [--folder branding-videos] [--news "..."] [--audience ..] [--aspect 16:9] [--length 40]
                                                         (no --folder: the folder you are in, if you are in one of the project's)
+  spliced board new "Study: Plan it together" --from-film acme-launch
+                                                        a board of a whole reference film: one beat per scene, in order, each its length
   spliced board brief "Areas launch v1" [--news ..] [--audience ..] [--aspect ..] [--length ..] [--notes ..] [--profile ..]
   spliced board add "Areas launch v1" film/s05 [--time 0:21.40] [--beat hook] [--copy "On-screen words"] [--vo "Voice-over line"] [--seconds 3] [--note ..] [--at 2]
   spliced board edit "Areas launch v1" 3 [--scene film/s07] [--time 0:21.40 | --time none] [--beat ..] [--copy ..] [--vo ..] [--seconds ..] [--note ..]
@@ -118,6 +120,18 @@ def tc(t):
     return f"{int(t // 60)}:{t % 60:04.1f}"
 
 
+def film_items(slug):
+    """A reference film as board beats: every scene in order, the scene's role as the beat, its length as the seconds."""
+    p = os.path.join(paths.REFS, slug, "breakdown.json")
+    if not os.path.exists(p):
+        sys.exit(f"no film called {slug} in the library (library/references/{slug}/breakdown.json)")
+    b = json.load(open(p))
+    items = [{"id": f"{slug}/{s['id']}", "beat": s.get("role", ""), "seconds": round(s["end"] - s["start"], 2)} for s in b["scenes"]]
+    fmt = str(b.get("format", ""))
+    return b, items, {"length": round(b.get("duration") or sum(i["seconds"] for i in items), 1), **({"aspect": fmt.replace("x", ":")} if "x" in fmt else {}),
+                      "news": f"A study of {b.get('title', slug)}: every scene, in order, as close to the reference as we can make it."}
+
+
 def tcf(t):
     return f"{int(t // 60)}:{t % 60:05.2f}"
 
@@ -205,6 +219,8 @@ def main():
         for f in ("news", "audience", "aspect", "notes", "profile", "folder"):
             x.add_argument(f"--{f}")
         x.add_argument("--length", type=float)
+        if name == "new":
+            x.add_argument("--from-film", metavar="SLUG", help="fill it with every scene of this reference film, in order")
     x = sub.add_parser("add"); x.add_argument("board"); x.add_argument("scene")
     for f in ("beat", "copy", "vo", "note"):
         x.add_argument(f"--{f}")
@@ -246,6 +262,10 @@ def main():
         show(a.board, a.md)
     elif a.cmd in ("new", "brief"):
         brief = {k: getattr(a, k) for k in ("news", "audience", "aspect", "notes", "length") if getattr(a, k) is not None}
+        items = []
+        if a.cmd == "new" and a.from_film:
+            _, items, seeded = film_items(a.from_film)
+            brief = {**seeded, **brief}
         if a.cmd == "new":
             op = {"op": "board.create", "name": a.board, "brief": brief}
             if a.profile:
@@ -259,7 +279,7 @@ def main():
                 op["profile"] = a.profile
             if a.folder is not None:
                 op["folder"] = "" if a.folder == "-" else a.folder
-        run([op])
+        run([op] + [{"op": "item.add", "board": a.board, **it} for it in items])
     elif a.cmd == "add":
         op = {"op": "item.add", "board": a.board, "id": a.scene}
         for f in ("beat", "copy", "vo", "note", "seconds", "at"):

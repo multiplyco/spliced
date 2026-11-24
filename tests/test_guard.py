@@ -92,22 +92,24 @@ class Guard(unittest.TestCase):
                 self.assertNotIn(name, names, os.path.relpath(d, support.REPO))
 
 
-class NothingGoesPublic(unittest.TestCase):
-    """Until the owner releases Spliced, no merge, tag or release may publish it anywhere. Releasing means
-    removing these locks on purpose, in the release's own pull request."""
+class Publishing(unittest.TestCase):
+    """Spliced is published to npm by a person, from a release's tag. Nothing here publishes on its own, and the
+    places that name the package agree about whether it is published."""
 
-    def test_the_packages_refuse_to_be_published(self):
+    def test_only_npm_is_published_to(self):
         with open(os.path.join(support.REPO, "package.json")) as f:
-            self.assertIs(json.load(f).get("private"), True, "package.json: npm publish refuses a private package")
+            pkg = json.load(f)
+        self.assertEqual((pkg["name"], pkg.get("private", False)), ("spliced-app", False))
+        self.assertRegex(pkg["repository"]["url"], r"^git\+https://github\.com/[^/]+/spliced\.git$", "npm ties a trusted publisher to this address, written exactly so")
         with open(os.path.join(support.REPO, "pyproject.toml")) as f:
-            self.assertIn('"Private :: Do Not Upload"', f.read(), "pyproject.toml: PyPI refuses this classifier")
+            self.assertIn('"Private :: Do Not Upload"', f.read(), "pyproject.toml: Spliced is not on PyPI, and PyPI refuses this classifier")
 
-    def test_nothing_asks_the_registry_before_the_package_is_ours(self):
-        # the update check names the package: it stays off for as long as the package is not published
+    def test_the_update_check_asks_only_about_a_package_that_is_published(self):
+        # the update check names the package: it is on exactly when the package is published
         import updates
         with open(os.path.join(support.REPO, "package.json")) as f:
             private = json.load(f).get("private") is True
-        self.assertEqual(updates.PUBLISHED, not private, "updates.PUBLISHED and package.json's \"private\" change together, in the pull request that publishes")
+        self.assertEqual(updates.PUBLISHED, not private, "updates.PUBLISHED and package.json's \"private\" change together")
 
     def test_no_workflow_publishes_or_runs_on_its_own_with_write_access(self):
         publish = re.compile(r"npm publish|pnpm publish|yarn publish|uv publish|twine upload|gh-action-pypi-publish|"

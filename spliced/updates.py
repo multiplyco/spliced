@@ -4,8 +4,7 @@
   spliced update --json     the same, for the app
   spliced update --known    only what was learned last time: never goes online
 
-Only once Spliced is published (PUBLISHED below): until then nothing is asked, and no install command is shown.
-Then, asked at most once a day, of the npm registry: one request for the newest version number, which carries nothing
+Asked at most once a day, of the npm registry (and only while Spliced is published there, PUBLISHED below): one request for the newest version number, which carries nothing
 about you or your project. The answer is kept in the project's .cache. Turn it off with spliced.json
 `"updates": false` or SPLICED_NO_UPDATE_CHECK=1. A git checkout is never asked about (git knows), and the Mac app
 has its own check (mac/Sources/Spliced/Updates.swift).
@@ -19,11 +18,11 @@ import json, os, re, sys, time, urllib.request
 import paths
 
 PACKAGE = "spliced-app"                      # the name Spliced will be published under (package.json, pyproject.toml)
-# Until Spliced is published under that name, the name on the registry is nobody's or somebody else's: asking it
-# who is newest, and telling a person to install what answers, would point them at a package that isn't ours. So
-# nothing is asked and no install command is shown until this is True. It turns True in the pull request that
-# publishes (tests/test_guard.py holds it to package.json's "private").
-PUBLISHED = False
+# Whether Spliced is published under that name. While it is not, the name on the registry is nobody's or somebody
+# else's: asking it who is newest, and telling a person to install what answers, would point them at a package that
+# isn't ours, so nothing is asked and no install command is shown. tests/test_guard.py holds this to package.json's
+# "private": a copy that is made private again stops asking.
+PUBLISHED = True
 URL = paths.env("UPDATE_URL") or f"https://registry.npmjs.org/{PACKAGE}/latest"   # SPLICED_UPDATE_URL: a stand-in, for checks of this code
 FILE = os.path.join(paths.CACHE, "update.json")
 DAY, HOUR = 24 * 3600, 3600

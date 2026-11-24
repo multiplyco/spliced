@@ -4,6 +4,15 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+## Spliced is on npm
+2026-11-24
+*One line sets Spliced up: `npx -y spliced-app setup`. Nothing to clone.*
+
+Spliced is published as `spliced-app`. Paste the setup message from the README to your AI, or run
+`npx -y spliced-app setup my-films` yourself: about a minute later you have a project, the example film rendered and
+the app open. `npm install -g spliced-app` gives you a `spliced` command instead. A running Spliced now tells you when
+a newer version is out; turn that off with `"updates": false` in `spliced.json`.
+
 <!-- release 0.1.0 2026-11-24 -->
 
 ## The example film shows only made-up material
@@ -138,7 +147,7 @@ Setup now says plainly that these are extras.
 The Mac app already updated itself; the browser version said nothing. Now a running Spliced asks once a day for the
 newest version number (the request carries nothing about you or your project) and shows Update when there is one.
 Settings has Check for updates, `spliced update` asks from a terminal, and Setup shows it as its second line. Turn it
-off with `"updates": false` in `spliced.json`. This switches on when Spliced is published: until then it asks nothing. When Spliced itself has been updated, your project's copy of its
+off with `"updates": false` in `spliced.json`. When Spliced itself has been updated, your project's copy of its
 skills is refreshed the next time you open it (a skill you changed is left alone).
 
 ## Two projects open side by side, and an app your AI can open

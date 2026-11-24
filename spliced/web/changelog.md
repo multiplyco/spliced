@@ -136,7 +136,7 @@ Setup now says plainly that these are extras.
 The Mac app already updated itself; the browser version said nothing. Now a running Spliced asks once a day for the
 newest version number (the request carries nothing about you or your project) and shows Update when there is one.
 Settings has Check for updates, `spliced update` asks from a terminal, and Setup shows it as its second line. Turn it
-off with `"updates": false` in `spliced.json`. When Spliced itself has been updated, your project's copy of its
+off with `"updates": false` in `spliced.json`. This switches on when Spliced is published: until then it asks nothing. When Spliced itself has been updated, your project's copy of its
 skills is refreshed the next time you open it (a skill you changed is left alone).
 
 ## Two projects open side by side, and an app your AI can open

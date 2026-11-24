@@ -1906,7 +1906,7 @@ function renderSettings() {
       upd.disabled = false; upd.textContent = "Check for updates";
       if (!u) toast("Couldn't ask: the server didn't answer");
       else if (u.newer) updateToast(u);
-      else if (u.off) toast(u.kind === "checkout" ? "This copy is a git checkout: git pull updates it" : "Checking for updates is turned off for this project", 5000);
+      else if (u.off) toast(u.kind === "checkout" ? "This copy is a git checkout: git pull updates it" : u.published === false ? "Spliced isn't published yet: update it from where you got it" : "Checking for updates is turned off for this project", 5000);
       else toast(u.latest ? "Spliced is up to date" : "Couldn't tell: offline, or no release to compare with yet", 4000);
     };
   } else if (upd) {

@@ -4,7 +4,8 @@
   spliced update --json     the same, for the app
   spliced update --known    only what was learned last time: never goes online
 
-Asked at most once a day, of the npm registry: one request for the newest version number, which carries nothing
+Only once Spliced is published (PUBLISHED below): until then nothing is asked, and no install command is shown.
+Then, asked at most once a day, of the npm registry: one request for the newest version number, which carries nothing
 about you or your project. The answer is kept in the project's .cache. Turn it off with spliced.json
 `"updates": false` or SPLICED_NO_UPDATE_CHECK=1. A git checkout is never asked about (git knows), and the Mac app
 has its own check (mac/Sources/Spliced/Updates.swift).
@@ -17,7 +18,12 @@ import json, os, re, sys, time, urllib.request
 
 import paths
 
-PACKAGE = "spliced-app"                      # the name Spliced is published under (package.json, pyproject.toml)
+PACKAGE = "spliced-app"                      # the name Spliced will be published under (package.json, pyproject.toml)
+# Until Spliced is published under that name, the name on the registry is nobody's or somebody else's: asking it
+# who is newest, and telling a person to install what answers, would point them at a package that isn't ours. So
+# nothing is asked and no install command is shown until this is True. It turns True in the pull request that
+# publishes (tests/test_guard.py holds it to package.json's "private").
+PUBLISHED = False
 URL = paths.env("UPDATE_URL") or f"https://registry.npmjs.org/{PACKAGE}/latest"   # SPLICED_UPDATE_URL: a stand-in, for checks of this code
 FILE = os.path.join(paths.CACHE, "update.json")
 DAY, HOUR = 24 * 3600, 3600
@@ -54,7 +60,7 @@ def off():
         return True
     if paths.env("UPDATE_URL"):   # a stand-in was named on purpose (a check of this code): ask it, whatever kind of copy this is
         return False
-    return bool(paths.env("OFFLINE") or kind() in ("checkout", "app"))
+    return bool(not PUBLISHED or paths.env("OFFLINE") or kind() in ("checkout", "app"))
 
 
 def _number(v):
@@ -90,7 +96,10 @@ def _ask():
 def check(fresh=False, online=True):
     """{current, latest, newer, kind, command, how, checked, off}. online=False: only what is already known."""
     k = kind()
-    out = {"current": paths.VERSION, "latest": None, "newer": False, "kind": k, "command": HOW[k][0], "how": HOW[k][1], "checked": None, "off": off()}
+    out = {"current": paths.VERSION, "latest": None, "newer": False, "kind": k, "command": HOW[k][0], "how": HOW[k][1], "checked": None, "off": off(),
+           "published": PUBLISHED}
+    if not PUBLISHED and not paths.env("UPDATE_URL"):   # no command that names the package, while the name isn't ours
+        out["command"], out["how"] = "", "Spliced isn't published yet: update it from where you got it"
     if out["off"]:
         return out
     d = _read()
@@ -112,7 +121,8 @@ def check(fresh=False, online=True):
 def report(u):
     if u["off"]:
         why = ("this copy is a git checkout: `git pull` updates it" if u["kind"] == "checkout" else "the Mac app checks for itself" if u["kind"] == "app"
-               else "checking is turned off for this project")
+               else "Spliced isn't published yet, so there is nowhere to ask. Update it from where you got it" if not u.get("published", True)
+               and not (paths.env("NO_UPDATE_CHECK") or paths.CONFIG.get("updates") is False) else "checking is turned off for this project")
         return f"Spliced {paths.VERSION}. Not checked: {why}."
     if u["newer"]:
         return (f"Spliced {u['latest']} is out (this is {paths.VERSION}).\n  " + (f"{u['command']}\n  {u['how']}." if u["command"] else u["how"] + ".")

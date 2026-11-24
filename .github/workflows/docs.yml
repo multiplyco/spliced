@@ -1,0 +1,37 @@
+name: tell the docs
+# The website's docs (/docs, in multiplyco/spliced-site) are written from this repository. When something they are
+# written from changes on main, this tells the site, whose own workflow ("docs follow the tool") reads the change
+# and opens a pull request there. Nothing here writes to this repository, and nothing leaves it but a nudge.
+#
+# Needs one secret in this repository: DOCS_DISPATCH_TOKEN, a fine-grained token for multiplyco/spliced-site with
+# Contents: read and write (that is what a repository_dispatch asks for). Without it this does nothing, and the
+# site still catches up on its own schedule.
+on:
+  push:
+    branches: [main]
+    paths:   # the same list as WRITTEN_FROM in the site's scripts/sync-docs.mjs
+      - README.md
+      - mac/README.md
+      - spliced/web/changelog.md
+      - spliced/cli.py
+      - spliced/mcp_server.py
+      - spliced/skills/**
+      - spliced/kit/managed/docs/**
+      - spliced/templates/**
+      - spliced/web/tips.js
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tell:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Tell the site the tool changed
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          SITE: ${{ vars.DOCS_SITE_REPO || 'multiplyco/spliced-site' }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then echo "No DOCS_DISPATCH_TOKEN: the site catches up on its own schedule."; exit 0; fi
+          gh api "repos/$SITE/dispatches" -f event_type=tool-changed -f "client_payload[sha]=$GITHUB_SHA"
+          echo "Told $SITE about $GITHUB_SHA."

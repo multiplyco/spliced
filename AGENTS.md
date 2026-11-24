@@ -49,6 +49,9 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
   for them: a title, the date, one line in italics, a paragraph, a picture if it helps (under `web/changelog/`, a
   JPEG below 250 KB, taken on the fixture project or an empty one, never on a real library: a real library's
   thumbnails are frames of other people's films). The app shows it under Settings, What's new. Never edit the version by hand.
+  The website's docs are written from it too: a merge to main that touches it (or the README, a command's help, a
+  skill) sends the site's sync a nudge (`.github/workflows/docs.yml`), and the site opens a pull request with the
+  pages brought up to date. An entry that says exactly what changed, in the app's own words, makes that pull request right.
 - **A release is cut when the owner says "release"**, with `scripts/release.py`: `prepare minor` (something a user would
   notice) or `prepare patch` (fixes only) writes the number and marks the changelog; that goes through a pull request
   like any change; after the merge, `publish` tags it and makes the GitHub release. Below 1.0 until the repo is public.

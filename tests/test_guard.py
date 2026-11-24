@@ -25,6 +25,7 @@ PUBLISHER = {
     "mac/Sources/Spliced/AppDelegate.swift": "the Help link",
     "mac/Sources/Spliced/Debug.swift": "notification names under the app's identifier",
     "mac/scripts/snap.swift": "notification names under the app's identifier",
+    ".github/workflows/docs.yml": "the website's repository, which it tells when the tool changes",
 }
 
 

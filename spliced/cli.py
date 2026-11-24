@@ -88,13 +88,36 @@ def version():
     return number + (f" (build {build})" if build else "")
 
 
+INIT_HELP = """spliced init [<folder>] [--name "<name>"]
+
+Start a new project in a folder (default: here): spliced.json and an empty library. The folder is made if it isn't
+there; a folder that is already a project is left alone. --name sets the project's name (default: the folder's)."""
+
+
 def init(args, quiet=False):
     """A new project: the marker file, the taxonomy every breakdown is checked against, and empty places for the rest."""
-    root = os.path.abspath(os.path.expanduser(args[0] if args else "."))
+    folder, name, i = None, None, 0
+    while i < len(args):   # an option is never taken for the folder: `init --help` must not make a project called --help
+        a = args[i]
+        if a in ("-h", "--help", "help"):
+            return print(INIT_HELP)
+        if a == "--name" and i + 1 < len(args):
+            name, i = args[i + 1], i + 2
+            continue
+        if a.startswith("--name="):
+            name = a.split("=", 1)[1]
+        elif a.startswith("-"):
+            sys.exit(f"spliced init: no option called {a!r}\n\n{INIT_HELP}")
+        elif folder is None:
+            folder = a
+        else:
+            sys.exit(f"spliced init: one folder only, not {folder!r} and {a!r}\n\n{INIT_HELP}")
+        i += 1
+    root = os.path.abspath(os.path.expanduser(folder or "."))
     marker = os.path.join(root, locate.MARKER)
     if os.path.exists(marker):
         sys.exit(f"Spliced: {root} is already a project")
-    name = next((args[i + 1] for i, a in enumerate(args) if a == "--name" and i + 1 < len(args)), None) or os.path.basename(root)
+    name = name or os.path.basename(root)
     template = os.path.join(HERE, "templates", "project")
     for d, _, files in os.walk(template):
         for f in files:

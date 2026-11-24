@@ -81,6 +81,26 @@ class Cli(unittest.TestCase):
         code, out = self.run_cli("board", "show", "First", cwd=new)
         self.assertIn("Profile: soft", out)
 
+    def test_init_never_takes_an_option_for_the_folder(self):
+        where = os.path.join(os.path.dirname(self.root), "init-options")
+        os.makedirs(where)
+        for args in (("--help",), ("-h",), ("help",), ("mine", "--help")):
+            code, out = self.run_cli("init", *args, cwd=where)
+            self.assertEqual(code, 0, out)
+            self.assertIn("spliced init [<folder>]", out)
+        for args in (("--nmae", "x"), ("a", "b")):
+            code, out = self.run_cli("init", *args, cwd=where)
+            self.assertNotEqual(code, 0, args)
+        self.assertEqual(os.listdir(where), [], "help and mistakes make nothing")
+        code, out = self.run_cli("init", "--name", "Ours", "mine", cwd=where)
+        self.assertEqual(code, 0, out)
+        with open(os.path.join(where, "mine", "spliced.json")) as f:
+            self.assertEqual(json.load(f)["name"], "Ours")
+        code, out = self.run_cli("init", "theirs", "--name=Theirs", cwd=where)
+        self.assertEqual(code, 0, out)
+        with open(os.path.join(where, "theirs", "spliced.json")) as f:
+            self.assertEqual(json.load(f)["name"], "Theirs")
+
     def test_agents_install_puts_the_skills_where_an_agent_looks(self):
         code, out = self.run_cli("--project", self.root, "agents", "install")
         self.assertEqual(code, 0, out)

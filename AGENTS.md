@@ -30,6 +30,7 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
 | `package.json`, `bin/spliced.js` | The npm package `spliced-app`: the `spliced/` package plus a Node launcher that finds a Python (or uv) and runs it. Under npx it sets `SPLICED_VIA`, so what Spliced writes for agents names `npx -y spliced-app` |
 | `mac/` | The Mac app: a native window per project around the same server and page (`mac/README.md`). Swift, built by `mac/build.sh` |
 | `tests/` | Unit tests, `smoke.py` (a real browser), and `fixture/`, the tiny project they run on. `perf.py` measures the app on a synthetic library of 600 and 5,000 scenes |
+| `scripts/readme_shots.py`, `docs/readme/` | The README's pictures of the app, taken on a made-up project (the example film's made-up Acme film), never a real library |
 
 ## Rules
 

@@ -9,6 +9,29 @@ answers your notes. Everything stays in a folder on your machine.
 
 **Status: pre-release.** It works, it is tested, and it is still being shaped. Expect names to move.
 
+![The Library: every scene of every film you have added, with its moves named](docs/readme/library.jpg)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/readme/scene.jpg" alt="A scene open beside the Library, with its player, timeline and breakdown"></td>
+    <td width="50%"><img src="docs/readme/search.jpg" alt="Search across scenes, films, boards and moves"></td>
+  </tr>
+  <tr>
+    <td><b>A scene, read closely.</b> Play it frame by frame, see where it sits in its film, and read how it moves and how to make it.</td>
+    <td><b>Find it in seconds.</b> One search across scenes, films, board beats and named moves.</td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/readme/board.jpg" alt="A board: borrowed scenes in order, each with its words and a note"></td>
+    <td width="50%"><img src="docs/readme/build.jpg" alt="Build: a render of your film beside the scene each beat borrows from"></td>
+  </tr>
+  <tr>
+    <td><b>Board it.</b> Line up the scenes you want to borrow and write the script beside them.</td>
+    <td><b>Build it.</b> Your film, beat by beat, next to the reference each beat came from. Leave a note on a frame and your AI picks it up.</td>
+  </tr>
+</table>
+
+The pictures are of a made-up film for a made-up company, drawn in code. Nothing in them is anyone's real work.
+
 ## Start
 
 Open your AI (Claude Code, Codex, Cursor or Gemini CLI) in a new, empty folder and paste this:
@@ -171,6 +194,9 @@ uv run tests/smoke.py                  # the app in a real browser, on the fixtu
 
 `AGENTS.md` has the rules for changing the tool. The tests run on `tests/fixture`, a tiny project made by
 `tests/make_fixture.py`; they never touch a project of yours.
+
+The pictures at the top of this file are taken by `uv run scripts/readme_shots.py`, on a project it makes up in a
+temporary folder. Run it again after a change to how the app looks.
 
 ## How Spliced is published
 

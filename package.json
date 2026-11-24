@@ -1,6 +1,5 @@
 {
   "name": "spliced-app",
-  "private": true,
   "version": "0.1.0",
   "description": "A workshop for motion design: study the films you love scene by scene, name their moves, and build your own films from them with your AI.",
   "license": "Apache-2.0",
@@ -8,7 +7,10 @@
     "type": "git",
     "url": "git+https://github.com/multiplyco/spliced.git"
   },
-  "homepage": "https://github.com/multiplyco/spliced#readme",
+  "homepage": "https://spliced.video",
+  "bugs": {
+    "url": "https://github.com/multiplyco/spliced/issues"
+  },
   "keywords": [
     "motion design",
     "video",

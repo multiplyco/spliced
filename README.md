@@ -7,39 +7,33 @@ Spliced is a local app, a set of pipelines and a few skills. It does no AI work 
 today; others through the same plain commands) reads the films, writes the breakdowns, builds the film and
 answers your notes. Everything stays in a folder on your machine.
 
-**Status: pre-release.** It works, it is tested, and it is still being shaped. Expect names to move.
+**Status: early.** It works, it is tested, and it is still being shaped. Expect names to move.
 
 ## Start
 
-Spliced is in internal testing: it is installed from this repository, which you need access to.
-
 Open your AI (Claude Code, Codex, Cursor or Gemini CLI) in a new, empty folder and paste this:
 
-> Set up Spliced in this folder. Install it with `uv tool install git+https://github.com/multiplyco/spliced` (if uv
-> is missing, install it first: https://docs.astral.sh/uv/getting-started/installation/), then run `spliced setup`.
-> Then fix what `spliced doctor` marks ✗, telling me what each fix installs before you run it, and leave the lines
-> marked · alone. Finish by telling me what to do next.
+> Set up Spliced in this folder: run `npx -y spliced-app setup`. If `npx` isn't found, install Node.js first. If it
+> says uv is missing, install uv the way it tells you and run it again. Then fix what `npx -y spliced-app doctor`
+> marks ✗, telling me what each fix installs before you run it, and leave the lines marked · alone. Finish by telling
+> me what to do next.
 
 About a minute later you have a project, your AI has Spliced's skills and tools, the example film is rendered, and
 the app is open in your browser. `setup` is safe to run again: it only does what is still missing, and after an
 update of Spliced it brings the project's skills and film kit up to date.
 
-By hand it is the same two commands: the `uv tool install` above, then `spliced setup my-films`.
+By hand it is the same one command: `npx -y spliced-app setup my-films`.
 
-**What it needs.** macOS or Linux (Windows is not supported yet). [uv](https://docs.astral.sh/uv/getting-started/installation/),
-which installs Spliced, runs its tools and fetches Python for them. [Node.js](https://nodejs.org/en/download) 18 or
-newer, for rendering. To add films from a link you also want `ffmpeg` and `yt-dlp`: `spliced doctor` gives the
-command for your machine (with no Homebrew, `uv tool install static-ffmpeg` needs no password). Nothing else is
-required: no account with a service, no service key.
-
-**To update:** `uv tool upgrade spliced-app`, then `spliced setup` in your project. Spliced does not tell you about
-new versions yet (see Updates).
-
-**Not yet:** `npx spliced-app` and `npm install -g spliced-app`. The npm package is not published, and until it is,
-that name on npm is not Spliced: do not install it.
+**What it needs.** macOS or Linux (Windows is not supported yet). [Node.js](https://nodejs.org/en/download) 18 or
+newer, for the command above and for rendering. [uv](https://docs.astral.sh/uv/getting-started/installation/), which
+runs Spliced's tools and fetches Python for them. To add films from a link you also want `ffmpeg` and `yt-dlp`:
+`spliced doctor` gives the command for your machine (with no Homebrew, `uv tool install static-ffmpeg` needs no
+password). Nothing else is required: no account, no service key.
 
 Other ways in:
 
+- **Installed once**: `npm install -g spliced-app` gives you a `spliced` command, then `spliced setup my-films`.
+- **Without npm**: `uv tool install git+https://github.com/multiplyco/spliced` gives the same `spliced` command.
 - **The Mac app**: download `Spliced-<version>.dmg` from the latest release (see [mac/README.md](mac/README.md)). It
   opens each project in its own window and carries the engine inside it, so no terminal is needed.
 - **From a checkout**, to work on Spliced itself:
@@ -161,15 +155,12 @@ optional:
 
 ## Updates
 
-**During internal testing Spliced does not look for updates**, and asks nothing of anyone: you are told when there
-is a new version, and `uv tool upgrade spliced-app` gets it. Afterwards, `spliced setup` brings a project's copies of
-Spliced's files (the skills, the film kit) up to date.
-
-Once Spliced is published this switches on: once a day, a running Spliced asks the npm registry for the newest version
-number. The request carries nothing about you or your project. When a newer one is out, the app shows Update in the
-tab strip with the command that gets it, and `spliced doctor` says so. `spliced update` asks now. To turn it off:
-`"updates": false` in `spliced.json`, or `SPLICED_NO_UPDATE_CHECK=1`. The Mac app checks for itself and installs the
-update.
+Once a day, a running Spliced asks the npm registry for the newest version number. The request carries nothing about
+you or your project. When a newer one is out, the app shows Update in the tab strip with the command that gets it,
+and `spliced doctor` says so. `spliced update` asks now. To turn it off: `"updates": false` in `spliced.json`, or
+`SPLICED_NO_UPDATE_CHECK=1`. Run through `npx`, Spliced is the newest each time it starts. After an update,
+`spliced setup` brings a project's copies of Spliced's files (the skills, the film kit) up to date. The Mac app
+checks for itself and installs the update.
 
 ## Working on Spliced
 
@@ -181,19 +172,16 @@ uv run tests/smoke.py                  # the app in a real browser, on the fixtu
 `AGENTS.md` has the rules for changing the tool. The tests run on `tests/fixture`, a tiny project made by
 `tests/make_fixture.py`; they never touch a project of yours.
 
-## Going public
+## How Spliced is published
 
-Spliced is private until its owner releases it, and nothing in this repo can publish it by accident:
+- **npm**: the package `spliced-app`, published by a person from a release's tag (`npm publish`). No workflow
+  publishes anything or starts on its own with write access; the Mac app's release build runs only by hand.
+- **Not on PyPI.** `pyproject.toml` carries the classifier `Private :: Do Not Upload`, which PyPI refuses, so a
+  package of that name there is not Spliced. `uv tool install` takes it from this repository instead.
+- The update check asks npm about `spliced-app` only while the package is published (`updates.PUBLISHED`, held to
+  `package.json` by `tests/test_guard.py`).
 
-- `package.json` (the npm package `spliced-app`) has `"private": true`, which npm refuses to publish.
-- Spliced asks no registry about that name until it is published (`updates.PUBLISHED`).
-- `pyproject.toml` has the classifier `Private :: Do Not Upload`, which PyPI refuses.
-- No workflow publishes anything or starts on its own with write access; the Mac app's release build runs only by hand.
-- `tests/test_guard.py` (`NothingGoesPublic`) fails if any of that changes.
-
-Going public is one deliberate pull request that removes these locks, publishes the package and switches the update
-check on, and then making this repository public. It was started without the history of Spliced's private
-development, for that day.
+This repository was started without the history of Spliced's private development.
 
 ## Your responsibility
 

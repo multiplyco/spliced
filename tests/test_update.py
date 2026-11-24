@@ -58,6 +58,8 @@ class Update(unittest.TestCase):
             self.assertEqual((u["off"], u["published"], u["command"], u["latest"]), (True, False, "", None))
             self.assertFalse(os.path.exists(os.path.join(self.root, ".cache", "update.json")), "nothing was asked")
             self.assertNotIn("spliced-app", r.stdout, "no command that names a package that isn't ours yet")
+        else:   # (this copy runs from a git checkout, which is never asked about: git knows)
+            self.assertEqual((u["published"], u["kind"], u["off"]), (True, "checkout", True))
 
     def test_it_can_be_turned_off_and_an_unreachable_registry_is_no_error(self):
         u = json.loads(self.update("--json", SPLICED_NO_UPDATE_CHECK="1"))

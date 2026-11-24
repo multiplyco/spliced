@@ -95,9 +95,9 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
   are extras, each from any provider (a service Spliced calls, one the person's AI is connected to, or a file the
   person brings). The doctor, the skills and the kit's docs must not read as if one service were needed, and a new
   provider is a recipe in the kit's docs plus, at most, a key in `apikeys.py`.
-- **Spliced goes online for itself once a day, and says so**, but only once it is published (`updates.PUBLISHED`,
-  held to package.json's `private` by `tests/test_guard.py`): until then the package's name isn't ours, so nothing
-  asks the registry about it and nothing tells a person to install it. Then: one request for the newest version number
+- **Spliced goes online for itself once a day, and says so**, and only while it is published (`updates.PUBLISHED`,
+  held to package.json's `private` by `tests/test_guard.py`): a package name that isn't ours is never asked about and
+  never offered to a person to install. One request for the newest version number
   (`updates.py`), nothing about the person or the project, switched off by `"updates": false` in spliced.json or
   `SPLICED_NO_UPDATE_CHECK`. The doctor only reports what that learned. Anything else that would phone home needs the
   same: said in the README, and a switch.

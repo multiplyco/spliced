@@ -102,6 +102,13 @@ class NothingGoesPublic(unittest.TestCase):
         with open(os.path.join(support.REPO, "pyproject.toml")) as f:
             self.assertIn('"Private :: Do Not Upload"', f.read(), "pyproject.toml: PyPI refuses this classifier")
 
+    def test_nothing_asks_the_registry_before_the_package_is_ours(self):
+        # the update check names the package: it stays off for as long as the package is not published
+        import updates
+        with open(os.path.join(support.REPO, "package.json")) as f:
+            private = json.load(f).get("private") is True
+        self.assertEqual(updates.PUBLISHED, not private, "updates.PUBLISHED and package.json's \"private\" change together, in the pull request that publishes")
+
     def test_no_workflow_publishes_or_runs_on_its_own_with_write_access(self):
         publish = re.compile(r"npm publish|pnpm publish|yarn publish|uv publish|twine upload|gh-action-pypi-publish|"
                              r"gh repo edit|--visibility|deploy-pages|upload-pages-artifact|wrangler|vercel|netlify|docker push", re.I)

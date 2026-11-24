@@ -46,6 +46,19 @@ class Update(unittest.TestCase):
         self.assertEqual((u["newer"], u["latest"]), (False, "0.0.0"))
         self.assertIn("is the newest", self.update("--known"))
 
+    def test_until_it_is_published_nothing_is_asked_and_no_install_command_is_shown(self):
+        # without the stand-in address, the real registry would be asked: before publishing, it never is
+        e = {k: v for k, v in os.environ.items() if not k.startswith(("SPLICED_", "CUTTING_ROOM_"))}
+        r = subprocess.run([sys.executable, os.path.join(support.TOOLS, "cli.py"), "--project", self.root, "update", "--json"], env=e, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        u = json.loads(r.stdout)
+        sys.path.insert(0, support.TOOLS)
+        import updates
+        if not updates.PUBLISHED:
+            self.assertEqual((u["off"], u["published"], u["command"], u["latest"]), (True, False, "", None))
+            self.assertFalse(os.path.exists(os.path.join(self.root, ".cache", "update.json")), "nothing was asked")
+            self.assertNotIn("spliced-app", r.stdout, "no command that names a package that isn't ours yet")
+
     def test_it_can_be_turned_off_and_an_unreachable_registry_is_no_error(self):
         u = json.loads(self.update("--json", SPLICED_NO_UPDATE_CHECK="1"))
         self.assertEqual((u["off"], u["latest"]), (True, None))

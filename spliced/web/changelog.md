@@ -4,6 +4,8 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+<!-- release 1.0.0 2026-11-24 -->
+
 ## Spliced is on npm
 2026-11-24
 *One line sets Spliced up: `npx -y spliced-app setup`. Nothing to clone.*

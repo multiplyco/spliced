@@ -1323,6 +1323,26 @@ function buildPrompt(name) {
     "Read each scene's section in its breakdown before building that beat. Where a beat names a moment (`film/sNN @ 0:42.51`), that exact frame is what the person means: look at it first.", "", boardMarkdown(name),
   ].join("\n");
 }
+/* A whole reference film as one prompt: recreate it as closely as possible, scene by scene, in its own look rather
+   the project's (the make-film skill's "A study of one film"). The board and film it asks for pair every beat with
+   its scene in Build. */
+function filmBrief(slug) {
+  const f = FILMS[slug], sig = f.style_signature || {}, board = `Study: ${f.title}`, film = `${slug}-study`;
+  const tempo = f.tempo ? [[f.tempo.bpm && `${Math.round(f.tempo.bpm)} bpm`, f.tempo.avg_shot_s && `a cut every ${f.tempo.avg_shot_s}s on average`].filter(Boolean).join(", "), f.tempo.notes].filter(Boolean).join(". ") : "";
+  return [
+    `/make-film Recreate the reference film "${f.title}" (${f.brand}) as closely as you can, in remotion/.`,
+    `Match it scene by scene: the same scenes in the same order, each the same length, with the same framing, layout, type, palette, copy, motion, cuts and pacing. This is a study of the film: don't move it into the project's house style, brand or motion profile, and don't add what it doesn't have. Follow "A study of one film" in the make-film skill.`,
+    `Set it up so Spliced pairs every beat with its scene: ${SP.cmd("board")} new "${board}" --from-film ${slug}, then ${SP.cmd("film")} new ${film} --board "${board}" (skip whichever already exists). Build then plays each beat beside the scene it recreates; compare them with ${SP.cmd("film")} sheet ${film} --beat <id> and fix what differs before marking a beat review.`,
+    `The reference: ${f.file}, ${ts(f.duration)}, ${f.format || ""}${f.fps ? `, ${f.fps} fps` : ""}. Its breakdown: library/references/${slug}/breakdown.md. Each scene's frames: library/references/${slug}/scenes/<id>.jpg. Look at a scene's frames before building it.`,
+    "", `# Film: ${f.title}`, "",
+    f.summary || "",
+    "", sig.palette?.length ? `**Palette:** ${sig.palette.map((p) => `${p.hex}${p.name ? ` (${p.name})` : ""}`).join(", ")}` : "",
+    ...Object.entries(sig).filter(([k]) => k !== "palette").map(([k, v]) => `**${k[0].toUpperCase() + k.slice(1).replace(/_/g, " ")}:** ${typeof v === "string" ? v : JSON.stringify(v)}`),
+    tempo ? `**Tempo:** ${tempo}` : "", f.structure ? `**Structure:** ${f.structure}` : "",
+    ...(f.signature_moves?.length ? ["", "## Signature moves", "", ...f.signature_moves.map((m) => `- **${m.name}** (${(m.scenes || []).join(", ")}): ${m.description}${m.recreate ? ` Recreate: ${m.recreate}` : ""}`)] : []),
+    "", `## Scenes (${f.scenes.length})`, "", ...f.scenes.flatMap((s) => [brief(s, true), ""]),
+  ].filter((x, i, a) => x !== "" || a[i - 1] !== "").join("\n");
+}
 async function startFilm(name) {
   if (!server) { toast(`Run ${SP.cmd("open")} to start a film`); return; }
   const b = state.boards[name];
@@ -1724,7 +1744,8 @@ function renderFilm(slug) {
   const page = h(`<div class="film-page">
     <div class="view-head"><h1><a class="crumb" href="#/films">Films</a><span class="sep">/</span><span class="nm">${esc(f.title)}</span></h1><span class="meta">${esc(f.brand)} · ${ts(f.duration)} · ${f.scenes.length} scenes</span><span class="spacer"></span>
       <button class="icon-btn sm sq ghost" data-a="moment" title="Save the frame the film is on as a moment (K)">${icon("bookmark-plus")}</button>
-      <button class="icon-btn sm ghost" data-a="filter">${icon("library-big")}Its scenes in Library</button></div>
+      <button class="icon-btn sm ghost" data-a="filter">${icon("library-big")}Its scenes in Library</button>
+      <button class="icon-btn sm primary" data-a="film-brief" title="Copy a prompt for ${esc(SP.ai)} to recreate this whole film as closely as it can, scene by scene">${icon("copy")}Copy build brief</button></div>
     <div class="hero"><video controls preload="metadata" src="${fileUrl(f.file)}"></video>
       <div><p class="summary">${esc(f.summary)}</p>
       ${sig.palette ? `<div class="swatches">${sig.palette.map((p) => `<span class="sw" data-c="${esc(p.hex)}" title="Copy ${esc(p.hex)}"><i style="background:${esc(p.hex)}"></i>${esc(p.name || p.hex)}</span>`).join("")}</div>` : ""}
@@ -1734,6 +1755,7 @@ function renderFilm(slug) {
     <div class="bigbar"></div><div class="grid"></div></div>`);
   main.append(page);
   page.querySelectorAll(".sw").forEach((sw) => (sw.onclick = () => copy(sw.dataset.c, `Copied ${sw.dataset.c}`)));
+  $('[data-a="film-brief"]', page).onclick = () => copy(filmBrief(slug), `Copied: paste it to ${SP.ai} to recreate ${f.title}`);
   $('[data-a="filter"]', page).onclick = () => { ui.filters = { film: new Set([slug]) }; ui.q = ""; ui.sort = "film"; location.hash = "#/scenes?" + filtersToQuery(); };
   const bar = $(".bigbar", page), hero = $(".hero video", page);
   for (const s of f.scenes) bar.append(h(`<div class="seg-s" style="left:${(s.start / f.duration) * 100}%;width:${((s.end - s.start) / f.duration) * 100}%;background:${ROLE_COL[s.role] || "#777"}">${s.end - s.start > f.duration / 30 ? s.id : ""}</div>`));

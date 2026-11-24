@@ -75,6 +75,10 @@ Assets view shows it.
   profile. Start the film with `spliced film new <slug> --board "<board>"` (skip if the board already has one: the
   Boards view's "start film" does the same), then go to step 1. If the project sorts its work into folders
   (`spliced folders`), the film goes in the board's folder, or the one you were opened in; `--folder` picks another.
+- **A film brief from Spliced** (a reference film's "Copy build brief", or "recreate this film"): a study, not a new
+  film. Make the board and the film from the reference (`spliced board new "Study: <title>" --from-film <ref>`, then
+  `spliced film new <slug> --board "Study: <title>"`), so each beat is one of its scenes and the Build view plays it
+  beside that scene. Then the goal is the reference, not the house: see "A study of one film" below.
 - **A beat prompt or notes prompt from the Build view:** the film exists. Run `spliced film status <slug>`, then do
   just that beat or those notes (step 4's loop).
 - **Only a brief or an idea:** ask for what's missing in one message: the feature or message, who it's for, where it
@@ -82,6 +86,22 @@ Assets view shows it.
   --news .. --length ..`, find candidates with `spliced board find`, add beats with copy and seconds, and
   `spliced board show-in-app "<name>"` so they see it in Spliced. Iterate on the script in the chat; they can edit in
   the app at the same time.
+
+## A study of one film
+
+When the person asks to recreate a reference film as closely as you can, match what you see and change nothing to
+suit the project:
+- **Its look, not the house's.** Skip `HOUSE.md`, the project's brand and its motion profile for this film. Its
+  palette, type, stage, framing, copy and pacing come from the reference: the breakdown's palette and style signature,
+  and the frames (`library/references/<ref>/scenes/<id>.jpg`, `sheets/` when the analysis made them). Its own words
+  are the copy.
+- **Its motion.** Write a motion profile for this film in `remotion/src/profiles.ts` (named after it) whose curves and
+  durations match each scene's "How it moves", and build through it as usual, so `check:motion` still holds.
+- **Its screens from its frames.** Where it shows a product, rebuild that UI in code as it looks in the frames: §3's
+  "from its own source" is for the project's own product.
+- **Same scenes, same lengths.** Keep the beats as the board has them, one per scene. Compare every beat with its
+  scene in `spliced film sheet <slug> --beat <id>` and fix what differs (position, size, timing, colour) before marking
+  it review. Say what you could not match.
 
 ## 1. Brief
 

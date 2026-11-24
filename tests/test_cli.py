@@ -81,6 +81,18 @@ class Cli(unittest.TestCase):
         code, out = self.run_cli("board", "show", "First", cwd=new)
         self.assertIn("Profile: soft", out)
 
+    def test_a_board_can_hold_a_whole_reference_film(self):
+        code, out = self.run_cli("--project", self.root, "board", "new", "Study: Demo two", "--from-film", "demo-two")
+        self.assertEqual(code, 0, out)
+        with open(os.path.join(self.root, "library", "state.json")) as f:
+            b = json.load(f)["boards"]["Study: Demo two"]
+        self.assertEqual([(i["id"], i["beat"], i["seconds"]) for i in b["items"]],
+                         [("demo-two/s01", "hook", 1.0), ("demo-two/s02", "demo", 1.0), ("demo-two/s03", "end-card", 1.0)], "every scene, in order, its role and length")
+        self.assertEqual((b["brief"]["length"], b["brief"]["aspect"]), (3.0, "16:9"))
+        code, out = self.run_cli("--project", self.root, "board", "new", "Nothing", "--from-film", "no-such-film")
+        self.assertNotEqual(code, 0)
+        self.assertIn("no film called no-such-film", out)
+
     def test_agents_install_puts_the_skills_where_an_agent_looks(self):
         code, out = self.run_cli("--project", self.root, "agents", "install")
         self.assertEqual(code, 0, out)

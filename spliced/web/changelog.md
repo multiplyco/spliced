@@ -4,6 +4,24 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+## Recreate a whole film
+2026-11-24
+*A reference film's page has Copy build brief: one prompt for your AI to rebuild the film as closely as it can.*
+
+The brief holds the whole breakdown: every scene with its timing, what is on screen, how it moves and how to recreate
+it, and the film's palette, type, tempo and signature moves. It asks for a study, not a restyle: the same scenes in the
+same order and length, in the film's own look rather than your project's house style. Your AI starts it as a board of
+every scene (`board new "<name>" --from-film <film>`) and a film from that board, so Build plays each beat beside the
+scene it recreates.
+
+## What came in stays in the corner
+2026-11-24
+*When a film or an upload finishes, the panel in the bottom corner keeps saying so until you close it.*
+
+It used to fold away after a few seconds, so a film that finished while you looked elsewhere went by unseen. Now each
+finished import or analysis stays, with Open to go straight to it, also after you reload the page. Close one with its
+own ×, or all of them with the panel's.
+
 <!-- release 1.0.0 2026-11-24 -->
 
 ## Spliced is on npm

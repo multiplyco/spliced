@@ -4,6 +4,8 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+<!-- release 0.1.0 2026-11-24 -->
+
 ## The example film shows only made-up material
 2026-11-24
 *The introduction film and the example film no longer show frames of a real brand film: the film they study is made up.*

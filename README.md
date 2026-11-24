@@ -7,7 +7,7 @@ Spliced is a local app, a set of pipelines and a few skills. It does no AI work 
 today; others through the same plain commands) reads the films, writes the breakdowns, builds the film and
 answers your notes. Everything stays in a folder on your machine.
 
-**Status: early.** It works, it is tested, and it is still being shaped. Expect names to move.
+**Status: pre-release.** It works, it is tested, and it is still being shaped. Expect names to move.
 
 ## Start
 

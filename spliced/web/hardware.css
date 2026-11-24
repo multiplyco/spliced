@@ -1,0 +1,146 @@
+/* =====================================================================================================================
+   Studio hardware: the tactile controls of the Build view (keys, a slide switch, knobs). A kit of its own, with its own
+   classes (hw-*), so the app's shared buttons and segmented controls stay as the brand has them.
+   One light, from the top, for every control. Depth comes from tone inside one neutral: a lit top edge, a shaded bottom
+   edge, a contact shadow and a soft ambient one. Wells are recessed, with a lip that catches the light underneath.
+   Volt appears only as a small fill that means "this one" (a lit pip, a lit stop). No blooms: a pip's halo is 4 px.
+   Grit is a fine noise inside the caps; Settings' grain switch turns it off with the page grain (html.no-grain).
+   Behaviour (drag, keys, ARIA) is hardware.js. The specimen sheet is hardware.html.
+   ===================================================================================================================== */
+:root, .dark {
+  --hw-cap: linear-gradient(180deg, #414145 0%, #313134 47%, #2a2a2d 53%, #222225 100%);   /* a faint horizon half way down: the gloss */
+  --hw-cap-up: linear-gradient(180deg, #4a4a4e 0%, #37373b 47%, #2f2f32 53%, #27272a 100%);    /* under the pointer: a little more light */
+  --hw-cap-dn: linear-gradient(180deg, #1f1f22 0%, #27272a 55%, #2b2b2e 100%);    /* pressed: the light falls into it */
+  --hw-sh: inset 0 1px 0 rgb(255 255 255 / 0.17), inset 0 -1px 0 rgb(0 0 0 / 0.42), 0 0 0 1px rgb(0 0 0 / 0.72), 0 1px 1px rgb(0 0 0 / 0.55), 0 3px 5px -1px rgb(0 0 0 / 0.6);
+  --hw-sh-dn: inset 0 1px 2px rgb(0 0 0 / 0.6), inset 0 -1px 0 rgb(255 255 255 / 0.05), 0 0 0 1px rgb(0 0 0 / 0.72), 0 0 0 rgb(0 0 0 / 0), 0 1px 1px -1px rgb(0 0 0 / 0.3);
+  --hw-well: #050506;
+  --hw-well-sh: inset 0 1px 3px rgb(0 0 0 / 0.95), inset 0 0 0 1px rgb(0 0 0 / 0.65), 0 1px 0 rgb(255 255 255 / 0.075), 0 0 0 1px rgb(255 255 255 / 0.025);
+  --hw-ink: var(--splice-text);
+  --hw-ink-2: var(--splice-text-secondary);
+  --hw-ink-3: var(--splice-text-tertiary);
+  --hw-groove-d: rgb(0 0 0 / 0.6);
+  --hw-groove-l: rgb(255 255 255 / 0.11);
+  --hw-arc: var(--splice-s300);
+  --hw-arc-off: var(--splice-g700);
+  --hw-lit: var(--splice-accent);
+  --hw-lit-sh: 0 0 4px rgb(223 255 26 / 0.6), inset 0 0 0 0.5px rgb(0 0 0 / 0.25);
+  --hw-led-off: #19191b;
+  --hw-led-off-sh: inset 0 1px 1px rgb(0 0 0 / 0.8), 0 1px 0 rgb(255 255 255 / 0.06);
+  --hw-grit: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.7' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --hw-grit-mode: overlay;
+  --hw-dur: var(--splice-dur-ui, 160ms);
+  --hw-ease: var(--splice-ease-ui, cubic-bezier(0.3, 0, 0.2, 1));
+}
+html:not(.dark) {
+  --hw-cap: linear-gradient(180deg, #ffffff 0%, #f4f4f6 47%, #ececef 53%, #e2e2e5 100%);
+  --hw-cap-up: linear-gradient(180deg, #ffffff 0%, #f9f9fa 47%, #f1f1f3 53%, #e8e8eb 100%);
+  --hw-cap-dn: linear-gradient(180deg, #dcdce0 0%, #e6e6e9 55%, #ececee 100%);
+  --hw-sh: inset 0 1px 0 rgb(255 255 255 / 1), inset 0 -1px 0 rgb(11 11 12 / 0.1), 0 0 0 1px rgb(11 11 12 / 0.16), 0 1px 1px rgb(11 11 12 / 0.16), 0 3px 5px -1px rgb(11 11 12 / 0.2);
+  --hw-sh-dn: inset 0 1px 2px rgb(11 11 12 / 0.22), inset 0 -1px 0 rgb(255 255 255 / 0.7), 0 0 0 1px rgb(11 11 12 / 0.16), 0 0 0 rgb(11 11 12 / 0), 0 1px 1px -1px rgb(11 11 12 / 0.1);
+  --hw-well: #d6d6da;
+  --hw-well-sh: inset 0 1px 3px rgb(11 11 12 / 0.3), inset 0 0 0 1px rgb(11 11 12 / 0.1), 0 1px 0 rgb(255 255 255 / 1), 0 0 0 1px rgb(255 255 255 / 0);
+  --hw-groove-d: rgb(11 11 12 / 0.22);
+  --hw-groove-l: rgb(255 255 255 / 0.95);
+  --hw-arc: var(--splice-s500);
+  --hw-arc-off: #b9b9be;
+  --hw-lit-sh: 0 0 0 1px rgb(11 11 12 / 0.45), 0 0 4px rgb(223 255 26 / 0.9);
+  --hw-led-off: #a9a9ae;
+  --hw-led-off-sh: inset 0 1px 1px rgb(11 11 12 / 0.35), 0 1px 0 rgb(255 255 255 / 0.9);
+  --hw-grit: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.7' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.4'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --hw-grit-mode: multiply;
+}
+html.no-grain, html.no-grain:not(.dark) { --hw-grit: none; }
+
+/* ---------- a bay: the recessed housing one or more keys sit in ---------- */
+.hw-bay { display: inline-flex; align-items: center; gap: 2px; flex: none; padding: 3px; border-radius: 12px; background: var(--hw-well); box-shadow: var(--hw-well-sh); }
+.hw-bay.round { border-radius: 50%; }
+
+/* ---------- a key: raised; a press travels 1 px and the shadow closes; .on stays down (latched) ---------- */
+.hw-key {
+  position: relative; display: inline-grid; place-items: center; flex: none; width: 32px; height: 30px; border-radius: 9px;
+  color: var(--hw-ink-2); background: var(--hw-grit), var(--hw-cap); background-size: 48px, auto; background-blend-mode: var(--hw-grit-mode), normal;
+  box-shadow: var(--hw-sh); -webkit-tap-highlight-color: transparent;
+  transition: transform var(--hw-dur) var(--hw-ease), box-shadow var(--hw-dur) var(--hw-ease), color var(--hw-dur) var(--hw-ease);
+}
+.hw-key .i { width: 15px; height: 15px; display: block; }
+.hw-key > span { display: grid; place-items: center; }
+.hw-key:hover, .hw-key.is-hover { color: var(--hw-ink); background-image: var(--hw-grit), var(--hw-cap-up); }
+.hw-key:active, .hw-key.is-active, .hw-key.on { color: var(--hw-ink); transform: translateY(1px); background-image: var(--hw-grit), var(--hw-cap-dn); box-shadow: var(--hw-sh-dn); }
+.hw-key.on:active, .hw-key.on.is-active { transform: translateY(1.5px); }
+.hw-key:disabled, .hw-key.is-disabled { opacity: 0.4; pointer-events: none; }
+.hw-bay.round .hw-key { width: 30px; border-radius: 50%; }
+/* keys that share a bay: square where they meet, so the seam is the well showing through */
+.hw-bay > .hw-key:not(:only-child):first-child { border-radius: 9px 4px 4px 9px; }
+.hw-bay > .hw-key:not(:only-child):last-child { border-radius: 4px 9px 9px 4px; }
+.hw-bay > .hw-key:not(:first-child):not(:last-child) { border-radius: 4px; }
+.hw-key.is-focus { outline: 2px solid var(--splice-focus-ring); outline-offset: 2px; }
+
+/* ---------- a pip: a small lamp, dark until its key (or it) is on ---------- */
+.hw-led { position: absolute; top: 4px; right: 4px; width: 4px; height: 4px; border-radius: 50%; background: var(--hw-led-off); box-shadow: var(--hw-led-off-sh); transition: background var(--hw-dur) var(--hw-ease), box-shadow var(--hw-dur) var(--hw-ease); pointer-events: none; }
+.hw-led.on, .on > .hw-led { background: var(--hw-lit); box-shadow: var(--hw-lit-sh); }
+
+/* ---------- a slide switch: a recessed track, the options printed in it, a ribbed cap that slides over the chosen one ---------- */
+.hw-slide {
+  --n: 2; --i: 0;
+  position: relative; display: inline-grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); flex: none; height: 36px; padding: 3px; border-radius: 12px;
+  background: var(--hw-well); box-shadow: var(--hw-well-sh); user-select: none; -webkit-user-select: none; touch-action: pan-y;
+}
+.hw-slide > button { position: relative; z-index: 1; padding: 0 19px; border-radius: 9px; font-size: 12px; font-weight: 500; white-space: nowrap; color: var(--hw-ink-3); transition: color var(--hw-dur) var(--hw-ease); }
+.hw-slide > button:hover { color: var(--hw-ink-2); }
+.hw-slide > button.on { color: var(--hw-ink); }
+.hw-thumb {
+  position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--n)); border-radius: 9px;
+  background: var(--hw-grit), var(--hw-cap); background-size: 48px, auto; background-blend-mode: var(--hw-grit-mode), normal; box-shadow: var(--hw-sh);
+  transform: translateX(calc(100% * var(--i))); transition: transform var(--hw-dur) var(--hw-ease), box-shadow var(--hw-dur) var(--hw-ease);
+}
+/* the grip: three grooves at each end of the cap (a dark line with a lit edge beside it) */
+.hw-thumb::before, .hw-thumb::after { content: ""; position: absolute; top: 50%; width: 8px; height: 12px; margin-top: -6px; background: repeating-linear-gradient(90deg, var(--hw-groove-d) 0 1px, var(--hw-groove-l) 1px 2px, transparent 2px 3px); }
+.hw-thumb::before { left: 6px; }
+.hw-thumb::after { right: 5px; }
+.hw-slide:active .hw-thumb, .hw-slide.is-active .hw-thumb, .hw-slide.dragging .hw-thumb { background-image: var(--hw-grit), var(--hw-cap-up); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.17), inset 0 -1px 0 rgb(0 0 0 / 0.42), 0 0 0 1px rgb(0 0 0 / 0.72), 0 1px 1px rgb(0 0 0 / 0.55), 0 1px 2px -1px rgb(0 0 0 / 0.6); }
+html:not(.dark) .hw-slide:active .hw-thumb, html:not(.dark) .hw-slide.is-active .hw-thumb, html:not(.dark) .hw-slide.dragging .hw-thumb { box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgb(11 11 12 / 0.1), 0 0 0 1px rgb(11 11 12 / 0.16), 0 1px 1px rgb(11 11 12 / 0.16), 0 1px 2px -1px rgb(11 11 12 / 0.2); }
+.hw-slide.dragging .hw-thumb { transition: box-shadow var(--hw-dur) var(--hw-ease); cursor: grabbing; }
+.hw-slide.dragging { cursor: grabbing; }
+
+/* ---------- a knob: a cap in a round well; only the pointer and the knurl turn, so the light stays where it is ----------
+   --a is the pointer's angle and --v the value from 0 to 1 (hardware.js sets both). A plain knob shows its level as an
+   arc in the well; a detent knob shows its stops as pips, the chosen one lit. */
+.hw-knob { --a: 0deg; --v: 0; display: inline-flex; align-items: center; gap: 8px; flex: none; height: 36px; outline: none; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent; }
+.hw-knob.turning { cursor: grabbing; }
+.hw-dial { position: relative; flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--hw-well); box-shadow: var(--hw-well-sh); }
+.hw-knob:focus-visible .hw-dial, .hw-knob.is-focus .hw-dial { outline: 2px solid var(--splice-focus-ring); outline-offset: 2px; }
+.hw-ring { position: absolute; inset: 2.5px; border-radius: 50%; background: conic-gradient(from 225deg, var(--hw-arc) calc(var(--v) * 270deg), var(--hw-arc-off) 0 270deg, transparent 0); -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); mask: radial-gradient(closest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); transition: opacity var(--hw-dur) var(--hw-ease); }
+.hw-knob.detent .hw-ring { display: none; }
+.hw-stop { position: absolute; left: 50%; top: 50%; width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px; border-radius: 50%; background: var(--hw-led-off); box-shadow: var(--hw-led-off-sh); transform: rotate(var(--sa)) translateY(-14.5px); transition: background var(--hw-dur) var(--hw-ease), box-shadow var(--hw-dur) var(--hw-ease); }
+.hw-stop.on { background: var(--hw-lit); box-shadow: var(--hw-lit-sh); }
+.hw-cap { position: absolute; inset: 6.5px; border-radius: 50%; background: radial-gradient(90% 60% at 50% 0%, rgb(255 255 255 / 0.1), transparent 70%), var(--hw-grit), var(--hw-cap); background-size: auto, 48px, auto; background-blend-mode: normal, var(--hw-grit-mode), normal; box-shadow: var(--hw-sh); transition: box-shadow var(--hw-dur) var(--hw-ease); }
+.hw-knob:hover .hw-cap, .hw-knob.is-hover .hw-cap { background-image: radial-gradient(90% 60% at 50% 0%, rgb(255 255 255 / 0.1), transparent 70%), var(--hw-grit), var(--hw-cap-up); }
+.hw-knob.turning .hw-cap, .hw-knob.is-active .hw-cap { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.17), inset 0 -1px 0 rgb(0 0 0 / 0.42), 0 0 0 1px rgb(0 0 0 / 0.72), 0 1px 1px rgb(0 0 0 / 0.55), 0 1px 2px -1px rgb(0 0 0 / 0.6); }
+html:not(.dark) .hw-knob.turning .hw-cap, html:not(.dark) .hw-knob.is-active .hw-cap { box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgb(11 11 12 / 0.1), 0 0 0 1px rgb(11 11 12 / 0.16), 0 1px 1px rgb(11 11 12 / 0.16), 0 1px 2px -1px rgb(11 11 12 / 0.2); }
+.hw-ptr { position: absolute; inset: 6.5px; border-radius: 50%; transform: rotate(var(--a)); transition: transform var(--hw-dur) var(--hw-ease); pointer-events: none; }
+.hw-knob.turning:not(.detent) .hw-ptr { transition: none; }
+/* the pointer: a short engraved line near the rim */
+.hw-ptr::before { content: ""; position: absolute; left: 50%; top: 3px; width: 2px; height: 7px; margin-left: -1px; border-radius: 1px; background: var(--hw-ink); box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.35); transition: background var(--hw-dur) var(--hw-ease); }
+/* the knurl: fine ridges round the rim that turn with the pointer */
+.hw-ptr::after { content: ""; position: absolute; inset: 1px; border-radius: 50%; background: repeating-conic-gradient(from 0deg, var(--hw-groove-d) 0 3deg, transparent 3deg 6deg, var(--hw-groove-l) 6deg 9deg, transparent 9deg 15deg); -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); mask: radial-gradient(closest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); opacity: 0.55; }
+.hw-read { min-width: 34px; font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--hw-ink-2); }
+/* a knob that has nothing to act on (the monitor level while the sound is off): the arc and pointer go quiet */
+.hw-knob.idle .hw-ring { opacity: 0.35; }
+.hw-knob.idle .hw-ptr::before { background: var(--hw-ink-3); }
+.hw-knob[aria-disabled="true"] { opacity: 0.4; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hw-key, .hw-thumb, .hw-ptr, .hw-led, .hw-stop, .hw-cap { transition: none; }
+}
+
+/* ---------- in the Build transport: a little air round each piece of hardware; the rest of the bar stays as it was ---------- */
+.bx-tr { row-gap: 8px; justify-content: flex-end; }   /* a second row, when there is one, lines up under the right-hand controls */
+.bx-tr > .hw-bay, .bx-tr > .hw-slide { margin: 0 1px; }
+.bx-tr > .hw-bay.round { margin-left: 0; }
+.bx-tr > .hw-knob { margin: 0 1px 0 3px; }
+/* sound, level and full screen stay together: on a narrow bar they move to the second row as one */
+.bx-tr > .bx-mon { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.bx-tr > .tc { min-width: 104px; }
+/* the hardware is wider than the flat buttons were, so the name of the beat under the playhead gives way first:
+   it takes the room that is left and shortens with an ellipsis (never below a readable stub), and the bar wraps after that */
+.bx-tr > .bx-now { flex: 1000 1 0; min-width: 84px; }

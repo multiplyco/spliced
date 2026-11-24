@@ -1,0 +1,399 @@
+{
+ "_note": "What made each asset. Keys are paths under remotion/public (what staticFile() takes). Spliced's Assets view reads this.",
+ "films/splice-explainer/frames/strip_02.00.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 2.0s (s02)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_02.70.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 2.7s (s02)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_03.40.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 3.4s (s02)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_04.10.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 4.1s (s03)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_04.80.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 4.8s (s03)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_05.50.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 5.5s (s04)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_06.20.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 6.2s (s04)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_06.90.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 6.9s (s05)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_07.60.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 7.6s (s05)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_08.30.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 8.3s (s05)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_09.00.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 9.0s (s06)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_09.70.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 9.7s (s06)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_10.40.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 10.4s (s07)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_11.10.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 11.1s (s07)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/strip_11.80.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", frame at 11.8s (s07)",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/brand/splice-appicon-ink.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-appicon-ink.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-appicon-volt.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-appicon-volt.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-appicon-white.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-appicon-white.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-build-black.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-build-black.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-build-volt.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-build-volt.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-build-white.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-build-white.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-loader-black.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-loader-black.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-loader-volt.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-loader-volt.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-loader-white-volt.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-loader-white-volt.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-loader-white.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-loader-white.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-lockup-horizontal-black.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-lockup-horizontal-black.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-lockup-horizontal-volt.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-lockup-horizontal-volt.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-lockup-horizontal-white.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-lockup-horizontal-white.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-lockup-stacked-black.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-lockup-stacked-black.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-lockup-stacked-volt.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-lockup-stacked-volt.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-lockup-stacked-white.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-lockup-stacked-white.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-mark-black.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-mark-black.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-mark-volt.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-mark-volt.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-mark-white.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-mark-white.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-sink-black.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-sink-black.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-sink-volt.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-sink-volt.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-sink-white.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-sink-white.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-wordmark-black.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-wordmark-black.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-wordmark-volt.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-wordmark-volt.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/brand/splice-wordmark-white.svg": {
+  "source": "design",
+  "label": "Spliced brand: splice-wordmark-white.svg",
+  "author": "Spliced kit (library/toolbox/brand)"
+ },
+ "films/splice-explainer/audio/score-deep-techno.mp3": {
+  "source": "code",
+  "label": "The film's score: take A cut on the end card plus a low final hit",
+  "note": "score.py, times in cues.json music"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s02.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s02: Title on black, liquid gradient blooms underneath",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/system-moves_s22.jpg": {
+  "source": "code",
+  "label": "Library frame: system-moves/s22 (Liquid glass pill appears (glass-pill))",
+  "author": "Made in code (the film kit's specimen of its moves)",
+  "license": "Ours: rendered from this repo's code",
+  "note": "Cut from the library's reference video by grab_frames.py, shown inside the rebuilt app"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s11.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s11: A row expands into a launch plan",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s04.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s04: \"A calmer way to run a launch\" with two live cursors",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s28.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s28: \"acme\" end card on near-black",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/system-moves_s19.jpg": {
+  "source": "code",
+  "label": "Library frame: system-moves/s19 (Words sharpen in (kit-word-sharpen))",
+  "author": "Made in code (the film kit's specimen of its moves)",
+  "license": "Ours: rendered from this repo's code",
+  "note": "Cut from the library's reference video by grab_frames.py, shown inside the rebuilt app"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s13.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s13: Helper pills drift in rows",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s03.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s03: Punch-in onto \"together\"",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/system-moves_s12.jpg": {
+  "source": "code",
+  "label": "Library frame: system-moves/s12 (Icon bounce (fx-bounce))",
+  "author": "Made in code (the film kit's specimen of its moves)",
+  "license": "Ours: rendered from this repo's code",
+  "note": "Cut from the library's reference video by grab_frames.py, shown inside the rebuilt app"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s21.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s21: Frosted chat panel: typing dots, then a reply",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s09.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s09: Title card: \"Stay five steps ahead\"",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/system-moves_s24.jpg": {
+  "source": "code",
+  "label": "Library frame: system-moves/s24 (Liquid glass morphs into a card (glass-morph-card))",
+  "author": "Made in code (the film kit's specimen of its moves)",
+  "license": "Ours: rendered from this repo's code",
+  "note": "Cut from the library's reference video by grab_frames.py, shown inside the rebuilt app"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s25.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s25: Next steps checklist ticked by two cursors",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s27.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s27: Tagline blurs in through a coral sweep",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/system-moves_s05.jpg": {
+  "source": "code",
+  "label": "Library frame: system-moves/s05 (Fade through: unrelated views (m3-fade-through))",
+  "author": "Made in code (the film kit's specimen of its moves)",
+  "license": "Ours: rendered from this repo's code",
+  "note": "Cut from the library's reference video by grab_frames.py, shown inside the rebuilt app"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s05.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s05: Six pills cascade beside \"Everything in one place\"",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s23.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s23: Launch plan co-edited with live text cursors",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/system-moves_s21.jpg": {
+  "source": "code",
+  "label": "Library frame: system-moves/s21 (Blur through: the blur is the cut (blur-through))",
+  "author": "Made in code (the film kit's specimen of its moves)",
+  "license": "Ours: rendered from this repo's code",
+  "note": "Cut from the library's reference video by grab_frames.py, shown inside the rebuilt app"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s14.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s14: \"Make it yours\" builds word by word on mint",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s01.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s01: Diamond glyph pops, wordmark fades in beside it",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s20.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s20: Stepped punch-ins onto \"Ask Acme\", a soft glow builds",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ },
+ "films/splice-explainer/frames/system-moves_s18.jpg": {
+  "source": "code",
+  "label": "Library frame: system-moves/s18 (Icon replace (fx-replace))",
+  "author": "Made in code (the film kit's specimen of its moves)",
+  "license": "Ours: rendered from this repo's code",
+  "note": "Cut from the library's reference video by grab_frames.py, shown inside the rebuilt app"
+ },
+ "films/splice-explainer/frames/acme-plan-it-together_s26.jpg": {
+  "source": "code",
+  "label": "Made-up film \"Plan it together\", s26: Activity feed scrolls, the plan is approved",
+  "author": "Spliced",
+  "license": "Drawn in code for this example (demo_frames.py): not a frame of any real film",
+  "note": "demo_frames.py"
+ }
+}

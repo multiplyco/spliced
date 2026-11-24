@@ -1,0 +1,25 @@
+[project]
+name = "spliced-app"
+version = "0.0.1"
+description = "A workshop for motion design: study the films you love scene by scene, name their moves, and build your own films from them with your AI."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+# PyPI refuses any package with this classifier: nothing is published until the release removes it on purpose
+classifiers = ["Private :: Do Not Upload"]
+dependencies = []
+
+[project.scripts]
+spliced = "spliced.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["spliced"]
+
+# the example films live beside the package in the repo; an installed copy carries them inside it (kit.py looks in both)
+[tool.hatch.build.targets.wheel.force-include]
+"starter" = "spliced/starter"

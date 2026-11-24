@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.DS_Store
+.cache/
+.env
+*.log
+dist/
+*.egg-info/
+.venv/
+spliced/BUILD

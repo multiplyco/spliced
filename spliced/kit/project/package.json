@@ -1,0 +1,25 @@
+{
+  "name": "__NAME__-films",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "remotion studio",
+    "typecheck": "tsc --noEmit",
+    "check:motion": "spliced motion",
+    "specimens": "remotion render src/index.ts Specimen-MotionSystems docs/media/motion-systems.mp4 && remotion render src/index.ts Specimen-Moves docs/media/system-moves.mp4 && remotion render src/index.ts Specimen-Profiles docs/media/motion-profiles.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.527",
+    "@remotion/google-fonts": "4.0.527",
+    "lucide-react": "^1.47.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.527"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "7.0.2"
+  }
+}

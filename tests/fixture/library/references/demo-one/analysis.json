@@ -1,0 +1,14 @@
+{
+ "slug": "demo-one",
+ "file": "reference/demo-one.mp4",
+ "width": 320,
+ "height": 180,
+ "fps": 24.0,
+ "duration": 4.0,
+ "shot_count": 2,
+ "shots": [],
+ "change_events": [],
+ "audio": {
+  "bpm": 120
+ }
+}

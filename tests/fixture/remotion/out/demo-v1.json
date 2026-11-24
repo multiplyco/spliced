@@ -1,0 +1,28 @@
+{
+ "slug": "demo",
+ "version": 1,
+ "file": "remotion/out/demo-v1.mp4",
+ "created": "2026-01-01T00:00:00",
+ "scale": 1.0,
+ "beat": null,
+ "span": [
+  0.0,
+  6.0
+ ],
+ "fps": 24,
+ "note": "the fixture's first render",
+ "beats": {
+  "hook": [
+   0.0,
+   2.0
+  ],
+  "demo": [
+   2.0,
+   4.0
+  ],
+  "end-card": [
+   4.0,
+   6.0
+  ]
+ }
+}

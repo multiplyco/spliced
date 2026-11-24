@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spliced</title>
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0B0B0C">
+<meta property="og:image" content="og-image.png">
+<script>
+  /* Theme before first paint: "dark" (default, the Spliced brand), "light" or "system", saved in localStorage. */
+  (() => {
+    const m = localStorage.getItem("cr.theme") || "dark";
+    const dark = m === "dark" || (m === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    document.documentElement.classList.toggle("sb-off", localStorage.getItem("cr.sidebar") === "0");
+    document.documentElement.classList.toggle("cards-always", localStorage.getItem("cr.cardDetails") === "always");
+    document.documentElement.classList.toggle("no-grain", localStorage.getItem("cr.grain") === "0");
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="splice-tokens.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="hardware.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sb-head">
+    <a class="brand" href="#/scenes" title="Spliced"><svg class="lockup" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1066.21 145.80" role="img" aria-label="Spliced"><g transform="translate(0.00 0.00) scale(0.72176)"><polygon fill="var(--splice-mark-left)" points="90.1,28.0 173.2,76.0 173.2,118.0 90.1,70.0"/><polygon fill="var(--splice-mark-right)" points="221.7,48.0 173.2,76.0 173.2,118.0 221.7,90.0"/><polygon fill="var(--splice-mark-top)" points="138.6,0.0 221.7,48.0 173.2,76.0 90.1,28.0"/><polygon fill="var(--splice-mark-left)" points="0.0,96.0 48.5,124.0 48.5,150.0 0.0,122.0"/><polygon fill="var(--splice-mark-right)" points="131.6,76.0 48.5,124.0 48.5,150.0 131.6,102.0"/><polygon fill="var(--splice-mark-top)" points="83.1,48.0 131.6,76.0 48.5,124.0 0.0,96.0"/><polygon fill="var(--splice-mark-left)" points="145.5,84.0 194.0,112.0 194.0,170.0 145.5,142.0"/><polygon fill="var(--splice-mark-right)" points="277.1,64.0 194.0,112.0 194.0,170.0 277.1,122.0"/><polygon fill="var(--splice-mark-top)" points="228.6,36.0 277.1,64.0 194.0,112.0 145.5,84.0"/><polygon fill="var(--splice-mark-left)" points="55.4,144.0 138.6,192.0 138.6,202.0 55.4,154.0"/><polygon fill="var(--splice-mark-right)" points="187.1,164.0 138.6,192.0 138.6,202.0 187.1,174.0"/><polygon fill="var(--splice-mark-top)" points="103.9,116.0 187.1,164.0 138.6,192.0 55.4,144.0"/></g><path fill="var(--splice-mark-top)" d="M326.53 123.39Q355.42 123.39 370.18 115.2Q384.95 107.01 384.95 91.26Q384.95 78.2 373.74 72.83Q362.53 67.45 334.81 63.79Q317.59 61.43 305.87 59.17Q294.16 56.92 294.16 51.19Q294.16 46.24 302.85 43.47Q311.55 40.69 325.36 40.69Q338.22 40.69 347.17 44.31Q356.12 47.94 356.12 57.89H384.9Q384.9 40.08 369.81 31Q354.71 21.92 325.73 21.92Q297.04 21.92 281.9 29.97Q266.76 38.01 266.76 53.12Q266.76 66.53 278.3 72.36Q289.85 78.19 315.99 81.61Q333.94 84.05 345.47 86.13Q356.99 88.2 356.99 94.1Q356.99 99.39 348.31 102Q339.63 104.61 326.22 104.61Q312.73 104.61 304.05 100.82Q295.36 97.02 295.36 86.94H266.67Q266.67 105.47 281.5 114.43Q296.34 123.39 326.53 123.39ZM403.43 122.9H432.18V96.28H473.31Q495.01 96.28 504.47 86.59Q513.92 76.9 513.92 59.48Q513.92 42.17 504.51 32.53Q495.1 22.9 473.31 22.9H403.43ZM432.18 77.39V41.79H465.59Q475.92 41.79 480.7 45.99Q485.48 50.18 485.48 59.6Q485.48 69 480.74 73.2Q476 77.39 465.59 77.39ZM529.87 122.9H618.34V104.06H558.62V22.9H529.87ZM641.05 122.9H669.56V22.9H641.05ZM753.07 123.52Q783.5 123.52 797.87 111.19Q812.24 98.85 812.24 83.15H782.87Q782.87 92.49 774.82 98.57Q766.77 104.64 752.66 104.64Q738.19 104.64 729.19 97.51Q720.18 90.38 720.18 72.69Q720.18 54.97 729.23 47.89Q738.27 40.8 752.66 40.8Q766.86 40.8 774.87 46.74Q782.87 52.67 782.87 62.01H812.24Q812.24 46.14 797.92 34.03Q783.59 21.92 753.05 21.92Q722.6 21.92 706.75 35.06Q690.9 48.21 690.9 72.69Q690.9 97.11 706.75 110.32Q722.61 123.52 753.07 123.52ZM829.34 122.9H929.96V104.01H858.09V81.14H924.42V63.42H858.09V41.79H929.96V22.9H829.34ZM948.84 122.9H1015.16Q1039.73 122.9 1052.97 111.31Q1066.21 99.71 1066.21 72.83Q1066.21 45.96 1053.03 34.43Q1039.85 22.9 1015.16 22.9H948.84ZM977.56 104.01V41.79H1008.12Q1022.64 41.79 1030.05 48.02Q1037.45 54.25 1037.45 72.83Q1037.45 91.41 1030.05 97.71Q1022.64 104.01 1008.12 104.01Z"/></svg></a>
+    <span class="sb-head-act" id="sb-head-act"></span>
+    <button class="sb-fold" id="sb-fold" title="Hide the sidebar (⌘\)" aria-label="Hide the sidebar" data-icon="panel-left-close"></button>
+  </div>
+  <label class="search">
+    <span data-icon="search"></span>
+    <input id="q" type="search" placeholder="Search" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+  </label>
+  <nav class="views" id="views">
+    <div class="nav-group">Reference</div>
+    <a data-view="scenes" href="#/scenes" data-icon="library-big" title="Every scene from the reference films, and the images, GIFs and clips you uploaded">Library</a>
+    <a data-view="films" href="#/films" data-icon="film" title="Each reference film as a whole: its video, its look and its signature moves">Films</a>
+    <a data-view="moves" href="#/moves" data-icon="sparkles" title="The named pieces of motion the films are known for, with the scenes that show them">Moves</a>
+    <a data-view="systems" href="#/film/system-moves" data-icon="cpu" title="A film kit's own moves, each as a scene you can borrow like any other">Systems</a>
+    <a data-view="styles" href="#/styles" data-icon="swatch-book" title="What the films do, grouped into looks, pace and moves">Styles</a>
+    <a data-view="moments" href="#/moments" data-icon="bookmark" title="The exact frames you saved (K in a scene or a film)">Moments<span class="n" id="nav-moments"></span></a>
+    <div class="nav-group">Make</div>
+    <a data-view="boards" href="#/boards" data-icon="layout-list" title="Your films' scripts: the scenes you borrow, in order, each with its words and its length">Boards</a>
+    <a data-view="build" href="#/build" data-icon="list-video" title="Films in production: your render on one side, the scene each beat borrows from on the other">Build</a>
+    <a data-view="assets" href="#/assets" data-icon="image" title="Every still, clip and sound your films use, and free footage to add">Assets</a>
+  </nav>
+  <div class="sb-fill"></div>
+  <button class="board-pill" id="board-pill" title="The current board (click to show it)"></button>
+  <div class="sb-foot" id="status"></div>
+</aside>
+
+<nav class="tabs" id="tabs" aria-label="Tabs"></nav>
+<main class="main" id="main"></main>
+
+<section class="detail" id="detail" aria-hidden="true"></section>
+
+<footer class="tray" id="tray"></footer>
+
+<div class="toast" id="toast" role="status"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<script src="/api/boot.js"></script>
+<script src="core.js"></script>
+<script src="tips.js"></script>
+<script src="search.js"></script>
+<script src="icons.js"></script>
+<script src="keys.js"></script>
+<script src="palette.js"></script>
+<script src="imports.js"></script>
+<script src="folders.js"></script>
+<script src="assets.js"></script>
+<script src="setup.js"></script>
+<script src="welcome.js"></script>
+<script src="changelog.js"></script>
+<script src="explain.js"></script>
+<script src="/api/library.js"></script>
+<script src="styles.js"></script>
+<script src="sound.js"></script>
+<script src="hardware.js"></script>
+<script src="build.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,326 @@
+{
+  "_note": "The Spliced explainer's mix (written by score.py). Remotion plays it (lib/sound.tsx); tools/sound.py reads it for the Sound panel.",
+  "music": {
+    "tempo": 120.0,
+    "key": "root ~44 Hz",
+    "offset": 0.0
+  },
+  "tracks": [
+    {
+      "id": "music",
+      "lane": "music",
+      "name": "Deep techno (deep-techno-A.mp3), cut on the end card, final hit",
+      "file": "remotion/public/films/splice-explainer/audio/score-deep-techno.mp3",
+      "start": 0.0,
+      "offset": 0.0333,
+      "dur": 36.4,
+      "gain": 0.9
+    },
+    {
+      "id": "sfx-type-open-1",
+      "lane": "sfx",
+      "name": "typing: Films you love.",
+      "file": "remotion/public/films/splice-explainer/audio/fx/type-open-1.wav",
+      "start": 0.4667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-type-open-2",
+      "lane": "sfx",
+      "name": "typing: Frame by frame.",
+      "file": "remotion/public/films/splice-explainer/audio/fx/type-open-2.wav",
+      "start": 1.4667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-whip",
+      "lane": "sfx",
+      "name": "add sheet whips in",
+      "file": "remotion/public/films/splice-explainer/audio/fx/whip.wav",
+      "start": 2.8667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-focus",
+      "lane": "sfx",
+      "name": "text box focus",
+      "file": "remotion/public/films/splice-explainer/audio/fx/focus.wav",
+      "start": 3.9667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-paste",
+      "lane": "sfx",
+      "name": "paste (cmd V)",
+      "file": "remotion/public/films/splice-explainer/audio/fx/paste.wav",
+      "start": 4.2,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-add-click",
+      "lane": "sfx",
+      "name": "click Add",
+      "file": "remotion/public/films/splice-explainer/audio/fx/add-click.wav",
+      "start": 4.9667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-job",
+      "lane": "sfx",
+      "name": "job row opens",
+      "file": "remotion/public/films/splice-explainer/audio/fx/job.wav",
+      "start": 5.2,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-steps",
+      "lane": "sfx",
+      "name": "steps done",
+      "file": "remotion/public/films/splice-explainer/audio/fx/steps.wav",
+      "start": 5.4667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-strip-in",
+      "lane": "sfx",
+      "name": "film strip slides in",
+      "file": "remotion/public/films/splice-explainer/audio/fx/strip-in.wav",
+      "start": 6.9667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-scan-cuts",
+      "lane": "sfx",
+      "name": "playhead cuts the scenes",
+      "file": "remotion/public/films/splice-explainer/audio/fx/scan-cuts.wav",
+      "start": 7.8667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-cards",
+      "lane": "sfx",
+      "name": "scenes become cards",
+      "file": "remotion/public/films/splice-explainer/audio/fx/cards.wav",
+      "start": 9.6,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-carry",
+      "lane": "sfx",
+      "name": "card carries to centre",
+      "file": "remotion/public/films/splice-explainer/audio/fx/carry.wav",
+      "start": 10.9667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-reel",
+      "lane": "sfx",
+      "name": "tag reel spins",
+      "file": "remotion/public/films/splice-explainer/audio/fx/reel.wav",
+      "start": 11.7333,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-reel-land",
+      "lane": "sfx",
+      "name": "reel locks on blur-in",
+      "file": "remotion/public/films/splice-explainer/audio/fx/reel-land.wav",
+      "start": 12.4667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-tags",
+      "lane": "sfx",
+      "name": "tags appear",
+      "file": "remotion/public/films/splice-explainer/audio/fx/tags.wav",
+      "start": 12.7,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-window",
+      "lane": "sfx",
+      "name": "app window rises",
+      "file": "remotion/public/films/splice-explainer/audio/fx/window.wav",
+      "start": 13.9,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-search-click",
+      "lane": "sfx",
+      "name": "click search",
+      "file": "remotion/public/films/splice-explainer/audio/fx/search-click.wav",
+      "start": 14.9667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-type-find",
+      "lane": "sfx",
+      "name": "typing: blur-in",
+      "file": "remotion/public/films/splice-explainer/audio/fx/type-find.wav",
+      "start": 15.0667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-sort",
+      "lane": "sfx",
+      "name": "grid re-sorts",
+      "file": "remotion/public/films/splice-explainer/audio/fx/sort.wav",
+      "start": 15.4667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-pick",
+      "lane": "sfx",
+      "name": "pick a scene",
+      "file": "remotion/public/films/splice-explainer/audio/fx/pick.wav",
+      "start": 16.9667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-to-boards",
+      "lane": "sfx",
+      "name": "to Boards",
+      "file": "remotion/public/films/splice-explainer/audio/fx/to-boards.wav",
+      "start": 17.9,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-pile",
+      "lane": "sfx",
+      "name": "cards drop on the pile",
+      "file": "remotion/public/films/splice-explainer/audio/fx/pile.wav",
+      "start": 18.5333,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-snap",
+      "lane": "sfx",
+      "name": "cards snap into the beats",
+      "file": "remotion/public/films/splice-explainer/audio/fx/snap.wav",
+      "start": 19.4667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-row-focus",
+      "lane": "sfx",
+      "name": "focus beat 3",
+      "file": "remotion/public/films/splice-explainer/audio/fx/row-focus.wav",
+      "start": 20.9667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-type-board",
+      "lane": "sfx",
+      "name": "typing: Cut into scenes.",
+      "file": "remotion/public/films/splice-explainer/audio/fx/type-board.wav",
+      "start": 21.1,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-claude-add",
+      "lane": "sfx",
+      "name": "Claude adds two beats",
+      "file": "remotion/public/films/splice-explainer/audio/fx/claude-add.wav",
+      "start": 23.9667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-toast-1",
+      "lane": "sfx",
+      "name": "toast",
+      "file": "remotion/public/films/splice-explainer/audio/fx/toast-1.wav",
+      "start": 24.1333,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-claude-edit",
+      "lane": "sfx",
+      "name": "Claude edits beat 4",
+      "file": "remotion/public/films/splice-explainer/audio/fx/claude-edit.wav",
+      "start": 25.4667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-to-build",
+      "lane": "sfx",
+      "name": "to Build",
+      "file": "remotion/public/films/splice-explainer/audio/fx/to-build.wav",
+      "start": 26.9,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-render-click",
+      "lane": "sfx",
+      "name": "click the render",
+      "file": "remotion/public/films/splice-explainer/audio/fx/render-click.wav",
+      "start": 29.4667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-pin",
+      "lane": "sfx",
+      "name": "note pin drops",
+      "file": "remotion/public/films/splice-explainer/audio/fx/pin.wav",
+      "start": 29.5667,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-type-note",
+      "lane": "sfx",
+      "name": "typing: Hold the mark a beat longer.",
+      "file": "remotion/public/films/splice-explainer/audio/fx/type-note.wav",
+      "start": 29.9333,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-blocks",
+      "lane": "sfx",
+      "name": "logo blocks rise",
+      "file": "remotion/public/films/splice-explainer/audio/fx/blocks.wav",
+      "start": 32.2,
+      "offset": 0,
+      "gain": 1
+    },
+    {
+      "id": "sfx-word",
+      "lane": "sfx",
+      "name": "wordmark wipes in",
+      "file": "remotion/public/films/splice-explainer/audio/fx/word.wav",
+      "start": 33.4667,
+      "offset": 0,
+      "gain": 1
+    }
+  ]
+}

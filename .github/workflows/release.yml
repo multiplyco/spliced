@@ -1,0 +1,57 @@
+name: mac app for a release
+# Build Spliced.app for both chips and attach the .dmg to an existing release of this repository.
+# Signed and notarised when the repository has these secrets; otherwise signed ad hoc, which runs only after the
+# person allows it in System Settings, Privacy & Security:
+#   MAC_CERT_P12           a Developer ID Application certificate with its key, exported as .p12, base64
+#   MAC_CERT_PASSWORD      the .p12's password
+#   MAC_SIGN_IDENTITY      "Developer ID Application: <Company> (<TEAMID>)"
+#   APPLE_ID, APPLE_TEAM_ID, APPLE_APP_PASSWORD   for notarytool (an app-specific password of that Apple ID)
+# Started by hand only (Actions, "mac app for a release", Run workflow): nothing here runs on a merge or a release.
+# It attaches the dmg to a release of this repository, which is as private as the repository.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build and attach to (vX.Y.Z)"
+        required: true
+permissions:
+  contents: write
+jobs:
+  dmg:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    env:
+      TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: astral-sh/setup-uv@v5
+      - name: Signing keychain
+        env:
+          MAC_CERT_P12: ${{ secrets.MAC_CERT_P12 }}
+          MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          MAC_SIGN_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          if [ -z "$MAC_CERT_P12" ]; then echo "No signing secrets: the dmg is signed ad hoc"; exit 0; fi
+          KC="$RUNNER_TEMP/sign.keychain-db"; PW="$(uuidgen)"
+          security create-keychain -p "$PW" "$KC"
+          security set-keychain-settings -lut 3600 "$KC"
+          security unlock-keychain -p "$PW" "$KC"
+          echo "$MAC_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KC" -P "$MAC_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$PW" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          echo "SPLICED_SIGN_IDENTITY=$MAC_SIGN_IDENTITY" >> "$GITHUB_ENV"
+          if [ -n "$APPLE_ID" ]; then
+            xcrun notarytool store-credentials spliced --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --keychain "$KC"
+            echo "SPLICED_NOTARY_PROFILE=spliced" >> "$GITHUB_ENV"
+          fi
+      - name: Build
+        run: mac/build.sh --universal --dmg
+      - name: Attach to the release
+        run: gh release upload "$TAG" mac/build/Spliced-*.dmg --clobber

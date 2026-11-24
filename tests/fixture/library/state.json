@@ -1,0 +1,71 @@
+{
+ "rev": 3,
+ "log": [
+  {
+   "rev": 3,
+   "by": "fixture",
+   "at": "2026-01-01T00:00:00",
+   "summary": "made the fixture"
+  }
+ ],
+ "reviews": {
+  "demo-one/s01": {
+   "fav": true,
+   "verdict": "use",
+   "note": "the opening we want"
+  }
+ },
+ "moments": [
+  {
+   "uid": "m0m3n7",
+   "key": "demo-two/s02",
+   "t": 1.5,
+   "note": "mid-whip",
+   "at": "2026-01-01T00:00:00",
+   "by": "fixture"
+  }
+ ],
+ "boards": {
+  "Fixture board": {
+   "profile": "soft",
+   "created": "2026-01-01",
+   "updated": "2026-01-01T00:00:00",
+   "brief": {
+    "news": "The fixture exists.",
+    "audience": "tests",
+    "aspect": "16:9",
+    "length": 6
+   },
+   "items": [
+    {
+     "uid": "aaa111",
+     "id": "demo-one/s01",
+     "beat": "hook",
+     "copy": "It exists.",
+     "vo": "",
+     "seconds": 2.0,
+     "note": "sharpen in"
+    },
+    {
+     "uid": "bbb222",
+     "id": "demo-two/s02",
+     "t": 1.5,
+     "beat": "demo",
+     "copy": "",
+     "vo": "Here it is.",
+     "seconds": 2.0,
+     "note": ""
+    },
+    {
+     "uid": "ccc333",
+     "id": "uploads/f1x7u0",
+     "beat": "end-card",
+     "copy": "Fixture",
+     "vo": "",
+     "seconds": 2.0,
+     "note": "the look"
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,121 @@
+{
+ "title": "Demo one",
+ "brand": "Fixture",
+ "source": "made by tests/make_fixture.py",
+ "file": "reference/demo-one.mp4",
+ "duration": 4.0,
+ "format": "16x9",
+ "category": "product-launch",
+ "voice": "on-screen-type-only",
+ "music_feel": [
+  "minimal-pulse"
+ ],
+ "summary": "Four seconds of a test pattern, read as a two-scene launch film.",
+ "tempo": {
+  "bpm": 120,
+  "avg_shot_s": 2.0,
+  "cuts_per_min": 30,
+  "notes": "One cut, on the beat."
+ },
+ "structure": "Hook, then demo.",
+ "style_signature": {
+  "palette": [
+   {
+    "hex": "#FFFFFF",
+    "name": "white stage"
+   }
+  ],
+  "type": "One grotesk.",
+  "motion": "Arrive fast, land soft."
+ },
+ "signature_moves": [
+  {
+   "name": "Sharpen in",
+   "scenes": [
+    "s01"
+   ],
+   "description": "Words arrive out of a blur.",
+   "recreate": "filter: blur() to 0."
+  }
+ ],
+ "takeaways": [
+  "Lead with the news.",
+  "One idea per scene."
+ ],
+ "scenes": [
+  {
+   "id": "s01",
+   "start": 0.0,
+   "end": 2.0,
+   "title": "A headline sharpens in",
+   "role": "hook",
+   "world": "white-stage",
+   "subject": [
+    "typography"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "motion": [
+    "blur-in"
+   ],
+   "transition_in": "none",
+   "type_treatment": [
+    "centered-headline"
+   ],
+   "pace": "slow",
+   "energy": "calm",
+   "sound_sync": [
+    "free"
+   ],
+   "production": [
+    "code"
+   ],
+   "palette": [
+    "#FFFFFF",
+    "#111111"
+   ],
+   "on_screen": "A headline sharpens in, centred on the stage.",
+   "how_it_moves": "The headline sharpens in over half a second.",
+   "recreate": "A div and one blur-in.",
+   "steal": 3
+  },
+  {
+   "id": "s02",
+   "start": 2.0,
+   "end": 4.0,
+   "title": "The product at work",
+   "role": "demo",
+   "world": "white-stage",
+   "subject": [
+    "ui"
+   ],
+   "camera": [
+    "push-in"
+   ],
+   "motion": [
+    "scale-up"
+   ],
+   "transition_in": "hard-cut",
+   "type_treatment": [
+    "centered-headline"
+   ],
+   "pace": "slow",
+   "energy": "calm",
+   "sound_sync": [
+    "free"
+   ],
+   "production": [
+    "code"
+   ],
+   "palette": [
+    "#FFFFFF",
+    "#111111"
+   ],
+   "on_screen": "The product at work, centred on the stage.",
+   "how_it_moves": "The headline sharpens in over half a second.",
+   "recreate": "A div and one blur-in.",
+   "steal": 2
+  }
+ ]
+}

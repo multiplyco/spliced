@@ -1,0 +1,8 @@
+{
+ "format": 1,
+ "name": "Fixture",
+ "brand": {
+  "name": "Fixture"
+ },
+ "default_profile": "soft"
+}

@@ -1,0 +1,156 @@
+{
+ "title": "Demo two",
+ "brand": "Fixture",
+ "source": "made by tests/make_fixture.py",
+ "file": "reference/Demo two [abc123].mp4",
+ "duration": 3.0,
+ "format": "16x9",
+ "category": "explainer",
+ "voice": "voiceover",
+ "music_feel": [
+  "driving-electronic"
+ ],
+ "summary": "Three one-second scenes, cut fast. Its file name has a space and brackets on purpose.",
+ "tempo": {
+  "bpm": 140,
+  "avg_shot_s": 1.0,
+  "cuts_per_min": 60,
+  "notes": "A cut every second."
+ },
+ "structure": "Hook, demo, end card.",
+ "style_signature": {
+  "palette": [
+   {
+    "hex": "#111111",
+    "name": "dark stage"
+   }
+  ],
+  "motion": "Whips between scenes."
+ },
+ "signature_moves": [
+  {
+   "name": "The whip",
+   "scenes": [
+    "s02"
+   ],
+   "description": "A fast sideways move into the demo.",
+   "recreate": "translateX with motion blur."
+  }
+ ],
+ "takeaways": [
+  "Cut on the beat."
+ ],
+ "scenes": [
+  {
+   "id": "s01",
+   "start": 0.0,
+   "end": 1.0,
+   "title": "Three words, one at a time",
+   "role": "hook",
+   "world": "dark-stage",
+   "subject": [
+    "typography"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "motion": [
+    "word-by-word"
+   ],
+   "transition_in": "none",
+   "type_treatment": [
+    "centered-headline"
+   ],
+   "pace": "rapid-fire",
+   "energy": "punchy",
+   "sound_sync": [
+    "cuts-on-beat"
+   ],
+   "production": [
+    "code"
+   ],
+   "palette": [
+    "#FFFFFF",
+    "#111111"
+   ],
+   "on_screen": "Three words, one at a time, centred on the stage.",
+   "how_it_moves": "The headline sharpens in over half a second.",
+   "recreate": "A div and one blur-in.",
+   "steal": 2
+  },
+  {
+   "id": "s02",
+   "start": 1.0,
+   "end": 2.0,
+   "title": "A whip into the interface",
+   "role": "demo",
+   "world": "dark-stage",
+   "subject": [
+    "ui"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "motion": [
+    "blur-in"
+   ],
+   "transition_in": "whip",
+   "type_treatment": [
+    "centered-headline"
+   ],
+   "pace": "rapid-fire",
+   "energy": "punchy",
+   "sound_sync": [
+    "free"
+   ],
+   "production": [
+    "generated-video"
+   ],
+   "palette": [
+    "#FFFFFF",
+    "#111111"
+   ],
+   "on_screen": "A whip into the interface, centred on the stage.",
+   "how_it_moves": "The headline sharpens in over half a second.",
+   "recreate": "A div and one blur-in.",
+   "steal": 3
+  },
+  {
+   "id": "s03",
+   "start": 2.0,
+   "end": 3.0,
+   "title": "The logo lands",
+   "role": "end-card",
+   "world": "dark-stage",
+   "subject": [
+    "logo"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "motion": [
+    "blur-in"
+   ],
+   "transition_in": "hard-cut",
+   "type_treatment": [
+    "no-type"
+   ],
+   "pace": "slow",
+   "energy": "calm",
+   "sound_sync": [
+    "free"
+   ],
+   "production": [
+    "code"
+   ],
+   "palette": [
+    "#FFFFFF",
+    "#111111"
+   ],
+   "on_screen": "The logo lands, centred on the stage.",
+   "how_it_moves": "The headline sharpens in over half a second.",
+   "recreate": "A div and one blur-in.",
+   "steal": 1
+  }
+ ]
+}

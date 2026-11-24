@@ -1,0 +1,14 @@
+{
+ "slug": "demo-two",
+ "file": "reference/Demo two [abc123].mp4",
+ "width": 320,
+ "height": 180,
+ "fps": 24.0,
+ "duration": 3.0,
+ "shot_count": 3,
+ "shots": [],
+ "change_events": [],
+ "audio": {
+  "bpm": 140
+ }
+}

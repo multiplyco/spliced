@@ -1,0 +1,155 @@
+/* Spliced design tokens. Dark is the default theme. */
+:root {
+  /* Brand */
+  --splice-volt: #DFFF1A;
+  --splice-volt-hover: #E8FF4D;
+  --splice-volt-press: #A8C400;
+  --splice-volt-deep: #6F8400;
+  --splice-volt-tint: rgba(223, 255, 26, 0.14);
+
+  /* Neutral ramp */
+  --splice-ink: #0B0B0C;
+  --splice-g900: #131314;
+  --splice-g800: #1A1A1C;
+  --splice-g700: #242426;
+  --splice-g600: #323235;
+  --splice-s500: #55555A;
+  --splice-s400: #85858B;
+  --splice-s300: #B1B1B6;
+  --splice-m200: #D9D9DC;
+  --splice-m100: #EDEDEF;
+  --splice-chalk: #F4F4F1;
+  --splice-white: #FFFFFF;
+
+  /* UI states, never used in the logo */
+  --splice-danger: #FF5C4D;
+  --splice-warning: #FFB020;
+  --splice-success: #3DDC97;
+  --splice-info: #6EA8FF;
+
+  /* Semantic, dark theme */
+  --splice-bg-app: var(--splice-ink);
+  --splice-bg-surface: var(--splice-g900);
+  --splice-bg-raised: var(--splice-g800);
+  --splice-bg-overlay: var(--splice-g700);
+  --splice-bg-hover: rgba(255, 255, 255, 0.06);
+  --splice-border-subtle: var(--splice-g700);
+  --splice-border: var(--splice-g600);
+  --splice-border-strong: var(--splice-s500);
+  --splice-text: var(--splice-chalk);
+  --splice-text-secondary: var(--splice-s300);
+  --splice-text-tertiary: var(--splice-s400);
+  --splice-text-disabled: var(--splice-s500);
+  --splice-accent: var(--splice-volt);
+  --splice-accent-hover: var(--splice-volt-hover);
+  --splice-accent-press: var(--splice-volt-press);
+  --splice-accent-tint: var(--splice-volt-tint);
+  --splice-on-accent: var(--splice-ink);
+  --splice-focus-ring: var(--splice-volt);
+
+  /* Logo mark tones. The mark follows the theme, never the accent. */
+  --splice-mark-top: #F4F4F1;
+  --splice-mark-left: #B9B9B3;
+  --splice-mark-right: #7C7C77;
+
+  /* Type */
+  --splice-font-display: "Anybody", system-ui, sans-serif; /* use with font-variation-settings: "wdth" 130; weight 700; uppercase */
+  --splice-font-ui: "Inter", system-ui, sans-serif;
+  --splice-font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Radius */
+  --splice-radius-sm: 8px;
+  --splice-radius-md: 12px;
+  --splice-radius-lg: 16px;
+  --splice-radius-xl: 20px;
+  --splice-radius-full: 9999px;
+
+  /* Spacing, 4px base */
+  --splice-space-1: 4px;
+  --splice-space-2: 8px;
+  --splice-space-3: 12px;
+  --splice-space-4: 16px;
+  --splice-space-5: 20px;
+  --splice-space-6: 24px;
+  --splice-space-8: 32px;
+  --splice-space-10: 40px;
+  --splice-space-12: 48px;
+  --splice-space-16: 64px;
+
+  /* Elevation */
+  --splice-shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.5);
+
+  /* Motion */
+  --splice-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --splice-ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --splice-ease-ui: cubic-bezier(0.3, 0, 0.2, 1);
+  --splice-ease-sink: cubic-bezier(0.7, 0, 0.2, 1);
+  --splice-dur-ui: 160ms;
+  --splice-dur-panel: 240ms;
+  --splice-dur-build: 1800ms;
+  --splice-dur-sink: 3600ms;
+  --splice-dur-loader: 2400ms;
+}
+
+/* Light theme. Volt stays a fill with ink text, never text on white. */
+[data-theme="light"] {
+  --splice-bg-app: var(--splice-chalk);
+  --splice-bg-surface: var(--splice-white);
+  --splice-bg-raised: var(--splice-m100);
+  --splice-bg-overlay: var(--splice-white);
+  --splice-bg-hover: rgba(11, 11, 12, 0.05);
+  --splice-border-subtle: var(--splice-m100);
+  --splice-border: var(--splice-m200);
+  --splice-border-strong: var(--splice-s300);
+  --splice-text: var(--splice-ink);
+  --splice-text-secondary: var(--splice-s500);
+  --splice-text-tertiary: var(--splice-s400);
+  --splice-text-disabled: var(--splice-s300);
+  --splice-focus-ring: var(--splice-ink);
+  --splice-mark-top: #0B0B0C;
+  --splice-mark-left: #3A3A3D;
+  --splice-mark-right: #66666B;
+  --splice-shadow-pop: 0 12px 32px rgba(11, 11, 12, 0.14);
+}
+
+/* Utility classes */
+.splice-display {
+  font-family: var(--splice-font-display);
+  font-variation-settings: "wdth" 130;
+  font-stretch: 130%;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 1.08;
+}
+.splice-label {
+  font-family: var(--splice-font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--splice-text-tertiary);
+}
+.splice-timecode {
+  font-family: var(--splice-font-mono);
+  font-size: 13px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.splice-btn-primary {
+  background: var(--splice-accent);
+  color: var(--splice-on-accent);
+  border: 0;
+  border-radius: var(--splice-radius-md);
+  padding: 8px 16px;
+  font: 600 13px/20px var(--splice-font-ui);
+  transition: background var(--splice-dur-ui) var(--splice-ease-ui);
+}
+.splice-btn-primary:hover { background: var(--splice-accent-hover); }
+.splice-btn-primary:active { background: var(--splice-accent-press); }
+:focus-visible { outline: 2px solid var(--splice-focus-ring); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --splice-dur-ui: 0ms; --splice-dur-panel: 0ms; }
+}

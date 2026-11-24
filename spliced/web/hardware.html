@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spliced: studio hardware</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script>
+  /* The specimen sheet for hardware.css / hardware.js. ?theme=light|dark picks the theme (else the app's own choice),
+     ?both shows the two side by side, ?selftest drives every control and prints what happened. */
+  (() => {
+    const q = new URLSearchParams(location.search);
+    const m = q.get("theme") || localStorage.getItem("cr.theme") || "dark";
+    const dark = m === "dark" || (m === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    document.documentElement.classList.toggle("no-grain", q.has("nograin") || localStorage.getItem("cr.grain") === "0");
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="splice-tokens.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="hardware.css">
+<style>
+  html, body { height: auto; }
+  body { margin: 0; background: var(--background); color: var(--foreground); overflow: auto; }
+  .sheet { max-width: 980px; margin: 0 auto; padding: 40px 32px 80px; }
+  .sheet.embed { padding: 28px 24px 40px; }
+  h1 { margin: 0 0 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .lead { margin: 0 0 32px; font-size: 13.5px; color: var(--muted-foreground); max-width: 64ch; }
+  h2 { margin: 36px 0 14px; font-size: 12px; font-weight: 500; color: var(--splice-text-tertiary); }
+  h2.with { display: flex; align-items: center; justify-content: space-between; }
+  h2.with .seg button { font-size: 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 28px 36px; align-items: flex-end; }
+  .cell { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  .cell > small { font-size: 11.5px; color: var(--splice-text-tertiary); }
+  .deck { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: var(--splice-radius-lg); background: var(--splice-bg-app); box-shadow: 0 0 0 1px var(--splice-border-subtle); flex-wrap: wrap; }
+  .deck .tc { font-size: 12.5px; font-variant-numeric: tabular-nums; padding: 0 6px; }
+  .deck .gap { flex: 1; }
+  .x2 { zoom: 2; }
+  .both { display: grid; grid-template-columns: 1fr 1fr; height: 100vh; }
+  .both iframe { width: 100%; height: 100%; border: 0; }
+  #selftest { margin: 24px 0 0; padding: 14px 16px; border-radius: var(--splice-radius-md); background: var(--splice-bg-surface); font: 12px/1.6 ui-monospace, Menlo, monospace; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div class="sheet" id="sheet">
+  <h1>Studio hardware</h1>
+  <p class="lead">The tactile controls of the Build view: keys, a slide switch and knobs. One light from the top, depth from tone, volt only as a small lit fill. The top row is live; the rest shows each state held still.</p>
+
+  <h2 class="with">Together, as in the transport bar (live)<span class="seg" id="snd-pref" title="The controls' own clicks (the same setting as Settings, Control sounds)"><button data-v="1">Sounds on</button><button data-v="0">Off</button></span></h2>
+  <div class="deck" id="deck">
+    <span class="hw-bay round"><button class="hw-key" id="t-play" aria-label="Play / pause" data-icon="play"></button></span>
+    <span class="hw-bay"><button class="hw-key" id="t-back" aria-label="Back one frame" data-icon="step-back"></button><button class="hw-key" id="t-fwd" aria-label="Forward one frame" data-icon="step-forward"></button></span>
+    <span class="tc">0:02.40 f72</span><span class="gap"></span>
+    <div id="t-mode"><button data-v="loop" class="on">Loop beat</button><button data-v="play">Play through</button></div>
+    <div id="t-speed"></div>
+    <span class="hw-bay"><button class="hw-key on" id="t-sound" aria-label="Sound" aria-pressed="true"><span data-icon="volume-2"></span><i class="hw-led"></i></button></span>
+    <div id="t-vol"></div>
+  </div>
+
+  <h2>Slide switch</h2>
+  <div class="row">
+    <div class="cell"><div class="hw-slide s"><button class="on">Loop beat</button><button>Play through</button></div><small>First option</small></div>
+    <div class="cell"><div class="hw-slide s"><button>Loop beat</button><button class="on">Play through</button></div><small>Second option</small></div>
+    <div class="cell"><div class="hw-slide s is-active"><button class="on">Loop beat</button><button>Play through</button></div><small>Held</small></div>
+    <div class="cell"><div class="hw-slide s"><button class="on">Stems</button><button>Render</button><button>Voice</button></div><small>Three options</small></div>
+  </div>
+
+  <h2>Keys</h2>
+  <div class="row">
+    <div class="cell"><span class="hw-bay"><button class="hw-key" data-icon="step-forward"></button></span><small>Rest</small></div>
+    <div class="cell"><span class="hw-bay"><button class="hw-key is-hover" data-icon="step-forward"></button></span><small>Hover</small></div>
+    <div class="cell"><span class="hw-bay"><button class="hw-key is-active" data-icon="step-forward"></button></span><small>Pressed</small></div>
+    <div class="cell"><span class="hw-bay"><button class="hw-key is-focus" data-icon="step-forward"></button></span><small>Focus</small></div>
+    <div class="cell"><span class="hw-bay"><button class="hw-key is-disabled" data-icon="step-forward"></button></span><small>Disabled</small></div>
+    <div class="cell"><span class="hw-bay"><button class="hw-key" data-icon="step-back"></button><button class="hw-key is-active" data-icon="step-forward"></button></span><small>Two in a bay, one pressed</small></div>
+    <div class="cell"><span class="hw-bay round"><button class="hw-key" data-icon="play"></button></span><small>Round</small></div>
+    <div class="cell"><span class="hw-bay round"><button class="hw-key on" data-icon="pause"></button></span><small>Round, latched</small></div>
+    <div class="cell"><span class="hw-bay"><button class="hw-key"><span data-icon="volume-x"></span><i class="hw-led"></i></button></span><small>Lamp off</small></div>
+    <div class="cell"><span class="hw-bay"><button class="hw-key on"><span data-icon="volume-2"></span><i class="hw-led"></i></button></span><small>Lamp on, latched</small></div>
+  </div>
+
+  <h2>Knobs</h2>
+  <div class="row">
+    <div class="cell"><div class="k" data-v="0"></div><small>Level, 0</small></div>
+    <div class="cell"><div class="k" data-v="0.4"></div><small>40%</small></div>
+    <div class="cell"><div class="k" data-v="1"></div><small>Full</small></div>
+    <div class="cell"><div class="k is-hover" data-v="0.7"></div><small>Hover</small></div>
+    <div class="cell"><div class="k is-active" data-v="0.7"></div><small>Turning</small></div>
+    <div class="cell"><div class="k is-focus" data-v="0.7"></div><small>Focus</small></div>
+    <div class="cell"><div class="k idle" data-v="0.7"></div><small>Idle (sound off)</small></div>
+    <div class="cell"><div class="d" data-v="0.25"></div><small>Stops, first</small></div>
+    <div class="cell"><div class="d" data-v="0.5"></div><small>Second</small></div>
+    <div class="cell"><div class="d" data-v="1"></div><small>Third</small></div>
+  </div>
+
+  <h2>At twice the size</h2>
+  <div class="row x2">
+    <div class="hw-slide s"><button class="on">Loop beat</button><button>Play through</button></div>
+    <span class="hw-bay"><button class="hw-key" data-icon="step-back"></button><button class="hw-key on"><span data-icon="volume-2"></span><i class="hw-led"></i></button></span>
+    <div class="k" data-v="0.65"></div>
+    <div class="d" data-v="0.5"></div>
+  </div>
+  <pre id="selftest" hidden></pre>
+</div>
+
+<script src="icons.js"></script>
+<script src="hardware.js"></script>
+<script>
+(() => {
+  const q = new URLSearchParams(location.search), $ = (s, r = document) => r.querySelector(s);
+  if (q.has("both")) {
+    document.body.innerHTML = `<div class="both"><iframe src="hardware.html?theme=dark&embed" title="Dark"></iframe><iframe src="hardware.html?theme=light&embed" title="Light"></iframe></div>`;
+    return;
+  }
+  if (q.has("embed")) $("#sheet").classList.add("embed");
+  document.querySelectorAll("[data-icon]").forEach((n) => (n.innerHTML = window.icon(n.dataset.icon)));
+  const speedFmt = (v) => `${v}×`, volFmt = (v) => `${Math.round(v * 100)}%`;
+
+  // the static specimens
+  document.querySelectorAll(".hw-slide.s").forEach((n) => HW.slide(n));
+  document.querySelectorAll(".k").forEach((n) => HW.knob(n, { value: +n.dataset.v, label: "Level", format: volFmt }));
+  document.querySelectorAll(".d").forEach((n) => HW.knob(n, { stops: [0.25, 0.5, 1], value: +n.dataset.v, readout: true, label: "Speed", format: speedFmt }));
+  // slide specimens are for looking at: their buttons do choose, so they can be tried
+  document.querySelectorAll(".hw-slide.s > button").forEach((b) => (b.onclick = () => b.parentNode.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b))));
+
+  // the live deck
+  const log = {};
+  const play = $("#t-play"); play.onclick = () => { const on = play.classList.toggle("on"); play.innerHTML = window.icon(on ? "pause" : "play"); log.play = on; };
+  const mode = $("#t-mode"); HW.slide(mode, { label: "Playback" });
+  mode.querySelectorAll("button").forEach((b) => (b.onclick = () => { mode.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); log.mode = b.dataset.v; }));
+  const speed = HW.knob($("#t-speed"), { stops: [0.25, 0.5, 1], value: 1, readout: true, label: "Speed", format: speedFmt, onInput: (v) => (log.speed = v) });
+  const vol = HW.knob($("#t-vol"), { value: 0.8, reset: 1, label: "Volume", format: volFmt, onInput: (v) => (log.vol = v) });
+  const snd = $("#t-sound"); snd.onclick = () => { const on = snd.classList.toggle("on"); snd.setAttribute("aria-pressed", on); $("span", snd).innerHTML = window.icon(on ? "volume-2" : "volume-x"); vol.el.classList.toggle("idle", !on); log.sound = on; };
+
+  // the sounds setting (shared with the app: localStorage cr.uiSound)
+  const sp = $("#snd-pref"), paintSp = () => sp.querySelectorAll("button").forEach((b) => b.classList.toggle("on", (b.dataset.v === "1") === HW.sound.on()));
+  sp.querySelectorAll("button").forEach((b) => (b.onclick = () => { HW.sound.set(b.dataset.v === "1"); paintSp(); if (b.dataset.v === "1") HW.sound.play("clack"); }));
+  paintSp();
+
+  if (!q.has("selftest")) return;
+  const out = $("#selftest"); out.hidden = false;
+  const res = []; const ok = (name, pass, got) => res.push(`${pass ? "PASS" : "FAIL"}  ${name}${pass ? "" : `  (got ${JSON.stringify(got)})`}`);
+  const pt = (el, type, x, y, extra = {}) => el.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, button: 0, clientX: x, clientY: y, ...extra }));
+  const key = (el, k, extra = {}) => { const e = new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true, ...extra }); el.dispatchEvent(e); return e; };
+  let leaked = 0; document.addEventListener("keydown", () => leaked++);
+  const c = (el) => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+
+  // slide: click, cap position, ARIA, arrow keys, drag
+  const [ml, mp] = mode.querySelectorAll("button");
+  ok("slide starts on the first option", mode.style.getPropertyValue("--i") === "0" && ml.getAttribute("aria-checked") === "true", mode.style.getPropertyValue("--i"));
+  mp.click();
+  const after = () => new Promise((r) => setTimeout(r, 30));
+  (async () => {
+    await after();
+    ok("slide click chooses the second option", log.mode === "play" && mode.style.getPropertyValue("--i") === "1" && mp.getAttribute("aria-checked") === "true" && ml.getAttribute("aria-checked") === "false", [log.mode, mode.style.getPropertyValue("--i")]);
+    ok("slide is a radio group", mode.getAttribute("role") === "radiogroup" && mp.getAttribute("role") === "radio" && mp.tabIndex === 0 && ml.tabIndex === -1, mode.getAttribute("role"));
+    leaked = 0; key(mp, "ArrowLeft"); await after();
+    ok("slide arrow key moves back and does not reach the page", log.mode === "loop" && leaked === 0, [log.mode, leaked]);
+    leaked = 0; key(ml, "l");
+    ok("slide lets other keys through to the page", leaked === 1, leaked);
+    const [tx, ty] = c(ml); const w = mode.querySelector(".hw-thumb").offsetWidth;
+    pt(mode, "pointerdown", tx, ty); pt(window, "pointermove", tx + w * 0.3, ty);
+    ok("slide drag moves the cap with the pointer", mode.classList.contains("dragging") && /translateX\(\d/.test(mode.querySelector(".hw-thumb").style.transform), mode.querySelector(".hw-thumb").style.transform);
+    pt(window, "pointermove", tx + w * 0.8, ty); pt(window, "pointerup", tx + w * 0.8, ty); await after();
+    ok("slide drag past half way chooses the other option", log.mode === "play" && !mode.classList.contains("dragging") && mode.querySelector(".hw-thumb").style.transform === "", log.mode);
+    pt(mode, "pointerdown", tx + w, ty); pt(window, "pointermove", tx + w * 0.8, ty); pt(window, "pointerup", tx + w * 0.8, ty); await after();
+    ok("slide short drag springs back", log.mode === "play", log.mode);
+
+    // detent knob
+    const sk = speed.el;
+    ok("speed knob is a slider with its value as text", sk.getAttribute("role") === "slider" && sk.getAttribute("aria-valuenow") === "1" && sk.getAttribute("aria-valuetext") === "1×" && sk.getAttribute("aria-valuemin") === "0.25", sk.getAttribute("aria-valuetext"));
+    const [kx, ky] = c(sk.querySelector(".hw-dial"));
+    pt(sk, "pointerdown", kx, ky); pt(sk, "pointerup", kx, ky);
+    ok("speed knob click steps to the next stop, round again", log.speed === 0.25 && speed.get() === 0.25, log.speed);
+    pt(sk, "pointerdown", kx, ky); pt(sk, "pointermove", kx, ky - 40); pt(sk, "pointerup", kx, ky - 40);
+    ok("speed knob drag up snaps to a later stop", log.speed === 0.5, log.speed);
+    pt(sk, "pointerdown", kx, ky); pt(sk, "pointermove", kx, ky - 200); pt(sk, "pointerup", kx, ky - 200);
+    ok("speed knob drag stops at the last stop", log.speed === 1 && sk.querySelectorAll(".hw-stop.on").length === 1 && sk.querySelector(".hw-stop:nth-of-type(4)").classList.contains("on"), log.speed);
+    leaked = 0; const ke = key(sk, "ArrowLeft");
+    ok("speed knob arrow key steps down and does not reach the page", log.speed === 0.5 && leaked === 0 && ke.defaultPrevented, [log.speed, leaked]);
+    key(sk, "Home"); ok("speed knob Home goes to the first stop", log.speed === 0.25, log.speed);
+    key(sk, "End"); ok("speed knob End goes to the last stop", log.speed === 1 && sk.querySelector(".hw-read").textContent === "1×", log.speed);
+    leaked = 0; key(sk, " "); ok("speed knob lets Space through to the page", leaked === 1, leaked);
+    speed.set(0.5); ok("set() shows a value without telling the owner", speed.get() === 0.5 && log.speed === 1 && sk.style.getPropertyValue("--a") === "0.00deg", [speed.get(), log.speed, sk.style.getPropertyValue("--a")]);
+
+    // continuous knob
+    const vk = vol.el; const [vx, vy] = c(vk.querySelector(".hw-dial"));
+    ok("volume knob starts at 80%", vk.getAttribute("aria-valuetext") === "80%" && Math.abs(+vk.style.getPropertyValue("--v") - 0.8) < 1e-3, vk.getAttribute("aria-valuetext"));
+    pt(vk, "pointerdown", vx, vy); pt(vk, "pointermove", vx, vy + 75);
+    ok("volume knob drag down by half its travel takes off 50%", Math.abs(log.vol - 0.3) < 0.03 && vk.classList.contains("turning"), log.vol);
+    pt(vk, "pointerup", vx, vy + 75);
+    pt(vk, "pointerdown", vx, vy); pt(vk, "pointermove", vx, vy - 400); pt(vk, "pointerup", vx, vy - 400);
+    ok("volume knob stops at full, pointer at the end of its sweep", log.vol === 1 && vk.style.getPropertyValue("--a") === "135.00deg" && !vk.classList.contains("turning"), [log.vol, vk.style.getPropertyValue("--a")]);
+    key(vk, "ArrowDown"); ok("volume knob arrow key takes off 5%", Math.abs(log.vol - 0.95) < 1e-6, log.vol);
+    key(vk, "ArrowDown", { shiftKey: true }); ok("volume knob Shift + arrow takes off 1%", Math.abs(log.vol - 0.94) < 1e-6, log.vol);
+    key(vk, "Home"); ok("volume knob Home goes to 0", log.vol === 0 && vk.style.getPropertyValue("--a") === "-135.00deg", log.vol);
+    vk.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })); ok("volume knob double-click goes back to full", log.vol === 1, log.vol);
+    const md = new MouseEvent("mousedown", { bubbles: true, cancelable: true }); vk.dispatchEvent(md);
+    ok("a click does not move focus to the knob", md.defaultPrevented && document.activeElement !== vk, document.activeElement && document.activeElement.id);
+    ok("knob can be reached with Tab", vk.tabIndex === 0 && sk.tabIndex === 0, vk.tabIndex);
+
+    // keys
+    play.click(); ok("play key latches", play.classList.contains("on") && log.play === true, log.play);
+    snd.click(); document.querySelectorAll(".hw-led").forEach((l) => (l.style.transition = "none"));   // read the lamp's colour where it ends up, not mid-fade
+    ok("sound key releases, its lamp goes out and the level knob goes idle", !snd.classList.contains("on") && snd.getAttribute("aria-pressed") === "false" && vk.classList.contains("idle") && getComputedStyle(snd.querySelector(".hw-led")).backgroundColor !== getComputedStyle(document.querySelector(".hw-key.on .hw-led")).backgroundColor, snd.className);
+
+    // sounds: off unless turned on, only for a control operated by hand, and each one short and quiet
+    const saved = localStorage.getItem("cr.uiSound"); localStorage.removeItem("cr.uiSound");
+    const heard = []; const real = HW.sound.play; HW.sound.play = (n, o) => { const r = real(n, o); if (r) heard.push(n); return r; };
+    const took = async (fn) => { heard.length = 0; await fn(); await after(); return heard.join(" "); };
+    const [dx, dy] = c($("#t-back"));
+    const press = () => { pt($("#t-back"), "pointerdown", dx, dy); pt($("#t-back"), "pointerup", dx, dy); };
+    ok("sounds are off until turned on, and nothing audio is made", HW.sound.on() === false && (await took(press)) === "" && !HW.sound.live(), [HW.sound.on(), heard.join(" "), HW.sound.live()]);
+    HW.sound.set(true);
+    ok("turned on, a key press is a down and an up", HW.sound.on() && (await took(press)) === "down up", heard.join(" "));
+    ok("a click on the switch is one clack", (await took(() => ml.click())) === "clack", heard.join(" "));
+    ok("the switch moved by the app (a shortcut) is silent", (await took(() => { ml.classList.remove("on"); mp.classList.add("on"); })) === "" && mode.style.getPropertyValue("--i") === "1", heard.join(" "));
+    ok("the speed knob falling into a stop is one detent", (await took(() => { pt(sk, "pointerdown", kx, ky); pt(sk, "pointerup", kx, ky); })) === "detent", heard.join(" "));
+    ok("a knob set by the app is silent", (await took(() => speed.set(1))) === "", heard.join(" "));
+    vol.set(0.5);
+    ok("an arrow key on the level knob is one tick", (await took(() => key(vk, "ArrowUp"))) === "tick", heard.join(" "));
+    ok("the level knob reaching the end is a stop", (await took(() => key(vk, "End"))) === "stop", heard.join(" "));
+    ok("a fast turn is a few ticks, not a buzz", await (async () => { vol.set(0.02); heard.length = 0; pt(vk, "pointerdown", vx, vy); for (let i = 1; i <= 60; i++) pt(vk, "pointermove", vx, vy - i * 2); pt(vk, "pointerup", vx, vy - 120); const n = heard.filter((x) => x === "tick").length; return n >= 1 && n <= 3; })(), heard.join(" "));
+    HW.sound.hush = () => true;
+    ok("hushed (a film playing with its sound on), nothing sounds", (await took(press)) === "", heard.join(" "));
+    HW.sound.hush = null; HW.sound.set(false);
+    ok("turned off again, nothing sounds", (await took(press)) === "" && localStorage.getItem("cr.uiSound") === "0", heard.join(" "));
+    HW.sound.play = real; if (saved == null) localStorage.removeItem("cr.uiSound"); else localStorage.setItem("cr.uiSound", saved);
+    // what each sound is, measured: peak level, how long it can be heard, and that it ends in silence
+    const db = (x) => (20 * Math.log10(Math.max(x, 1e-9))).toFixed(1);
+    const meas = [];
+    for (const n of HW.sound.names) {
+      let worst = { peak: 0, len: 0, tail: 0, bad: false };
+      for (let k = 0; k < 6; k++) {   // every hit varies a little: take the loudest and longest of six
+        const d = await HW.sound.render(n, { v: k / 5 }); let peak = 0, lastHeard = 0, first = -1, tail = 0, bad = false;
+        for (let i = 0; i < d.length; i++) { const a = Math.abs(d[i]); if (!Number.isFinite(a)) bad = true; if (a > peak) peak = a; }
+        for (let i = 0; i < d.length; i++) { const a = Math.abs(d[i]); if (a > peak * 0.03) { lastHeard = i; if (first < 0) first = i; } if (i > d.length - 960 && a > tail) tail = a; }
+        worst = { peak: Math.max(worst.peak, peak), len: Math.max(worst.len, (lastHeard - first) / 48), tail: Math.max(worst.tail, tail), bad: worst.bad || bad };
+      }
+      meas.push(`${n.padEnd(7)} peak ${db(worst.peak).padStart(6)} dBFS   heard for ${worst.len.toFixed(0).padStart(3)} ms`);
+      ok(`sound "${n}" is quiet (peak under -9 dBFS, over -40), under 100 ms, and ends in silence`, !worst.bad && worst.peak < 0.355 && worst.peak > 0.01 && worst.len < 100 && worst.tail < 0.0005, worst);
+    }
+    res.push("", ...meas);
+    const fails = res.filter((r) => r.startsWith("FAIL")).length;
+    out.textContent = `SELFTEST ${fails ? `${fails} FAILED` : "ALL PASSED"} (${res.length} checks)\n` + res.join("\n");
+    out.dataset.done = "1";
+  })();
+})();
+</script>
+</body>
+</html>

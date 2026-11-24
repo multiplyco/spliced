@@ -1,0 +1,199 @@
+{
+ "_note": "The shared UI sound kit (spliced soundkit). crisp, tactile, in the spirit of the iPhone keyboard, all original ElevenLabs Sound Effects v3 takes. levels: kind -> [peak dBFS of one hit, low-pass Hz]; a film can override them (LEVELS in its sound_events.py). kinds: kind -> sources, each cut at `at` for `len` s, or every onset (`onsets`), or whole (`whole`, faded; `mid` keeps that many seconds either side of the middle).",
+ "levels": {
+  "key": [
+   -20,
+   14000
+  ],
+  "space": [
+   -22,
+   8000
+  ],
+  "click": [
+   -15,
+   14000
+  ],
+  "tick": [
+   -19,
+   14000
+  ],
+  "pop": [
+   -17,
+   12000
+  ],
+  "thud": [
+   -15,
+   3200
+  ],
+  "slide": [
+   -20,
+   6000
+  ],
+  "whoosh": [
+   -19,
+   5000
+  ],
+  "pass": [
+   -25,
+   3800
+  ]
+ },
+ "kinds": {
+  "key": [
+   {
+    "file": "phone-keys-1.mp3",
+    "onsets": true,
+    "len": 0.05,
+    "floor": -34,
+    "max": 24
+   },
+   {
+    "file": "phone-keys-2.mp3",
+    "onsets": true,
+    "len": 0.05,
+    "floor": -34
+   }
+  ],
+  "click": [
+   {
+    "file": "tap-2.mp3",
+    "at": 0.05,
+    "len": 0.08
+   },
+   {
+    "file": "crisptick-1.mp3",
+    "at": 0.02,
+    "len": 0.06,
+    "pitch": 1.4
+   }
+  ],
+  "tick": [
+   {
+    "file": "crisptick-1.mp3",
+    "at": 0.02,
+    "len": 0.05
+   },
+   {
+    "file": "crisptick-2.mp3",
+    "at": 0.05,
+    "len": 0.05
+   }
+  ],
+  "pop": [
+   {
+    "file": "softpop-2.mp3",
+    "at": 0.02,
+    "len": 0.16
+   },
+   {
+    "file": "softpop-1.mp3",
+    "at": 0.2,
+    "len": 0.16
+   }
+  ],
+  "thud": [
+   {
+    "file": "thud-1.mp3",
+    "at": 0.25,
+    "len": 0.35
+   },
+   {
+    "file": "thud-2.mp3",
+    "at": 0.05,
+    "len": 0.3
+   }
+  ],
+  "slide": [
+   {
+    "file": "slide-2.mp3",
+    "at": 0.07,
+    "len": 0.32
+   },
+   {
+    "file": "slide-1.mp3",
+    "at": 0.1,
+    "len": 0.32
+   }
+  ],
+  "whoosh": [
+   {
+    "file": "whoosh-1.mp3",
+    "whole": true,
+    "hann": 0.6
+   },
+   {
+    "file": "whoosh-2.mp3",
+    "whole": true,
+    "hann": 0.6
+   }
+  ],
+  "pass": [
+   {
+    "file": "whoosh-1.mp3",
+    "whole": true,
+    "mid": 0.22,
+    "hann": 1
+   },
+   {
+    "file": "whoosh-2.mp3",
+    "whole": true,
+    "mid": 0.22,
+    "hann": 1
+   }
+  ]
+ },
+ "sources": {
+  "phone-keys-1.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Smartphone touchscreen keyboard typing: crisp, short, clean tactile key clicks, one tap at a time with small gaps between, light and precise, dry close-mic, no room, no music"
+  },
+  "phone-keys-2.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Smartphone touchscreen keyboard typing: crisp, short, clean tactile key clicks, one tap at a time with small gaps between, light and precise, dry close-mic, no room, no music"
+  },
+  "tap-2.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Single crisp UI button tap, a short clean tactile tock like pressing a button on a phone screen, dry, close-mic, no reverb"
+  },
+  "crisptick-1.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Tiny crisp tick, a very short clean tactile click like a phone toggle or checkbox, dry, close-mic"
+  },
+  "crisptick-2.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Tiny crisp tick, a very short clean tactile click like a phone toggle or checkbox, dry, close-mic"
+  },
+  "softpop-1.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Soft round UI pop, a short clean bubbly pop like a card appearing on a phone screen, gentle and modern, dry, no reverb"
+  },
+  "softpop-2.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Soft round UI pop, a short clean bubbly pop like a card appearing on a phone screen, gentle and modern, dry, no reverb"
+  },
+  "thud-1.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Soft deep felt thump, a small object set down on a cushion, dry"
+  },
+  "thud-2.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Soft deep felt thump, a small object set down on a cushion, dry"
+  },
+  "slide-1.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Thick paper card sliding briefly across a felt desk, soft, close-mic"
+  },
+  "slide-2.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Thick paper card sliding briefly across a felt desk, soft, close-mic"
+  },
+  "whoosh-1.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Very soft short low air whoosh, smooth and warm, no hiss"
+  },
+  "whoosh-2.mp3": {
+   "model": "eleven_text_to_sound_v3",
+   "prompt": "Very soft short low air whoosh, smooth and warm, no hiss"
+  }
+ }
+}

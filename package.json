@@ -1,0 +1,42 @@
+{
+  "name": "spliced-app",
+  "private": true,
+  "version": "0.0.1",
+  "description": "A workshop for motion design: study the films you love scene by scene, name their moves, and build your own films from them with your AI.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/multiplyco/spliced.git"
+  },
+  "homepage": "https://github.com/multiplyco/spliced#readme",
+  "keywords": [
+    "motion design",
+    "video",
+    "remotion",
+    "mcp",
+    "claude",
+    "film",
+    "reference library"
+  ],
+  "bin": {
+    "spliced": "bin/spliced.js"
+  },
+  "files": [
+    "bin/",
+    "spliced/",
+    "starter/",
+    "!spliced/**/__pycache__",
+    "!spliced/**/*.pyc",
+    "!spliced/BUILD",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ]
+}

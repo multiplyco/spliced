@@ -1,0 +1,48 @@
+{
+ "_note": "Uploaded references (fixture).",
+ "items": [
+  {
+   "id": "f1x7u0",
+   "file": "library/uploads/fixture-look-f1x7u0.png",
+   "kind": "image",
+   "title": "A gradient",
+   "note": "the look",
+   "tags": [],
+   "source": "",
+   "width": 96,
+   "height": 64,
+   "added": "2026-01-01T00:00:00",
+   "by": "fixture",
+   "palette": [
+    "#2A1EC8",
+    "#E6D269"
+   ],
+   "analysis": {
+    "role": "end-card",
+    "world": "dark-stage",
+    "pace": "slow",
+    "energy": "calm",
+    "subject": [
+     "logo"
+    ],
+    "camera": [
+     "locked"
+    ],
+    "motion": [
+     "blur-in"
+    ],
+    "type_treatment": [
+     "no-type"
+    ],
+    "production": [
+     "code"
+    ],
+    "title": "A gradient",
+    "on_screen": "A soft gradient.",
+    "how_it_moves": "It doesn't.",
+    "recreate": "A CSS gradient."
+   },
+   "analysed": "2026-01-01T00:00:00"
+  }
+ ]
+}

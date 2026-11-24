@@ -1,0 +1,473 @@
+{
+ "_note": "Every time in the film, in film seconds. Beat ids in storyboard.json = keys in scenes. Silent picture cut: no music grid yet.",
+ "fps": 30,
+ "board": "Spliced: how it works",
+ "duration": 36.4,
+ "scenes": {
+  "open-a-caret": [
+   0.0,
+   3.0
+  ],
+  "paste-a-link": [
+   3.0,
+   7.0
+  ],
+  "cut-into-scenes": [
+   7.0,
+   11.0
+  ],
+  "name-every-move": [
+   11.0,
+   14.0
+  ],
+  "find-it": [
+   14.0,
+   18.0
+  ],
+  "board-it": [
+   18.0,
+   23.0
+  ],
+  "with-claude": [
+   23.0,
+   27.0
+  ],
+  "build-view": [
+   27.0,
+   32.0
+  ],
+  "end-card": [
+   32.0,
+   36.4
+  ]
+ },
+ "open": {
+  "lines": [
+   "Films you love.",
+   "Frame by frame."
+  ],
+  "typeAt": [
+   0.5,
+   1.75
+  ],
+  "cps": 16,
+  "exit": 3.1
+ },
+ "paste": {
+  "head": [
+   "Paste a link.",
+   3.55,
+   6.95
+  ],
+  "whip": 3.4,
+  "focus": 4.25,
+  "paste": 4.6,
+  "link": "films.example.com/plan-it-together",
+  "cursor": [
+   4.8,
+   5.3
+  ],
+  "click": 5.45,
+  "job": 5.6,
+  "steps": [
+   5.9,
+   6.3
+  ],
+  "exit": 6.95,
+  "sheet": {
+   "top": 196,
+   "scale": 1.3
+  }
+ },
+ "cut": {
+  "head": [
+   "Cut into scenes.",
+   7.35,
+   11.35
+  ],
+  "enter": 7.2,
+  "scan": [
+   7.6,
+   9.8
+  ],
+  "cards": 10.0,
+  "labels": 10.45
+ },
+ "name": {
+  "head": [
+   "Every move, named.",
+   11.8,
+   14.8
+  ],
+  "carry": 11.65,
+  "meta": 12.3,
+  "reel": 12.35,
+  "land": 13.25,
+  "tags": 13.45,
+  "exit": 14.75,
+  "reelTags": [
+   "blur-in",
+   "morph",
+   "typewriter",
+   "mask-reveal",
+   "slot-reel",
+   "shared-element",
+   "scale-pop",
+   "draw-on",
+   "stagger-cascade",
+   "word-by-word",
+   "kinetic-type"
+  ],
+  "siblings": [
+   "gradient-field",
+   "headline",
+   "hard-cut",
+   "★★★"
+  ],
+  "hero": 1
+ },
+ "find": {
+  "head": [
+   "Find it in seconds.",
+   15.2,
+   19.35
+  ],
+  "window": 15.0,
+  "cursor": [
+   15.55,
+   16.05
+  ],
+  "click": 16.1,
+  "query": "blur-in",
+  "type": 16.25,
+  "cps": 18,
+  "sort": 16.85,
+  "push": 17.2,
+  "pick": [
+   17.6,
+   18.1
+  ],
+  "pickClick": 18.2,
+  "cams": [
+   [
+    960,
+    540,
+    1
+   ],
+   [
+    1000,
+    520,
+    1.22
+   ]
+  ]
+ },
+ "boardIt": {
+  "head": [
+   [
+    "Borrow the move.",
+    19.75,
+    22.0
+   ],
+   [
+    "Write the script.",
+    22.2,
+    24.2
+   ]
+  ],
+  "pile": 19.95,
+  "pileGap": 0.16,
+  "snap": 21.2,
+  "rowsText": 21.55,
+  "focus": 22.35,
+  "type": 22.5,
+  "cps": 16,
+  "typed": 2,
+  "cams": [
+   [
+    1000,
+    520,
+    1.22
+   ],
+   [
+    960,
+    560,
+    1.0
+   ],
+   [
+    1000,
+    760,
+    1.2
+   ]
+  ],
+  "push": 22.05
+ },
+ "claude": {
+  "head": [
+   "Claude works with you.",
+   24.55,
+   28.2
+  ],
+  "scroll": 24.45,
+  "scrollBy": 340,
+  "add": [
+   25.15,
+   25.4
+  ],
+  "toast1": 25.3,
+  "edit": 26.7,
+  "toast2": 26.75,
+  "editRow": 3,
+  "editFrom": "Every move named",
+  "editTo": "Every move, named.",
+  "cam": [
+   1000,
+   760,
+   1.2
+  ]
+ },
+ "build": {
+  "head": [
+   [
+    "Every beat,",
+    "beside its reference."
+   ],
+   28.55,
+   33.35
+  ],
+  "plays": 28.9,
+  "cursor": [
+   30.6,
+   31.1
+  ],
+  "click": 31.2,
+  "pin": 31.3,
+  "compose": 31.4,
+  "type": 31.65,
+  "cps": 20,
+  "note": "Hold the mark a beat longer.",
+  "exit": 33.3,
+  "cams": [
+   [
+    1000,
+    760,
+    1.2
+   ],
+   [
+    1000,
+    630,
+    1.1
+   ],
+   [
+    1060,
+    600,
+    1.2
+   ]
+  ],
+  "push": 30.7
+ },
+ "end": {
+  "in": 33.6,
+  "rise": 33.6,
+  "riseGap": 0.25,
+  "slide": 35.0,
+  "word": 35.15,
+  "tagline": 35.7,
+  "sink": 36.6,
+  "rise2": 37.15,
+  "tagline_words": [
+   "Study it.",
+   "Name it.",
+   "Make it."
+  ]
+ },
+ "music": {
+  "_note": "ElevenLabs Music take fitted by score.py: starts at film `start` (frame 0, its first kick), groove cut on its beat at `cut` s into the take = film `hit` (the cut to the end card), then one low final hit from the kick at `kickAt` with a `tail` s decay. Kicks fall every 0.5 s from 0 (120.0 BPM), so the film's beat grid is k x 0.5 s.",
+  "take": "deep-techno-A.mp3",
+  "start": 0.0,
+  "cut": 31.995,
+  "hit": 32.0,
+  "kickAt": 29.995,
+  "tail": 4.4,
+  "gain": 0.9,
+  "encoderLead": 0.0333,
+  "_noteLead": "encoderLead: the rendered mp4's AAC audio lags the picture by ~43 ms (encoder priming, no edit list). Remotion trims audio in whole frames, so the score starts one frame (33 ms) into its file: kicks then land ~11 ms after the beat frames (measured, v6)."
+ },
+ "design": {
+  "open-a-caret": [
+   0.0,
+   3.4
+  ],
+  "paste-a-link": [
+   3.4,
+   7.2
+  ],
+  "cut-into-scenes": [
+   7.2,
+   11.6
+  ],
+  "name-every-move": [
+   11.6,
+   15.0
+  ],
+  "find-it": [
+   15.0,
+   19.6
+  ],
+  "board-it": [
+   19.6,
+   24.4
+  ],
+  "with-claude": [
+   24.4,
+   28.4
+  ],
+  "build-view": [
+   28.4,
+   33.6
+  ],
+  "end-card": [
+   33.6,
+   38.0
+  ]
+ },
+ "designDuration": 38.0,
+ "sync": [
+  [
+   0.0,
+   0.0
+  ],
+  [
+   0.5,
+   0.5
+  ],
+  [
+   1.75,
+   1.5
+  ],
+  [
+   3.4,
+   3.0
+  ],
+  [
+   4.25,
+   4.0
+  ],
+  [
+   5.45,
+   5.0
+  ],
+  [
+   5.6,
+   5.25
+  ],
+  [
+   5.9,
+   5.5
+  ],
+  [
+   6.3,
+   6.0
+  ],
+  [
+   7.2,
+   7.0
+  ],
+  [
+   7.6,
+   7.5
+  ],
+  [
+   9.8,
+   9.5
+  ],
+  [
+   10.45,
+   10.0
+  ],
+  [
+   11.6,
+   11.0
+  ],
+  [
+   12.35,
+   11.5
+  ],
+  [
+   13.25,
+   12.5
+  ],
+  [
+   13.45,
+   12.75
+  ],
+  [
+   15.0,
+   14.0
+  ],
+  [
+   16.1,
+   15.0
+  ],
+  [
+   16.85,
+   15.5
+  ],
+  [
+   17.6,
+   16.5
+  ],
+  [
+   18.2,
+   17.0
+  ],
+  [
+   19.6,
+   18.0
+  ],
+  [
+   19.95,
+   18.5
+  ],
+  [
+   21.2,
+   19.5
+  ],
+  [
+   22.35,
+   21.0
+  ],
+  [
+   24.4,
+   23.0
+  ],
+  [
+   25.15,
+   24.0
+  ],
+  [
+   26.7,
+   25.5
+  ],
+  [
+   28.4,
+   27.0
+  ],
+  [
+   28.9,
+   27.5
+  ],
+  [
+   31.2,
+   29.5
+  ],
+  [
+   33.6,
+   32.0
+  ],
+  [
+   38.0,
+   36.4
+  ]
+ ],
+ "_sync": "sync.py: [design time, film time] anchors; Film.tsx interpolates film time back to design time. design = the clock the scene code uses."
+}

@@ -1,0 +1,6 @@
+# Spliced rebuilds these on demand
+.cache/
+# API keys
+.env
+.DS_Store
+__pycache__/

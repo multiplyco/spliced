@@ -1,0 +1,26 @@
+Spliced
+Copyright 2026 Multiply Potential AB
+
+This product includes icons from Lucide (https://lucide.dev), copied as SVG markup in
+spliced/web/icons.js, licensed under the ISC License:
+
+  Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT).
+  All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+
+The introduction film (spliced/web/intro.mp4) and the example film in starter/ show Spliced itself, rebuilt in
+code, and the frames of a made-up film drawn for the example; no frame of a real film is in them. They are
+included to introduce Spliced and to learn from, and are not covered by the code's licence for other uses. Their
+music and sound effects were made with ElevenLabs.
+
+The UI sounds in the film kit (spliced/kit/managed/public/audio/kit/) are original takes made for Spliced by
+its publisher with ElevenLabs Sound Effects; kit.json beside them records the prompt each came from. They are
+covered by the code's licence: use them in your own films.
+
+The Spliced name and logo (spliced/web/brand/) identify this project. The licence covers the
+code; it does not grant the right to use the name or logo for your own product.
+
+Spliced is a tool for studying how films are made. You alone are responsible for what you download,
+study and make with it, including holding the rights to every film you add and to anything you
+publish. Multiply Potential AB does not condone copyright infringement or the use of anyone's work or
+likeness without permission. The software is provided as is and at your own risk, as sections 7 and 8
+of the licence set out.

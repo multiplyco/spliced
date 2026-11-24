@@ -1,0 +1,24 @@
+#!/bin/sh
+# The spliced command inside Spliced.app: runs the engine bundled beside it (Resources/engine) with a Python 3.10+.
+# The app runs every project through it; "Install Command Line Tool" links it as ~/.local/bin/spliced.
+SELF="$(readlink -f "$0" 2>/dev/null || echo "$0")"
+RES="$(cd "$(dirname "$SELF")/.." && pwd -P)"
+export PYTHONPATH="$RES/engine${PYTHONPATH:+:$PYTHONPATH}"
+export SPLICED_COMMAND="$RES/bin/spliced"
+case ":$PATH:" in *":$RES/tools:"*) ;; *) PATH="$PATH:$RES/tools" ;; esac   # the bundled uv, after the person's own
+export PATH
+
+ok() { [ -n "$1" ] && [ -x "$1" ] && "$1" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null; }
+# A Python of the person's own first (not /usr/bin/python3: on a Mac without developer tools it asks to install them),
+# then one uv manages.
+managed() { command -v uv >/dev/null 2>&1 && uv python find --python-preference only-managed '>=3.10' 2>/dev/null; }
+for py in "$SPLICED_PYTHON" /opt/homebrew/bin/python3 /usr/local/bin/python3 "$(managed)"; do
+  ok "$py" && exec "$py" -m spliced "$@"
+done
+# None yet: uv fetches one, once (about 20 MB).
+if command -v uv >/dev/null 2>&1; then
+  echo "Spliced: fetching Python (once)..." >&2
+  uv python install -q 3.12 >&2 && py="$(managed)" && ok "$py" && exec "$py" -m spliced "$@"
+fi
+echo "Spliced needs Python 3.10 or newer. Install it from https://www.python.org/downloads/macos/ or with Homebrew (brew install python), then open Spliced again." >&2
+exit 1

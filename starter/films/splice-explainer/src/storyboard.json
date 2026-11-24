@@ -1,0 +1,165 @@
+{
+ "_note": "The plan, beat by beat: Spliced's Build view pairs it with every render. Beat id = its key in cues.json scenes. Statuses: todo, wip, review, changes, approved.",
+ "title": "Spliced: how it works",
+ "profile": "splice",
+ "composition": "SpliceExplainer",
+ "fps": 30,
+ "format": "1920x1080",
+ "message": "Spliced turns the films we love into named, reusable moves, and builds new films from them.",
+ "beats": [
+  {
+   "id": "open-a-caret",
+   "title": "Open: a caret",
+   "refs": [],
+   "on_screen": "Ink stage. A volt caret blinks (soft fades, ~1s cycle); two lines type in Anybody wide uppercase, one keystroke at a time, then blur out.",
+   "copy": "Films you love. / Frame by frame.",
+   "roles": [
+    "textReveal",
+    "exit"
+   ],
+   "sound": "Deep techno score, UI sounds on the cuts",
+   "status": "approved",
+   "review": "",
+   "log": []
+  },
+  {
+   "id": "paste-a-link",
+   "title": "Paste a link",
+   "refs": [],
+   "on_screen": "Spliced's real Add references sheet whips in from the right (scale, tilt, blur) and settles under the headline. A link is pasted (a made-up film, drawn in code for this example), focus ring in volt, the cursor presses Add, a job row opens: Download done, Analyse done, Break down running with the Spliced loader (the blocks sink and rise).",
+   "copy": "Paste a link.",
+   "roles": [
+    "move",
+    "ui",
+    "exit",
+    "textReveal"
+   ],
+   "sound": "Deep techno score, UI sounds on the cuts",
+   "status": "approved",
+   "review": "",
+   "log": []
+  },
+  {
+   "id": "cut-into-scenes",
+   "title": "Cut into scenes",
+   "refs": [],
+   "on_screen": "The film as one strip of 15 frames, grey and dim. A volt playhead runs across it at play speed: every frame it passes takes its colour, every cut it passes opens a gap and gets its scene id. Then the six segments become six scene cards in a row, with timecode and title under each.",
+   "copy": "Cut into scenes.",
+   "roles": [
+    "enter",
+    "ui",
+    "move",
+    "textReveal"
+   ],
+   "sound": "Deep techno score, UI sounds on the cuts",
+   "status": "approved",
+   "review": "",
+   "log": []
+  },
+  {
+   "id": "name-every-move",
+   "title": "Name every move",
+   "refs": [],
+   "on_screen": "The first card carries to the centre and grows (shared element); the others blur away. Its ID and in/out times appear. A tag chip spins through the taxonomy like a slot reel and lands on blur-in, which fills; its other tags and the rating follow.",
+   "copy": "Every move, named.",
+   "roles": [
+    "move",
+    "emphasis",
+    "ui",
+    "textReveal",
+    "exit"
+   ],
+   "sound": "Deep techno score, UI sounds on the cuts",
+   "status": "approved",
+   "review": "",
+   "log": []
+  },
+  {
+   "id": "find-it",
+   "title": "Find it",
+   "refs": [],
+   "on_screen": "The app window rises in on the Library (rebuilt from the real view). The cursor clicks Search and types blur-in; the grid re-sorts to the matching scenes while the rest drop away; the first card is picked (volt ring and tint). Slow push-in.",
+   "copy": "Find it in seconds.",
+   "roles": [
+    "enter",
+    "ui",
+    "move",
+    "exit",
+    "camera"
+   ],
+   "sound": "Deep techno score, UI sounds on the cuts",
+   "status": "approved",
+   "review": "",
+   "log": []
+  },
+  {
+   "id": "board-it",
+   "title": "Board it",
+   "refs": [],
+   "on_screen": "Blur through to the Boards view of this very board. Four scene cards drop into a loose pile, then snap into the beat rows; names, scenes and seconds fill in and the beat count climbs. The headline swaps to its second line as beat 3's on-screen line is typed.",
+   "copy": "Borrow the move. / Write the script.",
+   "roles": [
+    "enter",
+    "move",
+    "textReveal",
+    "ui"
+   ],
+   "sound": "Deep techno score, UI sounds on the cuts",
+   "status": "approved",
+   "review": "",
+   "log": []
+  },
+  {
+   "id": "with-claude",
+   "title": "With Claude",
+   "refs": [],
+   "on_screen": "The board scrolls down. Claude adds two beats: rows grow in with the app's amber live flash, toast 'Claude: added Find it and Board it'. Then beat 4's copy is tightened, flash and second toast.",
+   "copy": "Claude works with you.",
+   "roles": [
+    "camera",
+    "ui",
+    "textReveal",
+    "exit"
+   ],
+   "sound": "Deep techno score, UI sounds on the cuts",
+   "status": "approved",
+   "review": "",
+   "log": []
+  },
+  {
+   "id": "build-view",
+   "title": "Build view",
+   "refs": [],
+   "on_screen": "Blur through to the Build view: the render (this film's own end card, playing live) beside its reference (the end card of the made-up film), the beat bar with beat 9 selected and the volt playhead moving. The cursor clicks the render: a note pin drops on the bar and a note is typed: 'Hold the mark a beat longer.'",
+   "copy": "Every beat, / beside its reference.",
+   "roles": [
+    "camera",
+    "ui",
+    "textReveal",
+    "exit"
+   ],
+   "sound": "Deep techno score, UI sounds on the cuts",
+   "status": "approved",
+   "review": "",
+   "log": []
+  },
+  {
+   "id": "end-card",
+   "title": "End card",
+   "refs": [],
+   "on_screen": "Ink stage. The four blocks of the mark rise one after another, lowest first (the brand's build-in, on ease-sink); the mark slides left as the outlined wordmark wipes in; the tagline sharpens in word by word; the blocks sink and rise once.",
+   "copy": "Spliced / Study it. Name it. Make it.",
+   "roles": [
+    "emphasis",
+    "move",
+    "enter",
+    "textReveal"
+   ],
+   "sound": "Deep techno score, UI sounds on the cuts",
+   "status": "approved",
+   "review": "",
+   "log": []
+  }
+ ],
+ "pins": []
+}

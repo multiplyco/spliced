@@ -1,0 +1,7 @@
+{
+ "title": "Spliced: how it works",
+ "composition": "SpliceExplainer",
+ "about": "The film the app's welcome plays: the Spliced app rebuilt in code, on the splice profile, with a fitted score and UI sounds.",
+ "import": "import {FILM_SECONDS as SPLICE_SECONDS, Film as SpliceFilm} from './films/splice-explainer/Film';",
+ "composition_tsx": "<Composition id=\"SpliceExplainer\" component={SpliceFilm} durationInFrames={Math.round(SPLICE_SECONDS * 30)} fps={30} width={1920} height={1080} />"
+}

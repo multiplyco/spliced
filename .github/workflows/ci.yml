@@ -1,0 +1,62 @@
+name: checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: ffmpeg
+        timeout-minutes: 6   # a stuck package mirror should fail in minutes, not eat the whole job
+        run: sudo apt-get -o Acquire::Retries=3 update -qq && sudo apt-get -o Acquire::Retries=3 install -y -qq --no-install-recommends ffmpeg
+      - name: The app's JavaScript parses
+        run: for f in spliced/web/*.js; do node --check "$f"; done
+      - name: Unit tests
+        run: python -W error -m unittest discover tests -v
+      - name: The app in a real browser
+        run: uv run tests/smoke.py
+      - name: It installs, and the installed command works
+        run: |
+          uv tool install .
+          cd "$(mktemp -d)" && spliced init films && cd films && spliced library --check && spliced board boards
+      - name: One command sets a project up, and the app starts in the background and stops
+        run: |
+          cd "$(mktemp -d)" && spliced setup films --no-render --no-open && cd films
+          test -f remotion/src/films/splice-explainer/storyboard.json && test -f .claude/skills/make-film/SKILL.md
+          spliced open --background --no-open && spliced projects && spliced open --stop
+      - name: The npm package works through npx, without the repo
+        run: |
+          T="$(mktemp -d)" && npm pack --pack-destination "$T" && cd "$T"
+          S() { env PATH="$(echo "$PATH" | tr ':' '\n' | grep -v '/.local/bin' | paste -sd: -)" npx -y --package "$T"/*.tgz spliced "$@"; }
+          S --version && S init films && cd films && S agents install && S board boards
+          grep -q '"npx"' .mcp.json
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Build Spliced.app
+        run: mac/build.sh --dmg
+      - name: The engine inside the app runs on its own
+        run: |
+          B="$PWD/mac/build/Spliced.app/Contents/Resources/bin/spliced"
+          env -i HOME="$HOME" PATH=/usr/bin:/bin "$B" --version
+          cd "$(mktemp -d)" && env -i HOME="$HOME" PATH=/usr/bin:/bin "$B" init films && env -i HOME="$HOME" PATH=/usr/bin:/bin "$B" --project films board boards
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Spliced-mac
+          path: mac/build/*.dmg
+          retention-days: 14

@@ -1,0 +1,522 @@
+{
+ "scene_seconds": 2.4,
+ "action_at": 0.5,
+ "moves": [
+  {
+   "key": "m3-container-transform",
+   "title": "Container transform: a chip opens into a screen",
+   "system": "Material 3",
+   "role": "bridge",
+   "motion": [
+    "morph",
+    "shared-element"
+   ],
+   "transition_in": "morph-transition",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "<ContainerTransform t={t} start={cue} fromBox={chip} toBox={screen} fromSize={..} toSize={..} from={<Chip/>} to={<Screen/>} />",
+   "description": "Bounds and corner radius morph on M3 emphasized (long2, film x2 = 1.0s); contents fade through: old out in the first 30%, new in from 30%."
+  },
+  {
+   "key": "m3-shared-axis-x",
+   "title": "Shared axis X: next step",
+   "system": "Material 3",
+   "role": "bridge",
+   "motion": [
+    "arrive-soft"
+   ],
+   "transition_in": "push-slide",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "<SharedAxis axis=\"x\" t={t} start={cue} from={<A/>} to={<B/>} />  // or m.ViewChange kind='sharedAxisX'",
+   "description": "Both views slide ~90px the same way on M3 emphasized while the old fades out in the first 35% and the new fades in."
+  },
+  {
+   "key": "m3-shared-axis-y",
+   "title": "Shared axis Y: vertical step",
+   "system": "Material 3",
+   "role": "bridge",
+   "motion": [
+    "arrive-soft"
+   ],
+   "transition_in": "push-slide",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "<SharedAxis axis=\"y\" t={t} start={cue} from={<A/>} to={<B/>} />",
+   "description": "As X, along the vertical axis: for stacked or scrolling sequences."
+  },
+  {
+   "key": "m3-shared-axis-z",
+   "title": "Shared axis Z: into a level",
+   "system": "Material 3",
+   "role": "bridge",
+   "motion": [
+    "scale-pop"
+   ],
+   "transition_in": "zoom-through",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "<SharedAxis axis=\"z\" t={t} start={cue} from={<List/>} to={<Detail/>} />",
+   "description": "The new view grows in from 80% while the old grows past 110% and fades: going deeper (list to detail). Reverse with back."
+  },
+  {
+   "key": "m3-fade-through",
+   "title": "Fade through: unrelated views",
+   "system": "Material 3",
+   "role": "bridge",
+   "motion": [
+    "blur-in"
+   ],
+   "transition_in": "crossfade",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "<FadeThrough t={t} start={cue} from={<A/>} to={<B/>} />",
+   "description": "Old fades out in the first 35%, new fades in and grows from 92%: switching between sections that are not related."
+  },
+  {
+   "key": "m3-fade",
+   "title": "Fade: a dialog appears",
+   "system": "Material 3",
+   "role": "feature-demo",
+   "motion": [
+    "scale-pop",
+    "arrive-soft"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "<Fade t={t} start={cue}><Dialog/></Fade>",
+   "description": "Fades in and grows from 80% (150ms x2, emphasized decelerate); exits with a quicker fade."
+  },
+  {
+   "key": "m3-emphasized-move",
+   "title": "Emphasized move: a card travels",
+   "system": "Material 3",
+   "role": "feature-demo",
+   "motion": [
+    "arrive-soft"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "m3Tween(t, cue, 'long2', 'emphasized')  // or m.move(t, cue)",
+   "description": "The M3 emphasized path: slow start, fast middle, long settle. 1.0s (long2 x2)."
+  },
+  {
+   "key": "m3-expressive-pop",
+   "title": "Expressive spring: a card pops in",
+   "system": "Material 3",
+   "role": "feature-demo",
+   "motion": [
+    "spring-overshoot",
+    "scale-pop"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "m3SpringAt(t, cue, 'fastSpatial', 'expressive')",
+   "description": "M3 Expressive fast spatial spring (damping 0.6, stiffness 800, slowed 2x for film): a visible overshoot."
+  },
+  {
+   "key": "apple-smooth-move",
+   "title": "Apple smooth: a card glides",
+   "system": "Apple-style",
+   "role": "feature-demo",
+   "motion": [
+    "arrive-soft"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "appleSpringAt(t, cue, {duration: 0.8, bounce: 0})",
+   "description": "A critically damped spring (bounce 0): no overshoot, a natural physical settle."
+  },
+  {
+   "key": "apple-snappy-pop",
+   "title": "Apple snappy: a chip pops",
+   "system": "Apple-style",
+   "role": "feature-demo",
+   "motion": [
+    "spring-overshoot",
+    "scale-pop"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "appleSpringAt(t, cue, 'snappy')  // duration 0.5, bounce 0.15",
+   "description": "A small bounce (0.15): lively but controlled. Good for UI chips and buttons."
+  },
+  {
+   "key": "apple-bouncy-pop",
+   "title": "Apple bouncy: a badge pops",
+   "system": "Apple-style",
+   "role": "feature-demo",
+   "motion": [
+    "spring-overshoot",
+    "scale-pop"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "appleSpringAt(t, cue, 'bouncy')  // duration 0.5, bounce 0.3",
+   "description": "A noticeable bounce (0.3). Use sparingly, for a moment of delight."
+  },
+  {
+   "key": "fx-bounce",
+   "title": "Icon bounce",
+   "system": "Apple-style",
+   "role": "feature-demo",
+   "motion": [
+    "spring-overshoot"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "icons"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "symbolFX.bounce(t, cue)",
+   "description": "Quick squash then a springy lift and settle: a tap, a \"done\"."
+  },
+  {
+   "key": "fx-pulse",
+   "title": "Icon pulse",
+   "system": "Apple-style",
+   "role": "feature-demo",
+   "motion": [
+    "loop-float"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "icons"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "symbolFX.pulse(t, cue)",
+   "description": "Opacity dips and returns on repeat: working on it."
+  },
+  {
+   "key": "fx-breathe",
+   "title": "Icon breathe",
+   "system": "Apple-style",
+   "role": "feature-demo",
+   "motion": [
+    "loop-float"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "icons"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "symbolFX.breathe(t, cue)",
+   "description": "Size and opacity swell and recede together: alive, waiting."
+  },
+  {
+   "key": "fx-wiggle",
+   "title": "Icon wiggle",
+   "system": "Apple-style",
+   "role": "feature-demo",
+   "motion": [
+    "loop-float"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "icons"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "symbolFX.wiggle(t, cue)",
+   "description": "A decaying side to side rotation: look here."
+  },
+  {
+   "key": "fx-rotate",
+   "title": "Icon rotate",
+   "system": "Apple-style",
+   "role": "feature-demo",
+   "motion": [
+    "loop-float"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "icons"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "symbolFX.rotate(t, cue)",
+   "description": "Continuous rotation: in progress."
+  },
+  {
+   "key": "fx-appear",
+   "title": "Icon appear",
+   "system": "Apple-style",
+   "role": "feature-demo",
+   "motion": [
+    "scale-pop",
+    "spring-overshoot"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "icons"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "symbolFX.appear(t, cue)",
+   "description": "Springs in from nothing with a small overshoot."
+  },
+  {
+   "key": "fx-replace",
+   "title": "Icon replace",
+   "system": "Apple-style",
+   "role": "feature-demo",
+   "motion": [
+    "inline-swap",
+    "morph"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "icons"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "symbolFX.replace(t, cue, 'out') / symbolFX.replace(t, cue, 'in')",
+   "description": "The old icon shrinks and blurs out while the new one springs up in its place."
+  },
+  {
+   "key": "kit-word-sharpen",
+   "title": "Words sharpen in",
+   "system": "Kit (soft)",
+   "role": "headline",
+   "motion": [
+    "word-by-word",
+    "blur-in",
+    "arrive-soft"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "typography"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [
+    "centered-headline"
+   ],
+   "snippet": "m.textReveal(t, cue, i)  // blur 10px to 0, rise 18px, per word",
+   "description": "The soft profile's headline: each word arrives fast and lands soft, sharpening from blur, 0.1s apart."
+  },
+  {
+   "key": "kit-glide-camera",
+   "title": "Camera glides in",
+   "system": "Kit (soft)",
+   "role": "feature-demo",
+   "motion": [
+    "arrive-soft"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "push-in"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "m.camera(t, cue)  // glide, cubic-bezier(0.32, 0, 0.12, 1), 1.0s",
+   "description": "The kit camera curve: eases off the mark, fast middle, long soft landing. Never under 0.9s."
+  },
+  {
+   "key": "blur-through",
+   "title": "Blur through: the blur is the cut",
+   "system": "Kit",
+   "role": "bridge",
+   "motion": [
+    "blur-in"
+   ],
+   "transition_in": "blur-dissolve",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [],
+   "snippet": "<m.ViewChange kind=\"blurThrough\" t={t} start={cue} from={<A/>} to={<B/>} />",
+   "description": "Old view blurs out and drifts up, the new one sharpens in from below: a cut without a cut."
+  },
+  {
+   "key": "glass-pill",
+   "title": "Liquid glass pill appears",
+   "system": "Liquid Glass",
+   "role": "product-reveal",
+   "motion": [
+    "spring-overshoot",
+    "scale-pop"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "gradient-field",
+   "type_treatment": [],
+   "snippet": "<LiquidGlass shapes={[pill]} backdrop={() => <Scene t={t}/>} />",
+   "description": "A refracting glass pill springs up over moving content: lensing at the rim, lit edge, soft shadow."
+  },
+  {
+   "key": "glass-split-merge",
+   "title": "Liquid glass splits and merges",
+   "system": "Liquid Glass",
+   "role": "product-reveal",
+   "motion": [
+    "morph",
+    "spring-overshoot"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "gradient-field",
+   "type_treatment": [],
+   "snippet": "<LiquidGlass shapes={[pill, bubble]} blend={70} ... />  // move bubble.cx with a spring",
+   "description": "A drop pulls out of the pill with a liquid neck and rejoins it: shapes within blend px melt together."
+  },
+  {
+   "key": "glass-morph-card",
+   "title": "Liquid glass morphs into a card",
+   "system": "Liquid Glass",
+   "role": "product-reveal",
+   "motion": [
+    "morph"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "ui-fragment"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "gradient-field",
+   "type_treatment": [],
+   "snippet": "shapes={[{cx, cy, w: lerp(560, 760, k), h: lerp(124, 380, k), r}]}  // k = m.move(t, cue)",
+   "description": "The pill grows into a card on M3 emphasized; refraction and rim follow the shape."
+  },
+  {
+   "key": "grey-to-ink",
+   "title": "Grey-to-ink words",
+   "system": "Profile text style",
+   "role": "headline",
+   "motion": [
+    "word-by-word",
+    "arrive-soft"
+   ],
+   "transition_in": "hard-cut",
+   "subject": [
+    "typography"
+   ],
+   "camera": [
+    "locked"
+   ],
+   "world": "light-tint-stage",
+   "type_treatment": [
+    "centered-headline"
+   ],
+   "snippet": "m.word(t, cue, i, ink)  // with a profile whose text style is greyToInk: land light grey, darken to ink",
+   "description": "A calm text reveal: words land light grey ~0.11s apart and darken to ink over ~0.3s, with a 6px rise. No blur, no bounce. Any profile can use it with text: {style: 'greyToInk'}."
+  }
+ ]
+}

@@ -1,0 +1,63 @@
+{
+ "_note": "The fixture's film in production: three beats, ids matching cues.json scenes.",
+ "title": "Demo film",
+ "board": "Fixture board",
+ "profile": "soft",
+ "composition": "Demo",
+ "fps": 24,
+ "format": "320x180",
+ "message": "The fixture exists.",
+ "beats": [
+  {
+   "id": "hook",
+   "title": "Hook",
+   "refs": [
+    "demo-one/s01"
+   ],
+   "on_screen": "A headline.",
+   "copy": "It exists.",
+   "vo": "",
+   "roles": [
+    "textReveal"
+   ],
+   "sound": "",
+   "status": "approved",
+   "review": "",
+   "log": []
+  },
+  {
+   "id": "demo",
+   "title": "Demo",
+   "refs": [
+    "demo-two/s02"
+   ],
+   "on_screen": "The interface.",
+   "copy": "",
+   "vo": "Here it is.",
+   "roles": [
+    "camera"
+   ],
+   "sound": "",
+   "status": "review",
+   "review": "",
+   "log": []
+  },
+  {
+   "id": "end-card",
+   "title": "End card",
+   "refs": [
+    "uploads/f1x7u0"
+   ],
+   "on_screen": "The logo.",
+   "copy": "Fixture",
+   "vo": "",
+   "roles": [
+    "enter"
+   ],
+   "sound": "",
+   "status": "todo",
+   "review": "",
+   "log": []
+  }
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "fps": 24,
+ "board": "Fixture board",
+ "duration": 6.0,
+ "scenes": {
+  "hook": [
+   0.0,
+   2.0
+  ],
+  "demo": [
+   2.0,
+   4.0
+  ],
+  "end-card": [
+   4.0,
+   6.0
+  ]
+ }
+}

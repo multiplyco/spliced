@@ -4,6 +4,8 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+<!-- release 1.1.0 2026-11-25 -->
+
 ## Recreate a whole film
 2026-11-24
 *A reference film's page has Copy build brief: one prompt for your AI to rebuild the film as closely as it can.*

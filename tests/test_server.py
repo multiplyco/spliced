@@ -98,6 +98,17 @@ class Server(unittest.TestCase):
         self.assertEqual(self.req("GET", "/api/library.js", headers={"If-None-Match": hz["etag"], "Accept-Encoding": "gzip"})[0], 304)
         self.assertEqual(self.req("GET", "/api/library", headers={"Origin": "http://evil.test"})[0], 403)
 
+    def test_the_projects_own_films_for_the_library(self):
+        code, _, body = self.req("GET", "/api/own-films")
+        self.assertEqual(code, 200)
+        films = json.loads(body)["films"]
+        self.assertEqual([f["slug"] for f in films], ["demo"], "the fixture's film, which has a render of the whole film")
+        f = films[0]
+        self.assertEqual((f["title"], f["file"], f["render"]), ("Demo film", "remotion/out/demo-v1.mp4", "demo-v1.mp4"))
+        self.assertEqual([(x["id"], x["start"], x["end"]) for x in f["scenes"]], [("hook", 0.0, 2.0), ("demo", 2.0, 4.0), ("end-card", 4.0, 6.0)], "each beat timed in the render")
+        self.assertEqual(f["scenes"][0]["on_screen"], "A headline.")
+        self.assertEqual(self.req("GET", "/project/" + f["file"])[0], 200, "and its render plays")
+
     def test_project_media(self):
         code, h, body = self.req("GET", "/project/reference/Demo%20two%20%5Babc123%5D.mp4", headers={"Range": "bytes=0-99"})
         self.assertEqual((code, len(body), h.get("content-type")), (206, 100, "video/mp4"))

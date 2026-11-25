@@ -1195,6 +1195,41 @@ def summaries():
     return out
 
 
+def own_films():
+    """The project's own films as the Library shows them: every film with a render of the whole film, its beats as the
+    scenes, each timed within that render (where the render says so, else from the plan), with what the plan says is on
+    screen and in the copy, so they can be browsed and searched beside the references."""
+    out = []
+    films = [remotion_film(s) or hf_film(s) for s in slugs()] + workspace_films()
+    for p in films:
+        if not p:
+            continue
+        full = next((r for r in p["renders"] if not r.get("beat")), None)
+        try:
+            real = paths.resolve(full["file"], main_ok=True) if full else None
+        except ValueError:
+            real = None
+        if not real or not os.path.isfile(real):
+            continue
+        off, timed = full.get("offset", 0) or 0, full.get("beats") or {}
+        scenes = []
+        for b in p["beats"]:
+            w = timed.get(b["id"]) or ([b["start"] - off, b["end"] - off] if b["start"] is not None and b["end"] is not None else None)
+            if not w or w[1] <= w[0]:
+                continue
+            scenes.append({"id": b["id"], "n": b["n"], "title": b["title"], "start": round(max(0, w[0]), 3), "end": round(w[1], 3),
+                           "on_screen": b.get("on_screen", ""), "copy": b.get("copy", ""), "vo": b.get("vo", ""), "status": b.get("status", ""),
+                           "refs": b.get("refs", [])})
+        if not scenes:
+            continue
+        out.append({"slug": p["slug"], "title": p["title"], "engine": p["engine"], "file": full["file"], "render": full["name"], "mtime": full["mtime"],
+                    "duration": round(max(x["end"] for x in scenes), 3), "fps": p.get("fps", 30), "format": p.get("format", ""), "message": p.get("message", ""),
+                    "style": p.get("style", ""), "folder": p.get("folder", ""), "scenes": scenes,
+                    **({"workspace": p["workspace"]["name"]} if p.get("workspace") else {})})
+    out.sort(key=lambda f: -f["mtime"])
+    return out
+
+
 def _sb_path(slug):
     return os.path.join(FILMS_DIR, slug, "storyboard.json")
 

@@ -300,6 +300,9 @@ def done(jid, slug=None):
         if not profile_drafted(j):
             raise ValueError(f"the profile {j['slug']} isn't marked drafted yet: run {paths.CLI} profile drafted {j['slug']} once it is filled in")
         j["steps"]["read"].update(status="done", ended=now())
+        take_requests(j["slug"], j.get("seen", 0))   # the requests the prompt it was given held; newer ones get a round of their own
+        if profile_requests(j["slug"]):
+            add_profile_job(j["slug"], besides=j["id"])
     else:
         if slug:
             j["film"] = slug
@@ -314,22 +317,46 @@ def done(jid, slug=None):
 
 
 # ---------- a profile drafted from what the person dropped on it (profiles.py) ----------
-def add_profile_job(slug, request=""):
+# The person's requests for a profile wait in a file of their own, not in the job: the worker holds its own copy of a
+# job and writes it back, which would drop a request that came in meanwhile. A job reads them when it writes the
+# prompt (and `imports next` writes it again), and takes the ones its agent saw once the agent is done.
+REQUESTS = os.path.join(paths.CACHE, "profile-requests")
+
+
+def profile_requests(slug):
+    try:
+        with open(os.path.join(REQUESTS, f"{slug}.json")) as f:
+            v = json.load(f)
+        return [str(x) for x in v] if isinstance(v, list) else []
+    except (OSError, ValueError):
+        return []
+
+
+def _set_requests(slug, reqs):
+    os.makedirs(REQUESTS, exist_ok=True)
+    tmp = os.path.join(REQUESTS, f"{slug}.json.tmp")
+    with open(tmp, "w") as f:
+        json.dump(reqs, f, ensure_ascii=False)
+    os.replace(tmp, os.path.join(REQUESTS, f"{slug}.json"))
+
+
+def take_requests(slug, n):
+    """The first n requests are dealt with: they leave the file; any that came in since stay for the next round."""
+    _set_requests(slug, profile_requests(slug)[n:])
+
+
+def add_profile_job(slug, request="", besides=None):
     """Queue the reading of a profile's sources (a brand book, logo, screenshots, a film) and words, or a change the
-    person asked for: their AI fills the profile in. A request while one waits is added to it."""
+    person asked for: their AI fills the profile in. A request while a job for the profile is under way joins it."""
+    if request:
+        _set_requests(slug, profile_requests(slug) + [request])
     for j in jobs():
-        if j.get("type") == "profile" and j.get("slug") == slug and j["status"] in ("queued", "waiting"):
-            if request:
-                j["request"] = (j.get("request", "") + "\n" + request).strip()
-                if j["status"] == "waiting":   # its prompt is written already: write it again with the new words
-                    j.update(status="queued", activity="Waiting to start", prompt="")
-                    j["steps"]["read"]["status"] = "todo"
-                save(j)
-                ensure_worker()
+        if j.get("type") == "profile" and j.get("slug") == slug and j["status"] in ("queued", "running", "waiting") and j["id"] != besides:
             return j
+    asked = bool(profile_requests(slug))
     j = {"id": secrets.token_hex(3), "type": "profile", "src": f"profiles/{slug}/sources", "slug": slug, "breakdown": True, "status": "queued",
-         "created": now(), "steps": {"read": {"status": "todo"}}, "activity": "Waiting to start", "log": [], "film": None, "request": request,
-         "title": f"Change the profile {slug}" if request else f"Draft the profile {slug}", "error": "", "pid": None}
+         "created": now(), "steps": {"read": {"status": "todo"}}, "activity": "Waiting to start", "log": [], "film": None,
+         "title": f"Change the profile {slug}" if asked else f"Draft the profile {slug}", "error": "", "pid": None}
     save(j)
     ensure_worker()
     return j
@@ -343,12 +370,14 @@ def profile_drafted(j):
         return False
 
 
-def draft_profile(j):
+def profile_prompt(j):
+    """What the person's AI is asked to do for a profile job, with every request waiting now. Returns (prompt, requests seen)."""
     import profiles
     slug = j["slug"]
     p = profiles.get(slug)
+    reqs = profile_requests(slug)
     files = "\n".join(f"- {x['file']} ({x['kind']}, {x['bytes'] // 1024} KB)" for x in p["sources"])
-    cli, request = paths.CLI, (j.get("request") or "").strip()
+    cli, request = paths.CLI, "\n".join(reqs).strip()
     what = (f"The person asks for this change, in their words:\n{request}\n\nMake it: read `{cli} profile show {slug}` first, change only what "
             "the request is about, and say what you changed.\n" if request else "")
     given = (f"The person dropped these on it, so read them and fill the profile in from what they show:\n{files}\n\n" if p["sources"] and not request
@@ -371,11 +400,22 @@ def draft_profile(j):
         f"- `{cli} profile learn {slug} \"<rule>\" --from \"<file>\"` for each hard rule the sources state (never stretch the logo, ...)\n"
         f"Finish with `{cli} profile drafted {slug}`. Don't commit. Don't ask questions: decide sensibly and say what was uncertain in a short summary."
     )
-    note(j, "Making the change you asked for" if request else f"Reading {len(p['sources'])} source(s)", "Changing the profile" if request else "Reading the sources")
+    return prompt, len(reqs)
+
+
+def draft_profile(j):
+    import profiles
+    p = profiles.get(j["slug"])
+    prompt, seen = profile_prompt(j)
+    j["request"] = "\n".join(profile_requests(j["slug"])[:seen])
+    note(j, "Making the change you asked for" if seen else f"Reading {len(p['sources'])} source(s)", "Changing the profile" if seen else "Reading the sources")
     final = agent(j, prompt)
     if not profile_drafted(j):
         raise RuntimeError("The agent finished without marking the profile drafted")
+    take_requests(j["slug"], seen)
     j["summary"] = (final or "").strip()[:1500] or f"The profile {p['name']} is drafted"
+    if profile_requests(j["slug"]):   # asked for more while it worked: another round
+        add_profile_job(j["slug"], besides=j["id"])
 
 
 # ---------- a folder of things already collected (folder.py) ----------
@@ -582,6 +622,9 @@ def main():
         if not j:
             print("Nothing is waiting for an agent.")
             return
+        if j.get("type") == "profile":   # written now, with every request waiting now
+            j["prompt"], j["seen"] = profile_prompt(j)
+            save(j)
         print(f"Import {j['id']} is waiting for you: {j.get('title') or j.get('film') or j['src']}\n\n{j.get('prompt', '')}\n\n"
               f"When that is done, run:  {paths.CLI} imports done {j['id']}" + ("" if j.get("type") in ("uploads", "profile") else "   (add --slug <new slug> if you renamed the film)"))
     elif a[0] == "done":

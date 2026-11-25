@@ -79,7 +79,9 @@ if [ "$DMG" = 1 ]; then
   STAGE="$OUT/dmg"; rm -rf "$STAGE"; mkdir -p "$STAGE"
   cp -R "$APP" "$STAGE/"; ln -s /Applications "$STAGE/Applications"
   DMGF="$OUT/Spliced-$VERSION.dmg"
-  hdiutil create -quiet -volname "Spliced $VERSION" -srcfolder "$STAGE" -ov -format UDZO "$DMGF"
+  # hdiutil's own guess at the image's size runs out of room for the app's many small files ("No space left on device")
+  MB=$(du -sm "$STAGE" | cut -f1); MB=$((MB * 13 / 10 + 40))
+  hdiutil create -quiet -size "${MB}m" -fs HFS+ -volname "Spliced $VERSION" -srcfolder "$STAGE" -ov -format UDZO "$DMGF"
   rm -rf "$STAGE"
   if [ -n "${SPLICED_SIGN_IDENTITY:-}" ]; then codesign --force --timestamp --sign "$SPLICED_SIGN_IDENTITY" "$DMGF"; fi
   if [ -n "${SPLICED_NOTARY_PROFILE:-}" ]; then

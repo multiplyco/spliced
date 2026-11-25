@@ -35,6 +35,8 @@ film's brief each have a profile beside the copy button: pick another, or No pro
 A reference film's page can start a profile from its look. A project that had one brand and house rules now has them
 as its first profile, and the scene page says Recreate instead of Recreate for your brand.
 
+<!-- release 1.1.0 2026-11-25 -->
+
 ## Recreate a whole film
 2026-11-24
 *A reference film's page has Copy build brief: one prompt for your AI to rebuild the film as closely as it can.*

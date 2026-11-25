@@ -12,6 +12,13 @@ The films you made have a place in the Library: Your films, beside Favourites an
 of the whole film shows its beats as scenes, marked Yours, playing their stretch of that render. They stay out of All,
 so work in progress never crowds your inspiration. Search them there, or from anywhere with the search box (/), by
 what is on screen, the copy and the voice-over. Open a beat to read its words and go straight to it in Build.
+## The corner panel really closes
+2026-11-25
+*Closing the last finished import now takes the panel away, and folding works after it.*
+
+When you closed the last row, or the whole panel, it stayed on screen with the old row in it, so the ×, the fold and
+the panel's own × seemed to do nothing. It now goes away when you close it. The same fix keeps anything else the app
+hides from staying on screen.
 
 <!-- release 1.2.0 2026-11-25 -->
 

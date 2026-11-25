@@ -3,6 +3,9 @@
    Colour is for meaning: blue = selected / playhead, amber = rating and in progress, red = favourite and
    changes asked, green = approved. Everything else is neutral. */
 
+/* hidden means hidden: an element's own display (flex, grid) must never keep something the page hid on screen */
+[hidden] { display: none !important; }
+
 /* ---------- tokens ---------- */
 /* Graphite surfaces, so the footage carries the colour. One accent, film-leader orange (--cue): the selection, the
    playhead, the primary action, the one thing that needs you. Text on it is dark. --cue-ink is the same orange deep

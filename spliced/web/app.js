@@ -334,7 +334,9 @@ function toast(msg, ms = 1600, actions = null) {
 }
 window.crToast = (msg, ms, actions) => toast(msg, ms, actions);  // for imports.js, assets.js, styles.js (window.toast is the #toast element)
 // for profiles.js: the app's menus, copying, and a scene by its key with its thumbnail
-Object.assign(window.CR, { menu: (...a) => menu(...a), copy: (...a) => copy(...a), scene: (k) => BY_KEY[k], scenes: () => SCENES, sceneThumb: (x) => sceneThumb(x) });
+Object.assign(window.CR, { menu: (...a) => menu(...a), copy: (...a) => copy(...a), scene: (k) => BY_KEY[k], scenes: () => SCENES,
+  films: () => Object.values(FILMS).filter((f) => f.file && f.slug !== "uploads" && f.slug !== "system-moves").map((f) => { const best = [...f.scenes].sort((a, b) => (b.steal || 0) - (a.steal || 0))[0]; return { slug: f.slug, title: f.title, thumb: best ? frameThumb(f.file, (best.start + best.end) / 2) : "" }; }),
+  sceneThumb: (x) => sceneThumb(x) });
 
 /* ---------- overflow menus and popovers ----------
    menu(anchor, items, onPick): items = [{value, html, on?, sep?, danger?, hint?}] (sep draws a line before the item) */

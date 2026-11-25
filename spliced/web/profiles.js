@@ -269,21 +269,84 @@ async function sendSources(slug, files, onEach) {
   }
   return n;
 }
-/** Files dropped on Profiles: a new profile drafted from them by the person's AI. */
-async function draftNew(files) {
-  files = [...files];
-  if (!files.length) return;
-  const guess = files[0].name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/\b(brand ?book|guidelines?|brand|final|v\d+)\b/gi, "").trim();
-  const n = prompt(`Name the profile ${SP.ai} drafts from ${files.length === 1 ? files[0].name : `these ${files.length} files`}`, guess || "");
-  if (!n || !n.trim()) return;
-  try {
-    const j = await post({ op: "new", name: n.trim() });
-    toast(`Adding ${files.length} file${files.length > 1 ? "s" : ""}…`);
-    if (await sendSources(j.profile, files)) await post({ op: "draft", profile: j.profile });
-    location.hash = `#/profiles/${j.profile}`;
-    window.Imports?.refresh?.();
-  } catch (e) { toast(e.message); }
+/* An in-app dialog in place of the browser's: a title, a line, an optional field. Resolves to the field's text (or
+   true), or null when it is cancelled. */
+function ask({ title, text = "", input = null, ok = "OK", danger = false }) {
+  return new Promise((res) => {
+    const scrim = h(`<div class="pf-scrim"><form class="pf-dialog" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b>${text ? `<p>${esc(text)}</p>` : ""}
+      ${input !== null ? `<input value="${esc(input)}" aria-label="${esc(title)}" title="${esc(title)}" spellcheck="false">` : ""}
+      <div class="pf-dialog-a"><button type="button" class="icon-btn sm ghost" data-a="no" title="Cancel (Esc)">Cancel</button><button class="icon-btn sm ${danger ? "pf-danger" : "primary"}" title="${esc(ok)}">${esc(ok)}</button></div></form></div>`);
+    const done = (v) => { scrim.remove(); document.removeEventListener("keydown", key, true); res(v); };
+    const key = (e) => { if (e.key === "Escape") { e.stopPropagation(); done(null); } };
+    document.addEventListener("keydown", key, true);
+    scrim.addEventListener("mousedown", (e) => { if (e.target === scrim) done(null); });
+    scrim.querySelector('[data-a="no"]').onclick = () => done(null);
+    const inp = scrim.querySelector("input");
+    scrim.querySelector("form").onsubmit = (e) => { e.preventDefault(); if (inp && !inp.value.trim()) return inp.focus(); done(inp ? inp.value.trim() : true); };
+    document.body.append(scrim);
+    (inp || scrim.querySelector("button.primary, button.pf-danger")).focus(); inp?.select();
+  });
 }
+
+/* New profile: three ways in, each a click or a drop. Files a person drops are read by their AI, which fills the
+   profile in; a film from the library gives its palette, type and moves; blank is for setting it up by hand. */
+function newSheet({ film = null, files = null } = {}) {
+  const films = CR.films();
+  let how = files ? "files" : film ? "film" : "files", chosen = files ? [...files] : [], pick = film?.slug || "";
+  const scrim = h(`<div class="pf-scrim"><div class="pf-sheet pf-new" role="dialog" aria-label="New profile">
+    <div class="pf-sheet-h"><b>New profile</b><span class="spacer"></span><button class="icon-btn sm ghost" data-a="close" title="Close (Esc)">${icon("x")}</button></div>
+    <div class="pf-new-body">
+      <label class="pf-new-name"><span>Name</span><input placeholder="Your company, or the look you want" aria-label="Name" title="What the app and ${esc(SP.ai)} call it"></label>
+      <div class="pf-new-ways">
+        <button data-how="files" title="${esc(SP.Ai)} reads a brand book, logo, screenshots or a film and fills the profile in">${icon("upload")}<b>From files</b><small>A brand book, logo, screenshots or a film. ${esc(SP.Ai)} fills it in.</small></button>
+        <button data-how="film" title="Take a film's palette, type and moves from your library" ${films.length ? "" : "disabled"}>${icon("film")}<b>From a film</b><small>${films.length ? "Its palette, type and moves, from your library." : "Add a reference film first."}</small></button>
+        <button data-how="blank" title="Set the colours, typefaces and motion yourself">${icon("plus")}<b>Blank</b><small>Choose everything yourself, or ask ${esc(SP.ai)} later.</small></button>
+      </div>
+      <div class="pf-new-pane"></div>
+    </div>
+    <div class="pf-new-foot"><span class="meta pf-new-hint"></span><button class="icon-btn primary" data-a="go" title="Make the profile">Create</button></div></div></div>`);
+  document.body.append(scrim);
+  const nameEl = scrim.querySelector(".pf-new-name input"), pane = scrim.querySelector(".pf-new-pane"), go = scrim.querySelector('[data-a="go"]'), hint = scrim.querySelector(".pf-new-hint");
+  const guess = (f) => f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/\b(brand ?book|guidelines?|brand|final|v\d+)\b/gi, "").trim();
+  const paint = () => {
+    scrim.querySelectorAll("[data-how]").forEach((b) => b.classList.toggle("on", b.dataset.how === how));
+    if (how === "files") {
+      pane.innerHTML = "";
+      const dz = dropZone(chosen.length ? `${chosen.length} file${chosen.length > 1 ? "s" : ""}: ${chosen.map((f) => f.name).join(", ")}` : "Drop files here, or click to choose");
+      wireDrop(dz, (fs) => { chosen = [...chosen, ...[...fs].filter((f) => DROP_OK.test(f.name))]; if (!nameEl.value && chosen[0]) nameEl.value = guess(chosen[0]); paint(); });
+      pane.append(dz);
+      go.textContent = "Create and draft"; go.disabled = !chosen.length;
+      hint.textContent = chosen.length ? `${SP.Ai} reads ${chosen.length > 1 ? "them" : "it"} and fills in the palette, typefaces, motion and rules. You can change everything after.` : "";
+    } else if (how === "film") {
+      pane.innerHTML = `<div class="pf-new-films">${films.map((f) => `<button class="pf-new-film ${f.slug === pick ? "on" : ""}" data-f="${esc(f.slug)}" title="${esc(f.title)}">${f.thumb ? `<img alt="" loading="lazy" src="${esc(f.thumb)}">` : "<span></span>"}<small>${esc(f.title)}</small></button>`).join("")}</div>`;
+      pane.querySelectorAll("[data-f]").forEach((b) => (b.onclick = () => { const was = films.find((f) => f.slug === pick); pick = b.dataset.f; if (!nameEl.value || (was && nameEl.value === `${was.title} look`)) nameEl.value = `${films.find((f) => f.slug === pick).title} look`; paint(); }));
+      go.textContent = "Create from this film"; go.disabled = !pick;
+      hint.textContent = pick ? "Its palette, type and signature scenes come with it. You can change everything after." : "";
+    } else {
+      pane.innerHTML = `<p class="meta pf-new-blank">An empty profile. Choose its colours, typefaces and motion on its page, or tell ${esc(SP.ai)} what it should be.</p>`;
+      go.textContent = "Create"; go.disabled = false; hint.textContent = "";
+    }
+  };
+  scrim.querySelectorAll("[data-how]").forEach((b) => (b.onclick = () => { how = b.dataset.how; paint(); }));
+  const close = () => { scrim.remove(); document.removeEventListener("keydown", key, true); };
+  const key = (e) => { if (e.key === "Escape" && !document.querySelector(".pf-dialog")) { e.stopPropagation(); close(); } };
+  document.addEventListener("keydown", key, true);
+  scrim.addEventListener("mousedown", (e) => { if (e.target === scrim) close(); });
+  scrim.querySelector('[data-a="close"]').onclick = close;
+  go.onclick = async () => {
+    const f = films.find((x) => x.slug === pick);
+    const n = nameEl.value.trim() || (how === "film" && f ? `${f.title} look` : how === "files" && chosen[0] ? guess(chosen[0]) : "");
+    if (!n) { nameEl.focus(); nameEl.placeholder = "Give it a name first"; return; }
+    go.disabled = true;
+    try {
+      const j = await post({ op: "new", name: n, from_film: how === "film" ? pick : undefined });
+      if (how === "files") { go.textContent = "Adding files…"; if (await sendSources(j.profile, chosen)) await post({ op: "draft", profile: j.profile }); window.Imports?.refresh?.(); }
+      close(); toast(`Made the profile ${n}`); location.hash = `#/profiles/${j.profile}`;
+    } catch (e) { toast(e.message); go.disabled = false; }
+  };
+  paint(); nameEl.focus();
+}
+const draftNew = (files) => newSheet({ files });
 let dropTarget = null;   // the profile page open, if any: drops add to its sources
 function drop(files) { if (dropTarget) dropTarget(files); else draftNew(files); }
 async function jobFor(slug) {
@@ -293,14 +356,7 @@ async function jobFor(slug) {
 /* ---------- the list ---------- */
 const thumbs = (keys, n) => keys.slice(0, n).map((k) => { const s = CR.scene(k); return s ? `<img alt="" loading="lazy" src="${esc(CR.sceneThumb(s))}">` : ""; }).join("");
 
-async function create(from) {
-  const n = prompt(from ? "Name the profile (a look to explore, started from this film)" : "Name the new profile: your company, or a look you want to try", from ? `${from.title} look` : "");
-  if (!n || !n.trim()) return;
-  try {
-    const j = await post({ op: "new", name: n.trim(), from_film: from?.slug });
-    toast(`Made the profile ${n.trim()}`); location.hash = `#/profiles/${j.profile}`;
-  } catch (e) { toast(e.message); }
-}
+const create = (film) => newSheet({ film });
 const dropZone = (label) => h(`<label class="pf-drop" title="Drop a brand book, a logo, screenshots or a film, or click to choose files. ${esc(SP.Ai)} reads them and fills the profile in">
   ${icon("upload")}<span><b>${label}</b><small>A brand book (PDF), a logo, screenshots, a film or a deck. ${esc(SP.Ai)} reads them and fills in the palette, typefaces, motion and rules.</small></span>
   <input type="file" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.svg,.mp4,.mov,.m4v,.webm,.txt,.md,.key,.pptx"></label>`);
@@ -320,14 +376,14 @@ async function render(main, slug) {
   main.innerHTML = "";
   const head = h(`<div class="view-head"><h1>Profiles</h1><span class="meta">${list.length ? `${list.length} profile${list.length > 1 ? "s" : ""}` : ""}</span><span class="spacer"></span>
     <button class="icon-btn sm primary" data-a="new" title="A new profile: a look your films can be made in">${icon("plus")}New profile</button></div>`);
-  head.querySelector('[data-a="new"]').onclick = () => create();
+  head.querySelector('[data-a="new"]').onclick = () => newSheet();
   main.append(head);
   const dz = dropZone("Drop a brand book or a film to draft a profile");
   wireDrop(dz, draftNew);
   if (!list.length) {
     const e = h(`<div class="empty pf-empty"><b>No profiles yet</b><p>A profile is a look your films are made in: your company's own, or one you want to try. It keeps a palette, typefaces, its motion and your rules, and ${esc(SP.ai)} adds what it learns on every film.</p><p>Without one, a brief copies its reference as it is.</p>
       <div class="pf-empty-acts">${SPLICED.brand ? `<button class="icon-btn sm primary" data-a="house" title="Make ${esc(SPLICED.brand)}'s profile from the project's brand and house rules">${icon("palette")}Make ${esc(SPLICED.brand)}'s profile</button>` : ""}<button class="icon-btn sm" data-a="new2" title="A new profile">${icon("plus")}New profile</button></div></div>`);
-    e.querySelector('[data-a="new2"]').onclick = () => create();
+    e.querySelector('[data-a="new2"]').onclick = () => newSheet();
     const hb = e.querySelector('[data-a="house"]');
     if (hb) hb.onclick = async () => { try { const j = await post({ op: "house" }); location.hash = `#/profiles/${j.profile}`; } catch (err) { toast(err.message); } };
     main.append(e, dz);
@@ -403,20 +459,6 @@ function knobView(k) {
   };
   return el;
 }
-/* A starting point's own small loop: a block arriving and a row following, in that motion. */
-function startView(m) {
-  const el = h(`<span class="pf-sv" aria-hidden="true"><i class="blk"></i><span class="row"><i></i><i></i><i></i></span></span>`);
-  const go = () => {
-    if (!el.isConnected) return;
-    el.getAnimations({ subtree: true }).forEach((a) => a.cancel());
-    const b = baseOf(m), pace = val(m, "pace"), d = b.enter * 1000 * pace, st = val(m, "stagger") * 1000;
-    el.querySelector(".blk").animate([{ transform: "translateY(18px) scale(0.9)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: d, easing: easeOf(m), fill: "both" });
-    el.querySelectorAll(".row i").forEach((c, i) => c.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: d * 0.6, delay: d * 0.4 + i * st, easing: curveOf(m), fill: "both" }));
-    setTimeout(go, d + 3 * st + 1500);
-  };
-  requestAnimationFrame(go);
-  return el;
-}
 
 /* ---------- one profile ---------- */
 function detail(main, slug) {
@@ -440,7 +482,7 @@ function detail(main, slug) {
   };
   head.querySelector('[data-a="show"]').onclick = () => CR.copy(`Read this profile before building a film in it: ${SP.cmd("profile", "show", slug)}`, `Copied: paste it to ${SP.ai}`);
   head.querySelector('[data-a="more"]').onclick = (e) => CR.menu(e.currentTarget, [{ value: "rm", danger: true, html: `${icon("trash-2")}<span class="lbl">Remove profile</span>` }], async () => {
-    if (!confirm(`Remove the profile ${p.name}? Its folder is kept in .cache/profiles-removed/.`)) return;
+    if (!(await ask({ title: `Remove ${p.name}?`, text: "Briefs can't use it any more. Its folder is kept in .cache/profiles-removed/, so nothing is lost.", ok: "Remove", danger: true }))) return;
     try { await post({ op: "remove", profile: slug }); toast(`Removed ${p.name}`); location.hash = "#/profiles"; } catch (e2) { toast(e2.message); }
   });
 
@@ -450,14 +492,16 @@ function detail(main, slug) {
       <div class="pf-hero-side">
         <input class="pf-name" data-k="name" value="${esc(p.name)}" title="The profile's name" aria-label="Name">
         <input class="pf-about" data-k="about" value="${esc(p.about)}" placeholder="One line: what this look is" title="One line about this look" aria-label="About">
-        <div class="pf-block"><div class="pf-lab"><span>Palette</span><span class="pf-acts"></span></div><div class="pf-pal"></div></div>
-        <div class="pf-block"><div class="pf-lab"><span>Typefaces</span></div><div class="pf-faces"></div>
-          <input class="pf-typenote" data-k="type" value="${esc(p.type)}" placeholder="How type is set: weights, sizes, case, tracking" title="How the type is set" aria-label="How the type is set"></div>
+        <div class="pf-block"><div class="pf-lab"><span>Palette</span><span class="pf-acts"></span></div><div class="pf-found-pal"></div><div class="pf-pal"></div></div>
+        <div class="pf-block"><div class="pf-lab"><span>Typefaces</span></div><div class="pf-faces"></div><div class="pf-found-type"></div></div>
       </div></section>
+    <form class="pf-askbar" title="Tell ${esc(SP.ai)} what to change in this profile, in your own words">${icon("message-square")}
+      <input placeholder="Tell ${esc(SP.ai)} what to change: warmer colours, calmer motion, the logo never on white…" aria-label="Tell ${esc(SP.ai)} what to change">
+      <button class="icon-btn sm primary" title="${esc(SP.Ai)} makes the change in this profile">Ask ${esc(SP.ai)}</button></form>
     <section class="pf-sec"><div class="pf-sec-h"><h3>Scenes that show the look</h3><button class="icon-btn sm" data-a="add-scenes" title="Choose scenes from the library that show this look">${icon("plus")}Add scenes</button></div>
       <p class="meta">A mood board ${esc(SP.ai)} looks at before building. Add from here, or from a scene's page (Shows the look of).</p><div class="pf-mood"></div></section>
     <section class="pf-sec"><div class="pf-sec-h"><h3>Motion</h3><span class="pf-mhead"></span></div>
-      <p class="meta">Start from a motion, then change what this look does differently. The preview at the top plays it.</p>
+      <p class="meta">Pick a motion, then change what this look does differently. The preview at the top plays it.</p>
       <div class="pf-starts"></div><div class="pf-motion"></div></section>
     <section class="pf-sec"><h3>In its own words</h3><p class="meta">The voice, the stage, what its films always do and never do. ${esc(SP.Ai)} reads this first. Saved as you type, in profiles/${esc(slug)}/PROFILE.md.</p>
       <textarea class="pf-md" data-k="md" rows="9" placeholder="Write it like a brief to a designer: what this look is, and what it never does" title="The profile in your own words" aria-label="In its own words">${esc(p.md)}</textarea></section>
@@ -502,7 +546,7 @@ function detail(main, slug) {
   const paintFaces = () => {
     const slot = (role, label, f, src) => `<button class="pf-face" data-role="${role}" title="Choose the ${label.toLowerCase()} typeface, from this Mac or Google Fonts">
       <span class="pf-aa" style="${f ? `font-family:${esc(faceCss(f))}` : ""}">Aa</span>
-      <span class="pf-face-t"><small>${label}</small><b style="${f ? `font-family:${esc(faceCss(f))}` : ""}">${esc(f || (role === "text" ? "Same as headlines" : "Choose a typeface"))}</b>
+      <span class="pf-face-t"><small>${label}</small><b style="${f ? `font-family:${esc(faceCss(f))}` : ""}">${esc(f || (role === "text" ? "As headlines" : "Choose one"))}</b>
       <small>${f ? (src === "google" ? "Google Fonts" : "On this Mac") : ""}</small></span>${icon("chevron-down")}</button>`;
     faces.innerHTML = slot("font", "Headlines", p.font, p.font_source) + slot("text", "Text", p.text_font, p.text_font_source);
     [[p.font, p.font_source], [p.text_font, p.text_font_source]].forEach(([f, s]) => s === "google" && googleFace(f));
@@ -517,6 +561,30 @@ function detail(main, slug) {
     }));
   };
   paintFaces();
+
+  // what its words already say: colours and typefaces, offered in one click while the profile has none
+  const foundPal = page.querySelector(".pf-found-pal"), foundType = page.querySelector(".pf-found-type");
+  const paintFound = async () => {
+    const cols = (p.found?.palette || []).filter((c) => !p.palette.some((x) => x.hex === c.hex));
+    const fresh = !p.palette.length || p.palette.every((c) => !c.name);   // an empty palette, or one with only unnamed swatches: replace it
+    foundPal.innerHTML = cols.length ? `<div class="pf-suggest">${icon("sparkles")}<span>Its words name ${cols.length} colour${cols.length > 1 ? "s" : ""}${p.palette.length ? " not in the palette" : ""}</span><span class="pf-dots">${dots(cols, 8)}</span>
+      <button class="icon-btn sm" data-a="use-pal" title="${fresh ? "Make these colours the palette" : "Add these colours to the palette"}">${fresh ? "Use them" : "Add them"}</button><button class="icon-btn sm sq ghost" data-a="no-pal" title="Not now">${icon("x")}</button></div>` : "";
+    foundPal.querySelector('[data-a="use-pal"]')?.addEventListener("click", () => { savePal(fresh ? cols : [...p.palette, ...cols]); foundPal.innerHTML = ""; toast("Colours taken from its words"); });
+    foundPal.querySelector('[data-a="no-pal"]')?.addEventListener("click", () => { foundPal.innerHTML = ""; });
+    foundType.innerHTML = "";
+    if (p.font || !p.md.trim()) return;
+    const L = await fontLists(), names = new Map();
+    for (const g of L.google || []) if (g[0].length > 3) names.set(g[0], "google");
+    for (const f of L.installed) if (f.length > 3 && !names.has(f)) names.set(f, "local");
+    const hits = [...names.keys()].map((n) => [n, p.md.search(new RegExp(`(^|[^\\w])${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\w]|$)`))]).filter(([, i]) => i >= 0).sort((a, b) => a[1] - b[1]).map(([n]) => n).slice(0, 2);
+    if (!hits.length || p.font) return;
+    foundType.innerHTML = `<div class="pf-suggest">${icon("sparkles")}<span>Its words name ${hits.map(esc).join(" and ")}</span><button class="icon-btn sm" data-a="use-type" title="${hits.length > 1 ? `${esc(hits[0])} for headlines, ${esc(hits[1])} for text` : `${esc(hits[0])} for headlines`}">Use ${hits.length > 1 ? "them" : "it"}</button></div>`;
+    foundType.querySelector('[data-a="use-type"]').onclick = () => {
+      const patch = { font: hits[0], font_source: names.get(hits[0]), ...(hits[1] ? { text_font: hits[1], text_font_source: names.get(hits[1]) } : {}) };
+      p = { ...p, ...patch }; paintFaces(); live(); save(patch, "Typefaces taken from its words"); foundType.innerHTML = "";
+    };
+  };
+  paintFound();
 
   // the mood board
   const mood = page.querySelector(".pf-mood");
@@ -541,32 +609,35 @@ function detail(main, slug) {
   const startFrom = (slugM) => { p = { ...p, motion: { ...(starts.find((x) => x.slug === slugM) || { base: slugM }), from: slugM } }; delete p.motion.name; delete p.motion.slug; delete p.motion.kind; delete p.motion.about;
     live(); save({ motion: { from: slugM } }).then(() => { paintStarts(); paintMotion(); paintHead(); }); };
   const paintHead = () => {
-    const m = p.motion, s = startOf(m);
-    mhead.innerHTML = edited(m) ? `<span class="pf-edited">Edited from ${esc(s.name)}</span><button class="icon-btn sm ghost" data-a="reset" title="Undo every change and start again from ${esc(s.name)}">${icon("rotate-cw")}Reset to ${esc(s.name)}</button>
-      <button class="icon-btn sm" data-a="save-motion" title="Keep this motion as a starting point any profile can use">${icon("plus")}Save as a motion</button>` : "";
+    const m = p.motion, s = startOf(m), ed = edited(m);
+    mhead.innerHTML = ed ? `<span class="pf-edited">Changed from ${esc(s.name)}</span>
+      ${s.kind === "saved" ? `<button class="icon-btn sm" data-a="keep" title="Keep these changes in the motion ${esc(s.name)}, for every profile that starts from it next">Save to ${esc(s.name)}</button>` : ""}
+      <button class="icon-btn sm ghost" data-a="reset" title="Undo every change and go back to ${esc(s.name)}">${icon("rotate-cw")}Reset</button>` : "";
     mhead.querySelector('[data-a="reset"]')?.addEventListener("click", () => startFrom(s.slug));
-    mhead.querySelector('[data-a="save-motion"]')?.addEventListener("click", async () => {
-      const n = prompt("Name this motion, so any profile can start from it", `${p.name} motion`); if (!n || !n.trim()) return;
-      try { await post({ op: "motion-save", profile: slug, name: n.trim() }); const key = starts.find((x) => x.name === n.trim())?.slug; toast(`Saved the motion ${n.trim()}`); if (key) startFrom(key); else paintStarts(); } catch (e) { toast(e.message); }
+    mhead.querySelector('[data-a="keep"]')?.addEventListener("click", async () => {
+      try { await post({ op: "motion-save", profile: slug, name: s.name }); toast(`Saved to ${s.name}`); startFrom(s.slug); } catch (e) { toast(e.message); }
     });
+  };
+  const newMotion = async () => {
+    const n = await ask({ title: "New motion", text: `It starts as this profile's motion as it is now. Tune it with the settings below, and any profile can use it.`, input: `${p.name} motion`, ok: "Create" });
+    if (!n) return;
+    try { await post({ op: "motion-save", profile: slug, name: n }); const key = starts.find((x) => x.name === n)?.slug; toast(`Made the motion ${n}`); if (key) startFrom(key); else paintStarts(); } catch (e) { toast(e.message); }
   };
   const paintStarts = () => {
     const cur = startOf(p.motion).slug;
-    startsEl.innerHTML = "";
-    for (const s of starts) {
-      const m = { base: s.base, ...Object.fromEntries([...Object.keys(KNOB), ...Object.keys(CHOICE)].filter((k) => k in s).map((k) => [k, s[k]])) };
-      const card = h(`<button class="pf-start ${s.slug === cur ? "on" : ""}" title="${esc(s.about || `Start from ${s.name}`)}${s.slug === cur ? "" : ". Starts this profile's motion again from it"}">
-        <span class="pf-start-v"></span><b>${esc(s.name)}</b><small>${esc(s.kind === "saved" ? `Yours, on ${s.base}` : s.kind === "project" ? "This project's" : "Built in")}</small>
-        ${s.kind === "saved" ? `<span class="pf-start-x" data-x="${esc(s.slug)}" title="Delete this saved motion">${icon("x")}</span>` : ""}</button>`);
-      card.querySelector(".pf-start-v").append(startView(m));
-      card.onclick = (e) => {
-        if (e.target.closest("[data-x]")) { if (confirm(`Delete the saved motion ${s.name}? Profiles that started from it keep their motion.`)) post({ op: "motion-remove", motion: s.slug }).then(paintStarts).catch((er) => toast(er.message)); return; }
-        if (s.slug === cur && !edited(p.motion)) return;
-        if (edited(p.motion) && !confirm(`Start again from ${s.name}? This profile's changes to its motion go.`)) return;
-        startFrom(s.slug);
-      };
-      startsEl.append(card);
-    }
+    startsEl.innerHTML = starts.map((s) => `<button class="pf-sb ${s.slug === cur ? "on" : ""}" data-s="${esc(s.slug)}" title="${esc(s.about || `${s.name}: a motion of your own, on ${s.base}`)}">${esc(s.name)}${s.kind === "saved" ? `<span class="pf-sb-x" data-x="${esc(s.slug)}" title="Delete the motion ${esc(s.name)}">${icon("x")}</span>` : ""}</button>`).join("")
+      + `<button class="pf-sb pf-sb-new" data-a="new-motion" title="Make a motion of your own, starting from this one">${icon("plus")}New</button>`;
+    startsEl.querySelector('[data-a="new-motion"]').onclick = newMotion;
+    startsEl.querySelectorAll("[data-s]").forEach((b) => (b.onclick = async (e) => {
+      const s = starts.find((x) => x.slug === b.dataset.s);
+      if (e.target.closest("[data-x]")) {
+        if (await ask({ title: `Delete the motion ${s.name}?`, text: "Profiles that use it keep their motion as it is.", ok: "Delete", danger: true })) post({ op: "motion-remove", motion: s.slug }).then(paintStarts).catch((er) => toast(er.message));
+        return;
+      }
+      if (s.slug === cur && !edited(p.motion)) return;
+      if (edited(p.motion) && !(await ask({ title: `Switch to ${s.name}?`, text: "This profile's changes to its motion go.", ok: "Switch" }))) return;
+      startFrom(s.slug);
+    }));
   };
   const paintMotion = () => {
     const m = p.motion, b = baseOf(m);
@@ -638,12 +709,19 @@ function detail(main, slug) {
     const j = await jobFor(slug);
     const run = j && ["queued", "running"].includes(j.status), wait = j && j.status === "waiting";
     banner.hidden = !(run || wait);
-    if (run) banner.innerHTML = `<span class="dk-load"><img class="on-dark" src="brand/splice-loader-white.svg" alt=""><img class="on-light" src="brand/splice-loader-black.svg" alt=""></span><span><b>${esc(SP.Ai)} is drafting this profile</b><small>${esc(j.activity || "Reading the sources")}</small></span>`;
-    else if (wait) { banner.innerHTML = `${icon("info")}<span><b>The sources are waiting for ${esc(SP.ai)}</b><small>Ask it to pick up the import, or copy the line.</small></span><button class="icon-btn sm" data-a="pickup" title="Copy the line that tells ${esc(SP.ai)} to draft this profile">${icon("copy")}Copy for ${esc(SP.ai)}</button>`;
+    if (run) banner.innerHTML = `<span class="dk-load"><img class="on-dark" src="brand/splice-loader-white.svg" alt=""><img class="on-light" src="brand/splice-loader-black.svg" alt=""></span><span><b>${esc(SP.Ai)} is ${j.request ? "changing" : "drafting"} this profile</b><small>${esc(j.request ? `“${j.request.split("\n").pop()}”` : j.activity || "Reading the sources")}</small></span>`;
+    else if (wait) { banner.innerHTML = `${icon("info")}<span><b>${j.request ? "Your request is" : "The sources are"} waiting for ${esc(SP.ai)}</b><small>${j.request ? `“${esc(j.request.split("\n").pop())}”. ` : ""}Paste the line to ${esc(SP.ai)} and it picks it up.</small></span><button class="icon-btn sm" data-a="pickup" title="Copy the line that tells ${esc(SP.ai)} to draft this profile">${icon("copy")}Copy for ${esc(SP.ai)}</button>`;
       banner.querySelector('[data-a="pickup"]').onclick = () => CR.copy(`Run \`${SP.cmd("imports", "next")}\` and do what it prints.`, `Copied: paste it to ${SP.ai}`); }
     if (run || wait) watchT = setTimeout(watch, run ? 3000 : 15000);
-    else if (j && j.status === "done" && banner.dataset.was === "run") { await load(); detail(main, slug); toast(`${p.name} is drafted`); return; }
+    else if (j && j.status === "done" && banner.dataset.was === "run") { await load(); detail(main, slug); toast(`${p.name} is updated`); return; }
     banner.dataset.was = run ? "run" : wait ? "wait" : "";
+  };
+  const askbar = page.querySelector(".pf-askbar");
+  askbar.onsubmit = async (e) => {
+    e.preventDefault();
+    const inp = askbar.querySelector("input"), v = inp.value.trim();
+    if (!v) return inp.focus();
+    try { await post({ op: "draft", profile: slug, request: v }); inp.value = ""; toast(`Sent to ${SP.ai}`); watch(); window.Imports?.refresh?.(); } catch (er) { toast(er.message); }
   };
   paintSources(); watch();
 }

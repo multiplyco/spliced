@@ -627,7 +627,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     elif op == "motion-remove":
                         profiles.remove_motion(str(body.get("motion", "")))
                     elif op == "draft":
-                        profiles.draft(slug)
+                        profiles.draft(slug, body.get("request", ""))
                     elif op == "default":
                         profiles.set_default("" if slug == profiles.NONE else slug)
                     elif op == "learn":

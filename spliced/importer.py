@@ -314,14 +314,22 @@ def done(jid, slug=None):
 
 
 # ---------- a profile drafted from what the person dropped on it (profiles.py) ----------
-def add_profile_job(slug):
-    """Queue the reading of a profile's sources (a brand book, logo, screenshots, a film): the person's AI fills it in."""
+def add_profile_job(slug, request=""):
+    """Queue the reading of a profile's sources (a brand book, logo, screenshots, a film) and words, or a change the
+    person asked for: their AI fills the profile in. A request while one waits is added to it."""
     for j in jobs():
-        if j.get("type") == "profile" and j.get("slug") == slug and j["status"] in ("queued", "running", "waiting"):
+        if j.get("type") == "profile" and j.get("slug") == slug and j["status"] in ("queued", "waiting"):
+            if request:
+                j["request"] = (j.get("request", "") + "\n" + request).strip()
+                if j["status"] == "waiting":   # its prompt is written already: write it again with the new words
+                    j.update(status="queued", activity="Waiting to start", prompt="")
+                    j["steps"]["read"]["status"] = "todo"
+                save(j)
+                ensure_worker()
             return j
     j = {"id": secrets.token_hex(3), "type": "profile", "src": f"profiles/{slug}/sources", "slug": slug, "breakdown": True, "status": "queued",
-         "created": now(), "steps": {"read": {"status": "todo"}}, "activity": "Waiting to start", "log": [], "film": None,
-         "title": f"Draft the profile {slug}", "error": "", "pid": None}
+         "created": now(), "steps": {"read": {"status": "todo"}}, "activity": "Waiting to start", "log": [], "film": None, "request": request,
+         "title": f"Change the profile {slug}" if request else f"Draft the profile {slug}", "error": "", "pid": None}
     save(j)
     ensure_worker()
     return j
@@ -340,12 +348,16 @@ def draft_profile(j):
     slug = j["slug"]
     p = profiles.get(slug)
     files = "\n".join(f"- {x['file']} ({x['kind']}, {x['bytes'] // 1024} KB)" for x in p["sources"])
-    cli = paths.CLI
+    cli, request = paths.CLI, (j.get("request") or "").strip()
+    what = (f"The person asks for this change, in their words:\n{request}\n\nMake it: read `{cli} profile show {slug}` first, change only what "
+            "the request is about, and say what you changed.\n" if request else "")
+    given = (f"The person dropped these on it, so read them and fill the profile in from what they show:\n{files}\n\n" if p["sources"] and not request
+             else f"Its own words are in profiles/{slug}/PROFILE.md: fill in what they state (colours, typefaces, motion, rules) and is still empty.\n\n" if not request
+             else "")
     prompt = (
         f"Repo: {ROOT}. Work only from that directory.\n\n"
-        f"Draft the Spliced profile `{slug}` (\"{p['name']}\"): the look a project's films are made in. The person dropped these on it, "
-        f"so read them and fill the profile in from what they show:\n{files}\n\n"
-        "Read every file: a PDF or deck page by page (a brand book: its colours with their hex codes, typefaces, logo rules, tone of voice, "
+        f"{'Change' if request else 'Draft'} the Spliced profile `{slug}` (\"{p['name']}\"): the look a project's films are made in. " + what + given +
+        "Read every file it was drafted from when it helps: a PDF or deck page by page (a brand book: its colours with their hex codes, typefaces, logo rules, tone of voice, "
         f"do's and don'ts); an image by looking at it; a film by looking at its frames (`{cli} analyze strip <file> 0 <seconds> 10 /tmp/frames.jpg`, "
         "several stretches for a long one; its pace, how things arrive, how scenes change, how words appear).\n"
         "Then set what you found, only what the sources show (leave the rest as it is):\n"
@@ -359,7 +371,7 @@ def draft_profile(j):
         f"- `{cli} profile learn {slug} \"<rule>\" --from \"<file>\"` for each hard rule the sources state (never stretch the logo, ...)\n"
         f"Finish with `{cli} profile drafted {slug}`. Don't commit. Don't ask questions: decide sensibly and say what was uncertain in a short summary."
     )
-    note(j, f"Reading {len(p['sources'])} source(s)", "Reading the sources")
+    note(j, "Making the change you asked for" if request else f"Reading {len(p['sources'])} source(s)", "Changing the profile" if request else "Reading the sources")
     final = agent(j, prompt)
     if not profile_drafted(j):
         raise RuntimeError("The agent finished without marking the profile drafted")

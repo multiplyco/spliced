@@ -35,6 +35,24 @@ class Profiles(unittest.TestCase):
         self.assertEqual(self.profile("fixture")["about"], "changed by hand", "a second run changes nothing")
         self.assertEqual(sorted(os.listdir(os.path.join(self.root, "profiles"))), ["fixture"])
 
+    def test_the_colours_house_rules_name_become_the_palette(self):
+        house = os.path.join(self.root, "remotion", "docs", "HOUSE.md")
+        os.makedirs(os.path.dirname(house), exist_ok=True)
+        with open(house, "w") as f:
+            f.write("Type on ink `#0B152B`, the stage paper (#F9F9F9), one accent: highlight `#615ff8`. Again ink #0B152B.\n")
+        self.cli("profile", "setup")
+        self.assertEqual(self.profile("fixture")["palette"], [{"hex": "#0B152B", "name": "ink"}, {"hex": "#F9F9F9", "name": "paper"}, {"hex": "#615FF8", "name": "highlight"}])
+
+    def test_the_person_asks_their_ai_for_a_change(self):
+        self.cli("profile", "new", "Calm")
+        code, out = self.cli("profile", "ask", "calm", "make it warmer")
+        self.assertEqual(code, 0, out)
+        self.cli("profile", "ask", "calm", "and slower")
+        code, out = self.cli("imports", "next")
+        self.assertIn("Change the Spliced profile `calm`", out)
+        self.assertIn("make it warmer\nand slower", out, "a second request joins the first while it waits")
+        self.assertEqual(len([ln for ln in self.cli("imports", "list")[1].splitlines() if ln.strip()]), 1)
+
     def test_a_project_with_nothing_to_take_in_gets_none(self):
         with open(os.path.join(self.root, "spliced.json"), "w") as f:
             json.dump({"format": 1, "name": "Empty", "brand": {"name": ""}}, f)

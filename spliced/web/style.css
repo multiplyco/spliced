@@ -2640,3 +2640,58 @@ body.dropping[data-drop-profile]::after { content: "Drop to draft " attr(data-dr
 .pf-kv[data-k="text"] { display: grid; place-items: center; }
 .pf-kv[data-k="text"] em { font-style: normal; font-weight: 600; font-size: 16px; color: var(--foreground); }
 .pf-page [hidden], .pf-sheet [hidden], .pf-drafting[hidden] { display: none !important; }
+
+/* profiles: the in-app dialog */
+.pf-dialog { width: min(440px, 100%); display: flex; flex-direction: column; gap: 10px; padding: 18px 18px 14px; background: var(--splice-bg-surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--splice-shadow-pop); }
+.pf-dialog b { font-size: 15px; }
+.pf-dialog p { margin: 0; font-size: 13px; color: var(--muted-foreground); line-height: 1.45; }
+.pf-dialog input { height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--background); color: var(--foreground); font: inherit; font-size: 14px; }
+.pf-dialog-a { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.pf-danger { background: var(--splice-danger) !important; border-color: var(--splice-danger) !important; color: var(--splice-ink) !important; }
+
+/* profiles: New profile */
+.pf-new { width: min(820px, 100%); }
+.pf-new .spacer { flex: 1; }
+.pf-new-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.pf-new-name { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted-foreground); }
+.pf-new-name input { height: 40px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--border-strong); background: var(--background); color: var(--foreground); font: inherit; font-size: 15px; }
+.pf-new-ways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pf-new-ways button { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); text-align: left; }
+.pf-new-ways button:hover:not(:disabled) { border-color: var(--border-strong); }
+.pf-new-ways button.on { border-color: var(--splice-volt); box-shadow: inset 0 0 0 1px var(--splice-volt); }
+.pf-new-ways button:disabled { opacity: 0.5; }
+.pf-new-ways .i { width: 18px; height: 18px; margin-bottom: 4px; color: var(--muted-foreground); }
+.pf-new-ways b { font-size: 14px; }
+.pf-new-ways small { font-size: 12px; color: var(--muted-foreground); line-height: 1.35; }
+.pf-new-pane .pf-drop { margin-top: 0; }
+.pf-new-films { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; }
+.pf-new-film { display: flex; flex-direction: column; gap: 4px; text-align: left; font-size: 12px; color: var(--muted-foreground); }
+.pf-new-film img, .pf-new-film span { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--splice-bg-raised); box-shadow: 0 0 0 2px transparent; }
+.pf-new-film.on img { box-shadow: 0 0 0 2px var(--splice-volt); }
+.pf-new-film small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-new-blank { padding: 18px 4px; font-size: 13px; color: var(--muted-foreground); }
+.pf-new-foot { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-top: 1px solid var(--splice-border-subtle); }
+.pf-new-hint { flex: 1; font-size: 12.5px; color: var(--muted-foreground); }
+
+/* profiles: motion as buttons */
+.pf-starts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.pf-sb { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border-radius: 16px; border: 1px solid var(--border); background: transparent; color: var(--muted-foreground); font-size: 13px; }
+.pf-sb:hover { color: var(--foreground); border-color: var(--border-strong); }
+.pf-sb.on { color: var(--splice-ink); background: var(--splice-volt); border-color: var(--splice-volt); }
+.pf-sb-new { border-style: dashed; }
+.pf-sb .i { width: 13px; height: 13px; }
+.pf-sb-x { display: none; width: 16px; height: 16px; margin-right: -6px; border-radius: 50%; place-items: center; }
+.pf-sb:hover .pf-sb-x { display: inline-grid; }
+.pf-sb-x:hover { background: rgb(0 0 0 / 0.25); }
+.pf-sb-x .i { width: 10px; height: 10px; }
+
+/* profiles: what its words already say, and asking the AI */
+.pf-suggest { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 8px; border-radius: 10px; background: var(--splice-bg-raised); font-size: 12.5px; color: var(--foreground); }
+.pf-suggest > .i { width: 14px; height: 14px; color: var(--muted-foreground); flex: none; }
+.pf-suggest > span:not(.pf-dots) { flex: 1; min-width: 0; }
+.pf-found-type .pf-suggest { margin: 8px 0 0; }
+.pf-askbar { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--splice-bg-surface); }
+.pf-askbar:focus-within { border-color: var(--border-strong); }
+.pf-askbar > .i { width: 16px; height: 16px; color: var(--muted-foreground); flex: none; }
+.pf-askbar input { flex: 1; height: 34px; border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 14px; }
+.pf-askbar input:focus { outline: none; }

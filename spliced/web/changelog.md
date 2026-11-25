@@ -8,11 +8,14 @@ Written for the person using Spliced, not the person building it. The app shows 
 2026-11-25
 *Keep the looks your films are made in, and choose one, or none, each time you copy a brief.*
 
-Profiles, under Make, holds the looks your films are made in: your company's own, or one you want to try. Each one
+Profiles, under Make, holds the looks your films are made in: your company's own, or one you want to try. New profile
+sets one up in a click: drop a brand book, logo, screenshots or a film and your AI fills it in, start from a film in
+your library, or start blank. On its page, tell your AI what to change in your own words, and it does. Each one
 plays itself at the top of its page, in its palette and typefaces, with its motion. Choose the typefaces from the ones
 on your Mac or from Google Fonts, each shown in its own face. Start the motion from one of the built-in motions, then
 change the pace, bounce, stagger, how scenes change and how words arrive; each setting has a small picture of what it
-does, Reset takes you back, and Save as a motion keeps it for any profile to start from. Add the scenes that show the
+does, and Reset takes you back. New makes a motion of your own that any profile can use. Colours and typefaces its
+words already name are offered in one click. Add the scenes that show the
 look from a picker that puts the closest palettes first, and take the palette from them in one click.
 
 Drop a brand book, a logo, screenshots or a film on Profiles and your AI drafts a profile from them: palette,

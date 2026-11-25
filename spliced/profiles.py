@@ -34,7 +34,8 @@ its first profile, once, and leaves both files where they were.
   spliced profile save-motion <profile> "<name>"    keep this profile's motion as a starting point for others
   spliced profile draft <profile | "New name"> <file>...   copy a brand book, logo, screenshots or a film into its
                                                     sources/ and have the person's AI fill the profile in from them
-  spliced profile drafted <profile>                 the agent that drafted it says it is done
+  spliced profile ask <profile> "<what to change>"  the person's request, for their AI to make in the profile
+  spliced profile drafted <profile>                 the agent that drafted or changed it says it is done
   spliced profile default <profile | none>          the profile a brief starts in
   spliced profile learn <profile> "never bounce the logo" [--from "launch-film note 3"]
   spliced profile forget <profile> <n>              take rule n out
@@ -151,7 +152,8 @@ def _read(slug):
             "sources": sources(slug), "drafted": p.get("drafted") or "",
             "motion": _motion(p.get("motion")), "scenes": [str(x) for x in (p.get("scenes") or [])],
             "rules": [r for r in (p.get("rules") or []) if isinstance(r, dict) and r.get("text")], "from_film": p.get("from_film") or "",
-            "created": p.get("created") or "", "updated": p.get("updated") or "", "md": md.replace(MD_INTRO, "", 1)}
+            "created": p.get("created") or "", "updated": p.get("updated") or "", "md": md.replace(MD_INTRO, "", 1),
+            "found": {"palette": colours_in(md)}}   # what its words name, for the app to offer in one click
 
 
 def every():
@@ -366,12 +368,28 @@ def add_source(slug, name, data):
     return paths.rel(out)
 
 
-def draft(slug):
-    """Have the person's AI fill the profile in from its sources: an import job (importer.py), so it is worked like a film's breakdown."""
-    if not sources(slug):
-        raise ValueError(f"{slug} has no sources to draft from: drop a brand book, logo, screenshots or a film on it")
+def draft(slug, request=""):
+    """Have the person's AI fill the profile in from its sources and its words, or make a change they asked for: an
+    import job (importer.py), so it is worked like a film's breakdown (in the background, or by their own AI)."""
+    p = get(slug)
+    request = " ".join(str(request or "").split())
+    if not (p["sources"] or p["md"].strip() or request):
+        raise ValueError(f"{slug} has nothing to draft from: drop a brand book, logo, screenshots or a film on it, or say what it should be")
     import importer
-    return importer.add_profile_job(slug)
+    return importer.add_profile_job(slug, request)
+
+
+def colours_in(text):
+    """The colours a text names, as a palette: every hex code, named by the word just before it ("ink `#0B152B`")."""
+    out, seen = [], set()
+    for m in re.finditer(r"([A-Za-z][\w-]{1,24})?[\s:=(`'\"]*(#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b)", text or ""):
+        hx = m.group(2).upper()
+        if hx in seen:
+            continue
+        seen.add(hx)
+        name = (m.group(1) or "").strip("-")
+        out.append({"hex": hx, **({"name": name} if name and name.lower() not in ("the", "and", "or", "on", "is", "a", "to", "sampled", "of") else {})})
+    return out[:8]
 
 
 def mark_drafted(slug):
@@ -482,8 +500,11 @@ def take_in_house():
     if not paths.BRAND and not house.strip():
         return None
     name = paths.BRAND or paths.NAME
-    return create(name, about=f"{name}'s own look: its brand, type and product.",
-                  md=house if house.strip() else f"How {name}'s films look and sound.\n", is_default=True)
+    p = create(name, about=f"{name}'s own look: its brand, type and product.",
+               md=house if house.strip() else f"How {name}'s films look and sound.\n", is_default=True)
+    if colours_in(house):   # the colours its house rules name are its palette from the start
+        p = update(p["slug"], {"palette": colours_in(house)})
+    return p
 
 
 def motion_lines(m):
@@ -543,6 +564,7 @@ def main():
     x = sub.add_parser("save-motion"); x.add_argument("profile"); x.add_argument("name")
     x = sub.add_parser("draft"); x.add_argument("profile"); x.add_argument("files", nargs="+")
     x = sub.add_parser("drafted"); x.add_argument("profile")
+    x = sub.add_parser("ask"); x.add_argument("profile"); x.add_argument("request")
     x = sub.add_parser("default"); x.add_argument("profile")
     x = sub.add_parser("learn"); x.add_argument("profile"); x.add_argument("rule"); x.add_argument("--from", dest="source", default="")
     x = sub.add_parser("forget"); x.add_argument("profile"); x.add_argument("n", type=int)
@@ -588,6 +610,9 @@ def main():
                     print(f"  {add_source(a.profile, os.path.basename(fp), f.read())}")
             j = draft(a.profile)
             print(f"Drafting the profile {a.profile} from {len(sources(a.profile))} source(s): import {j['id']} ({j['status']}). `{paths.CLI} imports list` follows it.")
+        elif a.cmd == "ask":
+            j = draft(a.profile, a.request)
+            print(f"Asked: import {j['id']} ({j['status']}). Your AI makes the change; `{paths.CLI} imports list` follows it.")
         elif a.cmd == "drafted":
             mark_drafted(a.profile)
             print(f"{a.profile}: drafted")

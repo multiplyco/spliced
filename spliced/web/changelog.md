@@ -12,7 +12,28 @@ In 1.1.0 a cancelled or failed import came straight back a moment after you clos
 and the fold seemed to do nothing. Now what you close stays closed, also after a reload, and folding the panel hides
 its rows.
 
-<!-- release 1.1.0 2026-11-25 -->
+## Profiles: the looks your films are made in
+2026-11-25
+*Keep the looks your films are made in, and choose one, or none, each time you copy a brief.*
+
+Profiles, under Make, holds the looks your films are made in: your company's own, or one you want to try. New profile
+sets one up in a click: drop a brand book, logo, screenshots or a film and your AI fills it in, start from a film in
+your library, or start blank. On its page, tell your AI what to change in your own words, and it does. Each one
+plays itself at the top of its page, in its palette and typefaces, with its motion. Choose the typefaces from the ones
+on your Mac or from Google Fonts, each shown in its own face. Start the motion from one of the built-in motions, then
+change the pace, bounce, stagger and float, and pick as many scene changes (sixteen, from a cut on the beat to a whip
+pan or an iris) and ways for words to arrive (eleven, from typewriter to scramble) as fit the look, the first leading.
+Each setting has a small picture of what it does, hovering a style plays it, and Reset takes you back. New makes a motion of your own that any profile can use. Colours and typefaces its
+words already name are offered in one click. Add the scenes that show the
+look from a picker that puts the closest palettes first, and take the palette from them in one click.
+
+Drop a brand book, a logo, screenshots or a film on Profiles and your AI drafts a profile from them: palette,
+typefaces, motion, its own words and its rules. Your AI keeps adding the rules it learns on every film.
+
+Briefs start in the default profile (the switch at the top of a profile's page). A board, a scene's brief and a whole
+film's brief each have a profile beside the copy button: pick another, or No profile to copy the reference as it is.
+A reference film's page can start a profile from its look. A project that had one brand and house rules now has them
+as its first profile, and the scene page says Recreate instead of Recreate for your brand.
 
 ## Recreate a whole film
 2026-11-24

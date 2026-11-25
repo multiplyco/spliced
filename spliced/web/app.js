@@ -527,7 +527,7 @@ function matches(s, except) {
   if (ui.fav && !r.fav) return false;
   if (ui.verdicts.size && !ui.verdicts.has(r.verdict || "none")) return false;
   if (ui.notes && !r.note) return false;
-  if (ui.mine && !s.own) return false;
+  if (ui.mine !== !!s.own) return false;   // your own films have their own place: All is the inspiration, Your films is what you made
   if (s.steal < ui.minSteal) return false;
   for (const [f, set] of Object.entries(ui.filters)) {
     if (f === except || !set.size) continue;
@@ -738,7 +738,7 @@ function paintCollect() {
   const seg = $("#collect"); if (!seg) return;
   const favs = SCENES.filter((s) => rev(s.key).fav).length, noted = SCENES.filter((s) => rev(s.key).note).length, mine = SCENES.filter((s) => s.own).length;
   const mode = ui.fav ? "fav" : ui.notes ? "notes" : ui.mine ? "mine" : "all";
-  const tips = { all: "Every scene: references, uploads and your own films", fav: "The scenes you marked as favourites", notes: "The scenes you wrote a note on", mine: "The films you made in Build, beat by beat" };
+  const tips = { all: "Your inspiration: the reference films and what you uploaded", fav: "The scenes you marked as favourites", notes: "The scenes you wrote a note on", mine: "The films you made in Build, beat by beat. They stay out of All, so work in progress never crowds your inspiration" };
   seg.innerHTML = [["all", "All", ""], ["fav", "Favourites", favs], ["notes", "With notes", noted], ...(mine ? [["mine", "Your films", mine]] : [])].map(([v, l, n]) => `<button data-v="${v}" class="${mode === v ? "on" : ""}" title="${tips[v]}">${l}${n !== "" ? `<span class="n">${n}</span>` : ""}</button>`).join("");
   seg.querySelectorAll("button").forEach((b) => (b.onclick = () => { ui.fav = b.dataset.v === "fav"; ui.notes = b.dataset.v === "notes"; ui.mine = b.dataset.v === "mine"; syncHash(); render(); }));
 }

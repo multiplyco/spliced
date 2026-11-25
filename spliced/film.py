@@ -1195,6 +1195,17 @@ def summaries():
     return out
 
 
+_LENGTHS = {}
+
+
+def _render_length(path):
+    """A render's length in seconds, asked of ffprobe once per file and change."""
+    key = (path, os.path.getmtime(path))
+    if key not in _LENGTHS:
+        _LENGTHS[key] = probe_duration(path) or 0
+    return _LENGTHS[key]
+
+
 def own_films():
     """The project's own films as the Library shows them: every film with a render of the whole film, its beats as the
     scenes, each timed within that render (where the render says so, else from the plan), with what the plan says is on
@@ -1204,19 +1215,27 @@ def own_films():
     for p in films:
         if not p:
             continue
-        full = next((r for r in p["renders"] if not r.get("beat")), None)
-        try:
-            real = paths.resolve(full["file"], main_ok=True) if full else None
-        except ValueError:
-            real = None
-        if not real or not os.path.isfile(real):
+        # the newest render that really holds the film: a short preview export (a few seconds of a 40 s film) is not one
+        planned = max([b["end"] or 0 for b in p["beats"]] or [0])
+        full = length = None
+        for r in (x for x in p["renders"] if not x.get("beat")):
+            try:
+                real = paths.resolve(r["file"], main_ok=True)
+            except ValueError:
+                continue
+            n = _render_length(real) if os.path.isfile(real) else 0
+            if n and (not planned or n >= planned * 0.8 or r.get("beats")):
+                full, length = r, n
+                break
+        if not full:
             continue
         off, timed = full.get("offset", 0) or 0, full.get("beats") or {}
         scenes = []
         for b in p["beats"]:
             w = timed.get(b["id"]) or ([b["start"] - off, b["end"] - off] if b["start"] is not None and b["end"] is not None else None)
-            if not w or w[1] <= w[0]:
+            if not w or w[1] <= w[0] or w[0] >= length - 0.05:   # a beat the render doesn't reach has no picture to show
                 continue
+            w = [w[0], min(w[1], length)]
             scenes.append({"id": b["id"], "n": b["n"], "title": b["title"], "start": round(max(0, w[0]), 3), "end": round(w[1], 3),
                            "on_screen": b.get("on_screen", ""), "copy": b.get("copy", ""), "vo": b.get("vo", ""), "status": b.get("status", ""),
                            "refs": b.get("refs", [])})

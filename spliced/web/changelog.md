@@ -6,12 +6,12 @@ Written for the person using Spliced, not the person building it. The app shows 
 
 ## Your own films in the Library
 2026-11-25
-*Every film you made in Build is in the Library too, beat by beat, and the search finds it.*
+*The films you made in Build have their own place in the Library, beat by beat, and the search box finds them.*
 
-The Library now holds the films you made beside the references: each film with a render of the whole film shows its
-beats as scenes, marked Yours, playing their stretch of your newest render. Your films, beside Favourites and With
-notes, shows only them. The Library's search and the search box (/) find them by what is on screen, the copy and the
-voice-over. Open a beat to read its words and go straight to it in Build.
+The films you made have a place in the Library: Your films, beside Favourites and With notes. Each film with a render
+of the whole film shows its beats as scenes, marked Yours, playing their stretch of that render. They stay out of All,
+so work in progress never crowds your inspiration. Search them there, or from anywhere with the search box (/), by
+what is on screen, the copy and the voice-over. Open a beat to read its words and go straight to it in Build.
 
 <!-- release 1.2.0 2026-11-25 -->
 

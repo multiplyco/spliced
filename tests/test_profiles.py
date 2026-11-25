@@ -52,6 +52,14 @@ class Profiles(unittest.TestCase):
         self.assertIn("Change the Spliced profile `calm`", out)
         self.assertIn("make it warmer\nand slower", out, "a second request joins the first while it waits")
         self.assertEqual(len([ln for ln in self.cli("imports", "list")[1].splitlines() if ln.strip()]), 1)
+        jid = out.split()[1]
+        self.cli("profile", "ask", "calm", "and bolder")   # after the AI was handed the first two
+        self.cli("profile", "drafted", "calm")
+        code, out = self.cli("imports", "done", jid)
+        self.assertEqual(code, 0, out)
+        code, out = self.cli("imports", "next")
+        self.assertIn("and bolder", out, "a request that came in later gets a round of its own")
+        self.assertNotIn("make it warmer", out, "and the ones already dealt with don't come back")
 
     def test_a_project_with_nothing_to_take_in_gets_none(self):
         with open(os.path.join(self.root, "spliced.json"), "w") as f:

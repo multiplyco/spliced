@@ -20,6 +20,13 @@ When you closed the last row, or the whole panel, it stayed on screen with the o
 the panel's own × seemed to do nothing. It now goes away when you close it. The same fix keeps anything else the app
 hides from staying on screen.
 
+## Every change you ask for is kept
+2026-11-25
+*Several requests to your AI about a profile, sent close together, now all reach it.*
+
+A second request sent while your AI was still picking up the first could be lost. Requests now wait in a list of their
+own: your AI gets every one waiting when it starts, and one you send while it works gets a round of its own after.
+
 <!-- release 1.2.0 2026-11-25 -->
 
 ## Closing the corner panel works again

@@ -55,6 +55,31 @@ async function loadUploads() {
   FILMS.uploads.scenes = list.slice().reverse().map(uploadScene);   // newest first
   FILMS.uploads.scenes.forEach((x, i) => { x.idx = i; SCENES.push(x); BY_KEY[x.key] = x; });
 }
+/* ---------- your own films: every film in Build with a render of the whole film, its beats as scenes (film.own_films,
+   /api/own-films). Keyed "@<slug>" so they never meet a reference's slug; each plays its stretch of the render. */
+const OWN = "@";
+function ownScene(f, b, i) {
+  return { film: OWN + f.slug, id: b.id, key: `${OWN}${f.slug}/${b.id}`, own: { slug: f.slug, n: b.n, status: b.status, render: f.render, copy: b.copy, vo: b.vo, refs: b.refs },
+    idx: i, title: b.title, start: b.start, end: b.end, steal: 0, role: "", world: "", subject: [], camera: [], motion: [], type_treatment: [], pace: "", energy: "",
+    production: [], transition_in: "", sound_sync: [], on_screen: b.on_screen || "", how_it_moves: "", recreate: "", palette: [],
+    text: [b.title, b.on_screen, b.copy, b.vo, f.title, f.message, "your film yours own made", f.slug, ...(b.refs || [])].join(" ").toLowerCase() };
+}
+let ownAt = 0;
+async function loadOwn(force) {
+  if (!server || (!force && Date.now() - ownAt < 20000)) return false;
+  ownAt = Date.now();
+  let list = [];
+  try { const r = await fetch("/api/own-films", { cache: "no-store" }); if (!r.ok) return false; list = (await r.json()).films || []; } catch { return false; }
+  for (let i = SCENES.length - 1; i >= 0; i--) if (SCENES[i].own) { delete BY_KEY[SCENES[i].key]; SCENES.splice(i, 1); }
+  for (const k of Object.keys(FILMS)) if (FILMS[k].own) delete FILMS[k];
+  for (const f of list) {
+    const film = FILMS[OWN + f.slug] = { slug: OWN + f.slug, own: f, title: f.title, brand: "Your film", category: "yours", file: f.file, duration: f.duration, fps: f.fps || 30,
+      format: f.format, summary: f.message || "", style_signature: {}, voice: "", scenes: [] };
+    film.scenes = f.scenes.map((b, i) => ownScene(f, b, i));
+    film.scenes.forEach((x) => { SCENES.push(x); BY_KEY[x.key] = x; });
+  }
+  return true;
+}
 async function uploadFiles(files) {
   files = [...files].filter((f) => UP_EXT.test(f.name) || /^(image|video)\//.test(f.type));
   if (!files.length) { toast("Drop images, GIFs or clips (png, jpg, webp, gif, mp4, mov, webm)"); return; }
@@ -154,7 +179,7 @@ let server = false, live = false;
 const CLIENT = Math.random().toString(36).slice(2, 10);
 let current = localStorage.getItem("cr.board") || "";
 const ui = {
-  filters: {}, q: "", fav: false, verdicts: new Set(), minSteal: 0, notes: false, sort: "best",
+  filters: {}, q: "", fav: false, verdicts: new Set(), minSteal: 0, notes: false, mine: false, sort: "best",
   closed: new Set(JSON.parse(localStorage.getItem("cr.closed") || "null") || FACETS.map((f) => f[0]).filter((f) => !OPEN_DEFAULT.has(f))),
   base: "#/scenes", trayOpen: false, briefOpen: false,
   follow: localStorage.getItem("cr.follow") !== "0", flash: new Set(), pending: false,
@@ -437,8 +462,22 @@ function upThumb(s) {
   }
   return el;
 }
+/* one of your own films: a frame from the middle of the beat, and the beat playing from its render while the pointer is on it */
+function ownThumb(s) {
+  const f = FILMS[s.film], mid = (s.start + s.end) / 2;
+  const el = h(`<div class="thumb own" data-key="${esc(s.key)}"><img loading="lazy" alt="" src="${frameThumb(f.file, mid, 480)}"><span class="own-tag" title="A beat of a film you made in Build">Yours</span></div>`);
+  el.addEventListener("mouseenter", () => {
+    if (el.querySelector("video")) return;
+    const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.src = `${fileUrl(f.file)}#t=${s.start.toFixed(2)},${s.end.toFixed(2)}`;
+    v.addEventListener("timeupdate", () => { if (v.currentTime >= s.end - 0.05) v.currentTime = s.start; });
+    el.append(v); v.play().catch(() => {});
+  });
+  el.addEventListener("mouseleave", () => el.querySelector("video")?.remove());
+  return el;
+}
 function thumb(s, { scrub = true } = {}) {
   if (s.upload) return upThumb(s);
+  if (s.own) return ownThumb(s);
   const n = frameCount(s);
   const el = h(`<div class="thumb" data-key="${esc(s.key)}"><img loading="lazy" alt="" src="${SP.stripUrl(s.film, s.id)}"><div class="ticks">${"<span></span>".repeat(n)}</div><div class="head"><i></i></div></div>`);
   const img = $("img", el), head = $(".head i", el), ticks = [...el.querySelectorAll(".ticks span")];
@@ -488,6 +527,7 @@ function matches(s, except) {
   if (ui.fav && !r.fav) return false;
   if (ui.verdicts.size && !ui.verdicts.has(r.verdict || "none")) return false;
   if (ui.notes && !r.note) return false;
+  if (ui.mine !== !!s.own) return false;   // your own films have their own place: All is the inspiration, Your films is what you made
   if (s.steal < ui.minSteal) return false;
   for (const [f, set] of Object.entries(ui.filters)) {
     if (f === except || !set.size) continue;
@@ -495,7 +535,7 @@ function matches(s, except) {
   }
   return true;
 }
-const activeCount = () => Object.values(ui.filters).reduce((a, s) => a + s.size, 0) + (ui.fav ? 1 : 0) + ui.verdicts.size + (ui.minSteal ? 1 : 0) + (ui.notes ? 1 : 0) + (ui.q ? 1 : 0);
+const activeCount = () => Object.values(ui.filters).reduce((a, s) => a + s.size, 0) + (ui.fav ? 1 : 0) + ui.verdicts.size + (ui.minSteal ? 1 : 0) + (ui.notes ? 1 : 0) + (ui.mine ? 1 : 0) + (ui.q ? 1 : 0);
 function toggleFilter(f, v, only = false) {
   const set = (ui.filters[f] ||= new Set());
   if (only) { Object.keys(ui.filters).forEach((k) => ui.filters[k].clear()); set.add(v); }
@@ -503,7 +543,7 @@ function toggleFilter(f, v, only = false) {
   syncHash(); render();
 }
 function clearFilters() {
-  ui.filters = {}; ui.q = ""; ui.fav = false; ui.verdicts.clear(); ui.minSteal = 0; ui.notes = false; $("#q").value = "";
+  ui.filters = {}; ui.q = ""; ui.fav = false; ui.verdicts.clear(); ui.minSteal = 0; ui.notes = false; ui.mine = false; $("#q").value = "";
   syncHash(); render();
 }
 function filtersToQuery() {
@@ -514,6 +554,7 @@ function filtersToQuery() {
   if (ui.verdicts.size) p.set("verdict", [...ui.verdicts].join(","));
   if (ui.minSteal) p.set("steal", ui.minSteal);
   if (ui.notes) p.set("notes", "1");
+  if (ui.mine) p.set("mine", "1");
   if (ui.sort !== "best") p.set("sort", ui.sort);
   return p.toString();
 }
@@ -523,7 +564,7 @@ function queryToFilters(qs) {
   for (const [f] of FACETS) if (p.get(f)) ui.filters[f] = new Set(p.get(f).split(","));
   ui.q = p.get("q") || "";
   if (document.activeElement !== $("#q")) $("#q").value = ui.q;
-  ui.fav = p.get("fav") === "1"; ui.notes = p.get("notes") === "1";
+  ui.fav = p.get("fav") === "1"; ui.notes = p.get("notes") === "1"; ui.mine = p.get("mine") === "1";
   ui.verdicts = new Set((p.get("verdict") || "").split(",").filter(Boolean));
   ui.minSteal = +p.get("steal") || 0; ui.sort = p.get("sort") || "best";
 }
@@ -570,7 +611,7 @@ function renderBase(hash) {
   $("#main").dataset.view = view;
   build.stop(); stopPreviews(); window.AssetsView?.stop?.(); window.StylesView?.stop?.(); delete document.body.dataset.dropProfile;
   filmHero = null;
-  if (view === "scenes") renderScenes();
+  if (view === "scenes") { renderScenes(); loadOwn().then((changed) => { if (changed && route().view === "scenes") renderScenes(); }); }   // a new render shows up the next time the Library is opened
   else if (view === "moments") renderMoments();
   else if (view === "moves") renderMoves();
   else if (view === "films") renderFilms();
@@ -695,10 +736,11 @@ function refreshBadges(key) {
 /* the All / Favourites / With notes control and the counts in it */
 function paintCollect() {
   const seg = $("#collect"); if (!seg) return;
-  const favs = SCENES.filter((s) => rev(s.key).fav).length, noted = SCENES.filter((s) => rev(s.key).note).length;
-  const mode = ui.fav ? "fav" : ui.notes ? "notes" : "all";
-  seg.innerHTML = [["all", "All", ""], ["fav", "Favourites", favs], ["notes", "With notes", noted]].map(([v, l, n]) => `<button data-v="${v}" class="${mode === v ? "on" : ""}">${l}${n !== "" ? `<span class="n">${n}</span>` : ""}</button>`).join("");
-  seg.querySelectorAll("button").forEach((b) => (b.onclick = () => { ui.fav = b.dataset.v === "fav"; ui.notes = b.dataset.v === "notes"; syncHash(); render(); }));
+  const favs = SCENES.filter((s) => rev(s.key).fav).length, noted = SCENES.filter((s) => rev(s.key).note).length, mine = SCENES.filter((s) => s.own).length;
+  const mode = ui.fav ? "fav" : ui.notes ? "notes" : ui.mine ? "mine" : "all";
+  const tips = { all: "Your inspiration: the reference films and what you uploaded", fav: "The scenes you marked as favourites", notes: "The scenes you wrote a note on", mine: "The films you made in Build, beat by beat. They stay out of All, so work in progress never crowds your inspiration" };
+  seg.innerHTML = [["all", "All", ""], ["fav", "Favourites", favs], ["notes", "With notes", noted], ...(mine ? [["mine", "Your films", mine]] : [])].map(([v, l, n]) => `<button data-v="${v}" class="${mode === v ? "on" : ""}" title="${tips[v]}">${l}${n !== "" ? `<span class="n">${n}</span>` : ""}</button>`).join("");
+  seg.querySelectorAll("button").forEach((b) => (b.onclick = () => { ui.fav = b.dataset.v === "fav"; ui.notes = b.dataset.v === "notes"; ui.mine = b.dataset.v === "mine"; syncHash(); render(); }));
 }
 /* the quick Media control in the header: All / Video / Images / GIFs (the same filter as Filter > Media) */
 function paintMedia() {
@@ -1000,6 +1042,12 @@ function closeDetail(nav = true) {
   if (nav) location.hash = ui.base;
 }
 function brief(s, withNote = true) {
+  if (s.own) {
+    const f = FILMS[s.film], o = s.own, r = rev(s.key);
+    return [`### ${s.key}: ${s.title}`, `Beat ${o.n} of our own film "${f.title}" (${SP.cmd("film", "status", o.slug)}), ${ts(s.start)} to ${ts(s.end)} in its render ${o.render} (${f.file}).`,
+      s.on_screen ? `On screen: ${s.on_screen}` : "", o.copy ? `Copy: ${o.copy}` : "", o.vo ? `Voice-over: ${o.vo}` : "", o.refs?.length ? `It borrows from: ${o.refs.join(", ")}` : "",
+      withNote && r.note ? `Our note: ${r.note}` : ""].filter(Boolean).join("\n");
+  }
   if (s.upload) {
     const x = s.upload, r = rev(s.key);
     return [`### ${s.key}: ${s.title}`, `An uploaded reference (${x.kind === "gif" ? "a GIF" : x.kind === "video" ? `a ${x.duration ? x.duration.toFixed(1) + "s " : ""}clip` : "an image"}${x.width ? `, ${x.width}x${x.height}` : ""}): ${x.file}. Look at it before building.`,
@@ -1134,12 +1182,16 @@ function renderDetail(s) {
 
   const body = h(`<div class="d-body">
     <h2 class="d-title">${esc(s.title)}</h2>
-    <div class="d-film"><a href="#/film/${s.film}">${esc(f.title)}</a><span>·</span>${esc(f.brand)}<span>·</span><span class="mono">${tcCopy(`${ts(s.start)} to ${ts(s.end)}`, stampRange(s.key, s.start, s.end))}</span><span>·</span><span class="stars" title="Steal-worthy">${stars(s.steal)}</span></div>
+    <div class="d-film">${s.own ? `<a href="#/build/${esc(s.own.slug)}" title="Open this film in Build">${esc(f.title)}</a><span>·</span>Beat ${s.own.n}<span>·</span>` : `<a href="#/film/${s.film}">${esc(f.title)}</a><span>·</span>${esc(f.brand)}<span>·</span>`}<span class="mono">${tcCopy(`${ts(s.start)} to ${ts(s.end)}`, stampRange(s.key, s.start, s.end))}</span>${s.own ? "" : `<span>·</span><span class="stars" title="Steal-worthy">${stars(s.steal)}</span>`}</div>
     <textarea class="inl d-note" id="note" rows="1" title="Your note on this scene. It is saved as you type and goes into the brief you copy" placeholder="Add a note: what to steal, what to change"></textarea>
     ${(s.moves || []).length ? `<div class="d-sec"><h5>Signature move</h5><p class="lead">${s.moves.map(esc).join(" · ")}</p></div>` : ""}
-    <div class="d-sec"><h5>On screen</h5><p class="lead">${esc(s.on_screen)}</p></div>
+    ${s.own ? `${s.on_screen ? `<div class="d-sec"><h5>On screen</h5><p class="lead">${esc(s.on_screen)}</p></div>` : ""}
+      ${s.own.copy ? `<div class="d-sec"><h5>Copy</h5><p class="lead">${esc(s.own.copy)}</p></div>` : ""}${s.own.vo ? `<div class="d-sec"><h5>Voice-over</h5><p>${esc(s.own.vo)}</p></div>` : ""}
+      ${s.own.refs?.length ? `<div class="d-sec"><h5>Borrows from</h5><p>${s.own.refs.map((r) => BY_KEY[r] ? `<a href="#/scene/${esc(r)}">${esc(BY_KEY[r].title)}</a>` : esc(r)).join(" · ")}</p></div>` : ""}
+      <div class="d-sec"><a class="icon-btn sm" href="#/build/${esc(s.own.slug)}" title="Open this film in Build, beside what it borrows from">${icon("list-video")}Open in Build</a></div>`
+    : `<div class="d-sec"><h5>On screen</h5><p class="lead">${esc(s.on_screen)}</p></div>
     <div class="d-sec"><h5>How it moves</h5><p>${esc(s.how_it_moves)}</p></div>
-    <div class="d-sec"><h5>Recreate</h5><p>${esc(s.recreate)}</p></div>
+    <div class="d-sec"><h5>Recreate</h5><p>${esc(s.recreate)}</p></div>`}
     <div class="pin-slot"></div>
     ${s.palette?.length ? `<div class="d-sec"><h5>Palette</h5><div class="swatches">${s.palette.map((c) => `<span class="sw" data-c="${esc(c)}"><i style="background:${esc(c)}"></i>${esc(c)}</span>`).join("")}</div></div>` : ""}
     <details class="d-more"><summary>${icon("chevron-right")}Details<span>tags, camera, pace, energy</span></summary><div class="tagtable" id="tagtable"></div></details>
@@ -2170,7 +2222,7 @@ CR.sources.push(() => [
   ...state.moments.map((m) => { const x = BY_KEY[m.key]; return { id: `lib.m.${m.uid}`, title: m.note || x?.title || m.key, sub: `${m.key} @ ${tsf(m.t)}`, group: "Moments", hash: `#/scene/${m.key}?t=${m.t}`, thumb: x && FILMS[x.film]?.file ? frameThumb(FILMS[x.film].file, m.t) : "" }; }),
   ...L.films.map((f) => { const best = [...f.scenes].sort((a, b) => b.steal - a.steal)[0];
     return { id: `lib.f.${f.slug}`, title: f.title, sub: `${f.brand} · ${f.scenes.length} scenes`, text: `${f.title} ${f.brand} ${f.category} ${f.summary || ""}`, group: "Films", hash: `#/film/${f.slug}`, thumb: best ? frameThumb(f.file, (best.start + best.end) / 2) : "" }; }),
-  ...SCENES.map((x) => ({ id: `lib.s.${x.key}`, title: x.title, sub: x.upload ? `Uploaded · ${x.upload.kind}` : `${FILMS[x.film]?.brand || ""} · ${tsf(x.start)}`, text: `${x.key} ${x.text}`, group: x.upload ? "Uploads" : "Scenes", hash: `#/scene/${x.key}`, thumb: sceneThumb(x), video: !x.upload || x.upload.kind === "video" })),
+  ...SCENES.map((x) => ({ id: `lib.s.${x.key}`, title: x.title, sub: x.upload ? `Uploaded · ${x.upload.kind}` : x.own ? `${FILMS[x.film]?.title || ""} · beat ${x.own.n}` : `${FILMS[x.film]?.brand || ""} · ${tsf(x.start)}`, text: `${x.key} ${x.text}`, group: x.upload ? "Uploads" : x.own ? "Your films" : "Scenes", hash: `#/scene/${x.key}`, thumb: sceneThumb(x), video: !x.upload || x.upload.kind === "video" })),
 ]);
 // typing in search can also filter the Library itself
 window.CR.filterLibrary = (q) => { ui.q = q.trim(); $("#q").value = ui.q; closeDetail(false); location.hash = "#/scenes" + (filtersToQuery() ? "?" + filtersToQuery() : ""); };
@@ -2727,7 +2779,7 @@ $("#q").addEventListener("input", (e) => {
 });
 (async () => {
   await loadState();
-  if (server) await loadUploads();
+  if (server) await Promise.all([loadUploads(), loadOwn(true)]);
   paintStatus();
   renderTray(); paintNavCounts();
   $("#board-pill").onclick = () => (document.body.classList.contains("no-tray") ? (location.hash = `#/boards/${encodeURIComponent(current)}`) : setTray(!ui.trayOpen));

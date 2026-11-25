@@ -36,6 +36,7 @@ API:
   GET  /api/update           is a newer Spliced out (updates.py)
   GET  /api/profiles         the project's profiles (profiles.py)   POST /api/profiles {op: new|set|default|learn|forget|pin|unpin|remove|house|
                              motion-save|motion-remove|draft, ...}   POST /api/profiles/<slug>/sources (raw file, X-Filename)  what one is drafted from
+  GET  /api/own-films        the project's own films with a whole render, their beats as scenes, for the Library
   GET  /api/fonts            the font families on this machine, and whether Google Fonts may be offered (spliced.json "google_fonts")
 Data: .cache/library.json, built by `spliced library` (run it after changing breakdowns) and served as
 /api/library.js; the server builds it itself when it is missing or older than the breakdowns.
@@ -278,6 +279,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if url.path == "/api/productions":
             paths.reload_folders()   # (a command may have added one since)
             return self._json(200, film.summaries())
+        if url.path == "/api/own-films":  # the project's own films, beat by beat, for the Library (film.own_films)
+            return self._json(200, {"films": film.own_films()})
         m = re.fullmatch(r"/api/productions/([\w.-]+)", url.path)
         if m:
             p = film.production(m.group(1))

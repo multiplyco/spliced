@@ -4,6 +4,14 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+## Your own films in the Library
+2026-11-25
+*The films you made in Build have their own place in the Library, beat by beat, and the search box finds them.*
+
+The films you made have a place in the Library: Your films, beside Favourites and With notes. Each film with a render
+of the whole film shows its beats as scenes, marked Yours, playing their stretch of that render. They stay out of All,
+so work in progress never crowds your inspiration. Search them there, or from anywhere with the search box (/), by
+what is on screen, the copy and the voice-over. Open a beat to read its words and go straight to it in Build.
 ## The corner panel really closes
 2026-11-25
 *Closing the last finished import now takes the panel away, and folding works after it.*

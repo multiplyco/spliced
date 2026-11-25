@@ -4,6 +4,14 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+## The corner panel really closes
+2026-11-25
+*Closing the last finished import now takes the panel away, and folding works after it.*
+
+When you closed the last row, or the whole panel, it stayed on screen with the old row in it, so the ×, the fold and
+the panel's own × seemed to do nothing. It now goes away when you close it. The same fix keeps anything else the app
+hides from staying on screen.
+
 <!-- release 1.2.0 2026-11-25 -->
 
 ## Closing the corner panel works again

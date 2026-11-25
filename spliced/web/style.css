@@ -2139,6 +2139,7 @@ html:not(.dark) .dock { background: var(--splice-bg-surface); }
 .dk-head { display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 14px; }
 .dk-head b { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dock.min .dk-head { padding-block: 8px; }
+.dk-rows[hidden] { display: none; }   /* folded small: its display: flex would otherwise keep the rows showing */
 .dk-rows { overflow-y: auto; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--splice-border-subtle); padding-top: 8px; }
 .dk-row { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 8px 6px; border-radius: 10px; }
 .dk-row.s-done, .dk-row.s-failed { animation: dk-in 0.25s var(--ease) both; }

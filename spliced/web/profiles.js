@@ -128,17 +128,87 @@ const KNOB = {
   idle: { label: "Float", min: 0, max: 1, step: 0.05, show: (v) => v === 0 ? "still" : v < 0.4 ? "a little" : "drifting", tip: "How much things float while they are held on screen" },
 };
 const CHOICE = {
-  transition: { label: "Scene change", opts: [["cut", "Cut"], ["blurThrough", "Blur"], ["fadeThrough", "Fade"], ["sharedAxisX", "Slide"], ["sharedAxisZ", "Push"]], tip: "How one scene becomes the next" },
-  text: { label: "Words", opts: [["sharpen", "Sharpen"], ["greyToInk", "Grey to ink"]], tip: "How words arrive: sharpen in from a blur, or land grey and darken" },
+  transition: { label: "Scene changes", tip: "How one scene becomes the next. Pick as many as fit the look: the first you pick leads, the others are for the scenes that call for them", opts: [
+    ["cut", "Cut", "A straight cut"], ["cut-on-beat", "On the beat", "A cut on the music's beat"], ["match-cut", "Match cut", "The next shot shares a shape, place or motion with the last"],
+    ["blur", "Blur", "Blur out of one scene, sharpen into the next"], ["fade", "Fade", "A fade through"], ["dip", "Dip", "A dip through a colour"],
+    ["slide", "Slide", "The next scene slides in"], ["push-in", "Push in", "The old scene grows and fades, the new one settles in"], ["whip", "Whip pan", "A fast blurred move into the next scene"],
+    ["wipe", "Wipe", "A line wipes the next scene on"], ["colour-wipe", "Colour wipe", "A flat colour sweeps across and carries the cut"], ["iris", "Iris", "A circle closes on one scene and opens the next"],
+    ["morph", "Morph", "An element of one scene becomes the next"], ["carry", "Carry", "An element stays while the world changes around it"], ["pull-out", "Pull out", "The old scene shrinks away into the new one"],
+    ["one-move", "One move", "One unbroken camera move, the cuts hidden in it"]] },
+  text: { label: "Words", tip: "How words arrive. Pick as many as fit the look: the first you pick leads", opts: [
+    ["sharpen", "Sharpen", "Words sharpen in from a blur"], ["grey-to-ink", "Grey to ink", "Words land light grey, then darken"], ["word-by-word", "Word by word", "A word at a time, rising"],
+    ["typewriter", "Typewriter", "Typed letter by letter"], ["mask-reveal", "Mask reveal", "Lines wipe up out of a mask"], ["highlight", "Highlight", "A line lights up word by word, as if read aloud"],
+    ["kinetic", "Kinetic", "Type moves big: scale and tracking"], ["slot-reel", "Slot reel", "A word spins through options and lands"], ["scramble", "Scramble", "Letters scramble, then resolve"],
+    ["swap", "Word swap", "One word in a line swaps in place"], ["fly-past", "Fly past", "Type scales past the lens"]] },
 };
-const baseOf = (m) => kit[m.base] || kit.soft || { pace: 1, bounce: 0, stagger: 0.1, transition: "cut", text: "sharpen", idle: 0.5, curve: [0.2, 0.8, 0.2, 1], enter: 0.6 };
-const val = (m, k) => (k in m ? m[k] : baseOf(m)[k]);
+const OLDNAME = { blurThrough: "blur", fadeThrough: "fade", sharedAxisX: "slide", sharedAxisZ: "push-in", greyToInk: "grey-to-ink" };
+const asList = (v) => [].concat(v || []).map((x) => OLDNAME[x] || x);
+const baseOf = (m) => kit[m.base] || kit.soft || { pace: 1, bounce: 0, stagger: 0.1, transition: ["cut"], text: ["sharpen"], idle: 0.5, curve: [0.2, 0.8, 0.2, 1], enter: 0.6 };
+const val = (m, k) => { const v = k in m ? m[k] : baseOf(m)[k]; return k in CHOICE ? asList(v) : v; };
+const labelOf = (k, x) => CHOICE[k].opts.find((o) => o[0] === x)?.[1] || x;
+
+/* Scene changes and word styles, played: the stage at the top and the small pictures beside each setting use these.
+   playChange: frame A becomes frame B the way `kind` does it. Returns when it is done (ms from now). */
+function playChange(A, B, kind, { dur, delay = 0, curve, w = 1 }) {
+  const cut = ["cut", "cut-on-beat", "match-cut"].includes(kind), D = cut ? 1 : kind === "whip" ? dur * 0.7 : kind === "carry" || kind === "one-move" ? dur * 1.3 : dur;
+  const out = (frames, o = {}) => A.animate(frames, { duration: D, delay, fill: "forwards", easing: "cubic-bezier(0.4,0,1,1)", ...o });
+  const inn = (frames, o = {}) => B.animate(frames, { duration: D, delay, fill: "forwards", easing: curve, ...o });
+  const hideA = () => out([{ opacity: 1 }, { opacity: 1, offset: 0.98 }, { opacity: 0 }]);
+  const px = (n) => `${n * w}px`;
+  switch (kind) {
+    case "blur": out([{ filter: "blur(0)", opacity: 1 }, { filter: `blur(${px(14)})`, opacity: 0 }]); inn([{ filter: `blur(${px(14)})`, opacity: 0 }, { filter: "blur(0)", opacity: 1 }], { delay: delay + D * 0.45 }); return delay + D * 1.45;
+    case "fade": out([{ opacity: 1 }, { opacity: 0 }]); inn([{ opacity: 0 }, { opacity: 1 }], { delay: delay + D * 0.45 }); return delay + D * 1.45;
+    case "dip": out([{ opacity: 1 }, { opacity: 0 }]); inn([{ opacity: 0 }, { opacity: 1 }], { delay: delay + D * 1.1 }); return delay + D * 2.1;
+    case "slide": out([{ transform: "none", opacity: 1 }, { transform: "translateX(-30%)", opacity: 0 }]); inn([{ transform: "translateX(30%)", opacity: 0 }, { transform: "none", opacity: 1 }]); break;
+    case "push-in": out([{ transform: "none", opacity: 1 }, { transform: "scale(1.15)", opacity: 0 }]); inn([{ transform: "scale(0.88)", opacity: 0 }, { transform: "none", opacity: 1 }]); break;
+    case "whip": out([{ transform: "none", filter: "blur(0)" }, { transform: "translateX(-70%)", filter: `blur(${px(10)})` }], { easing: "cubic-bezier(0.7,0,1,1)" });
+      inn([{ transform: "translateX(70%)", filter: `blur(${px(10)})`, opacity: 1 }, { transform: "none", filter: "blur(0)", opacity: 1 }], { easing: "cubic-bezier(0,0,0.2,1)" }); break;
+    case "wipe": inn([{ clipPath: "inset(0 100% 0 0)", opacity: 1 }, { clipPath: "inset(0 0 0 0)", opacity: 1 }], { easing: "cubic-bezier(0.65,0,0.35,1)" }); hideA(); break;
+    case "colour-wipe": inn([{ clipPath: "inset(100% 0 0 0)", opacity: 1 }, { clipPath: "inset(0 0 0 0)", opacity: 1 }], { easing: "cubic-bezier(0.65,0,0.35,1)" }); hideA(); break;
+    case "iris": inn([{ clipPath: "circle(0% at 50% 50%)", opacity: 1 }, { clipPath: "circle(75% at 50% 50%)", opacity: 1 }]); hideA(); break;
+    case "morph": inn([{ clipPath: "inset(38% 34% round 30%)", opacity: 1 }, { clipPath: "inset(0 0 round 0)", opacity: 1 }]); hideA(); break;
+    case "carry": out([{ opacity: 1 }, { opacity: 0 }], { easing: "linear" }); inn([{ opacity: 0 }, { opacity: 1 }], { easing: "linear" }); break;
+    case "pull-out": out([{ transform: "none", opacity: 1 }, { transform: "scale(0.35)", opacity: 0 }]); inn([{ transform: "scale(1.25)", opacity: 0 }, { transform: "none", opacity: 1 }]); break;
+    case "one-move": out([{ transform: "none" }, { transform: "translateY(-100%)" }], { easing: curve }); inn([{ transform: "translateY(100%)", opacity: 1 }, { transform: "none", opacity: 1 }]); break;
+    default: out([{ opacity: 1 }, { opacity: 0 }]); inn([{ opacity: 0 }, { opacity: 1 }]);   // the cuts
+  }
+  return delay + D;
+}
+/* playWords: the words arrive the way `kind` does it. Returns when the last has landed (ms from now). */
+const GLYPHS = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#%&";
+function playWords(spans, kind, { pace = 1, stagger = 0.08, delay = 0, curve, grey, ink, w = 1 }) {
+  const st = Math.max(stagger, 0.03) * 1000, d = 520 * pace;
+  let end = delay;
+  const each = (frames, o = {}) => spans.forEach((s, i) => { const t = delay + i * (o.gap ?? st); s.animate(frames, { duration: o.dur ?? d, delay: t, easing: o.easing ?? curve, fill: "both" }); end = Math.max(end, t + (o.dur ?? d)); });
+  spans.forEach((s) => { if (s.dataset.t) s.textContent = s.dataset.t; else s.dataset.t = s.textContent; });
+  switch (kind) {
+    case "grey-to-ink": each([{ opacity: 0, color: grey }, { opacity: 1, color: grey, offset: 0.35 }, { opacity: 1, color: ink }], { dur: d * 1.6 }); break;
+    case "word-by-word": each([{ opacity: 0, transform: "translateY(40%)" }, { opacity: 1, transform: "none" }], { gap: st * 2.2 }); break;
+    case "typewriter": { let t = delay; spans.forEach((s) => { const n = s.dataset.t.length, dd = 70 * n * pace; s.animate([{ clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0 0 0)" }], { duration: dd, delay: t, easing: `steps(${n})`, fill: "both" }); t += dd + 60; }); end = t; break; }
+    case "mask-reveal": each([{ clipPath: "inset(0 0 100% 0)", transform: "translateY(55%)" }, { clipPath: "inset(0 0 0 0)", transform: "none" }]); break;
+    case "highlight": each([{ opacity: 1, color: grey }, { opacity: 1, color: ink }], { gap: st * 3, dur: d * 0.5, easing: "linear" }); break;
+    case "kinetic": each([{ opacity: 0, transform: "scale(1.7)", letterSpacing: "0.25em" }, { opacity: 1, transform: "none", letterSpacing: "normal" }], { dur: d * 1.3 }); break;
+    case "slot-reel": each([{ transform: "translateY(-160%)", filter: `blur(${2 * w}px)`, opacity: 0 }, { transform: "translateY(60%)", filter: `blur(${2 * w}px)`, opacity: 1, offset: 0.55 }, { transform: "translateY(-15%)", filter: "blur(0)", offset: 0.8 }, { transform: "none", filter: "blur(0)", opacity: 1 }], { dur: d * 1.4 }); break;
+    case "scramble": spans.forEach((s, i) => {
+      const real = s.dataset.t, t0 = delay + i * st, steps = 8;
+      s.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 1, delay: t0, fill: "both" });
+      for (let k = 0; k <= steps; k++) setTimeout(() => { if (!s.isConnected) return; s.textContent = k === steps ? real : [...real].map((c, j) => (j < (k / steps) * real.length ? c : GLYPHS[(Math.random() * GLYPHS.length) | 0])).join(""); }, t0 + k * 55 * pace);
+      end = Math.max(end, t0 + steps * 55 * pace);
+    }); break;
+    case "swap": { const last = spans[spans.length - 1]; each([{ opacity: 0 }, { opacity: 1 }], { gap: 0, dur: d * 0.6 });
+      if (last) last.animate([{ transform: "none", opacity: 1 }, { transform: "translateY(-60%)", opacity: 0, offset: 0.45 }, { transform: "translateY(60%)", opacity: 0, offset: 0.55 }, { transform: "none", opacity: 1 }], { duration: d * 1.6, delay: delay + d, easing: curve, fill: "both" });
+      end = delay + d * 2.6; break; }
+    case "fly-past": each([{ opacity: 0, transform: "scale(3.2)", filter: `blur(${4 * w}px)` }, { opacity: 1, transform: "none", filter: "blur(0)" }], { dur: d * 1.2 }); break;
+    default: each([{ opacity: 0, filter: `blur(${6 * w}px)`, transform: "translateY(30%)" }, { opacity: 1, filter: "blur(0)", transform: "none" }]);   // sharpen
+  }
+  return end;
+}
 
 /** A small stage that plays the look: its palette and typeface, a card arriving with its motion, words, a scene change. Loops. */
-function stage(p, { big = false } = {}) {
-  const el = h(`<div class="pf-stage ${big ? "big" : ""}"><div class="pf-fr a"><div class="pf-st-card"></div><div class="pf-words"></div></div><div class="pf-fr b"><div class="pf-big"></div></div>
-    ${big ? `<button class="pf-replay" title="Play the motion again">${icon("rotate-cw")}</button>` : ""}</div>`);
-  let timer = 0, cur = p;
+function stage(p, { big: large = false } = {}) {
+  const el = h(`<div class="pf-stage ${large ? "big" : ""}"><div class="pf-fr a"><div class="pf-st-card"></div><div class="pf-words"></div></div><div class="pf-fr b"><div class="pf-big"></div></div>
+    ${large ? `<button class="pf-replay" title="Play the motion again">${icon("rotate-cw")}</button>` : ""}</div>`);
+  let timer = 0, cur = p, turn = 0;
   const paint = () => {
     const r = roles(cur.palette), font = cur.font ? `"${cur.font.replace(/"/g, "")}", ` : "";
     if (cur.font_source === "google") googleFace(cur.font);
@@ -158,20 +228,15 @@ function stage(p, { big = false } = {}) {
     A.style.opacity = 1; B.style.opacity = 0;
     card.animate([{ transform: "translateY(26%) scale(0.92)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: enter, easing: ease, fill: "both", delay: 150 });
     if (idle > 0.01) card.animate([{ transform: "translateY(0)" }, { transform: `translateY(${-3 * idle}%)` }, { transform: "translateY(0)" }], { duration: 2200, iterations: Infinity, delay: 150 + enter, composite: "add", easing: "ease-in-out" });
-    const grey = val(m, "text") === "greyToInk";
-    words.forEach((w, i) => w.animate(grey ? [{ opacity: 0, color: "color-mix(in srgb, var(--ink) 35%, var(--bg))" }, { opacity: 1, color: "color-mix(in srgb, var(--ink) 35%, var(--bg))", offset: 0.35 }, { opacity: 1, color: "var(--ink)" }]
-      : [{ opacity: 0, filter: "blur(6px)", transform: "translateY(30%)" }, { opacity: 1, filter: "blur(0)", transform: "none" }],
-      { duration: (grey ? 1.6 : 1) * 520 * pace, delay: 150 + enter * 0.5 + i * stg * 1000, easing: `cubic-bezier(${b.curve.join(",")})`, fill: "both" }));
-    const at = 150 + enter + words.length * stg * 1000 + 1300 * pace, dur = 520 * pace, tr = val(m, "transition");
-    const out = { cut: [[{ opacity: 1 }, { opacity: 0 }], 1], blurThrough: [[{ filter: "blur(0)", opacity: 1 }, { filter: "blur(14px)", opacity: 0 }]], fadeThrough: [[{ opacity: 1 }, { opacity: 0 }]],
-      sharedAxisX: [[{ transform: "none", opacity: 1 }, { transform: "translateX(-18%)", opacity: 0 }]], sharedAxisZ: [[{ transform: "none", opacity: 1 }, { transform: "scale(1.12)", opacity: 0 }]] }[tr];
-    const inn = { cut: [[{ opacity: 0 }, { opacity: 1 }], 1], blurThrough: [[{ filter: "blur(14px)", opacity: 0 }, { filter: "blur(0)", opacity: 1 }]], fadeThrough: [[{ opacity: 0 }, { opacity: 1 }]],
-      sharedAxisX: [[{ transform: "translateX(18%)", opacity: 0 }, { transform: "none", opacity: 1 }]], sharedAxisZ: [[{ transform: "scale(0.9)", opacity: 0 }, { transform: "none", opacity: 1 }]] }[tr];
-    const d = (x) => (x[1] ? 1 : dur);
-    A.animate(out[0], { duration: d(out), delay: at, fill: "forwards", easing: "cubic-bezier(0.4,0,1,1)" });
-    B.animate(inn[0], { duration: d(inn), delay: at + (tr === "fadeThrough" || tr === "blurThrough" ? dur * 0.45 : 0), fill: "forwards", easing: `cubic-bezier(${b.curve.join(",")})` });
-    big.animate([{ letterSpacing: "0.04em" }, { letterSpacing: "-0.02em" }], { duration: enter * 1.4, delay: at, fill: "both", easing: `cubic-bezier(${b.curve.join(",")})` });
-    timer = setTimeout(() => { if (el.isConnected) play(); }, at + dur + 1500 * pace);
+    const tl = val(m, "text"), trs = val(m, "transition"), wk = tl[turn % tl.length] || "sharpen", tk = trs[turn % trs.length] || "cut", curve = `cubic-bezier(${b.curve.join(",")})`;
+    turn++;
+    const landed = playWords(words, wk, { pace, stagger: stg, delay: 150 + enter * 0.5, curve, grey: "color-mix(in srgb, var(--ink) 30%, var(--bg))", ink: "var(--ink)", w: large ? 1 : 0.5 });
+    const at = Math.max(150 + enter, landed) + 1100 * pace, dur = 520 * pace;
+    if (tk === "dip") el.animate([{ background: "var(--bg)" }, { background: "var(--ac2)", offset: 0.5 }, { background: "var(--bg)" }], { duration: dur * 2.1, delay: at });
+    const done = playChange(A, B, tk, { dur, delay: at, curve, w: large ? 1 : 0.5 });
+    big.animate([{ letterSpacing: "0.04em" }, { letterSpacing: "-0.02em" }], { duration: enter * 1.4, delay: at, fill: "both", easing: curve });
+    el.dataset.playing = `${labelOf("text", wk)} · ${labelOf("transition", tk)}`;
+    timer = setTimeout(() => { if (el.isConnected) play(); }, done + 1400 * pace);
   };
   el.querySelector(".pf-replay")?.addEventListener("click", play);
   paint(); requestAnimationFrame(play);
@@ -419,9 +484,9 @@ function knobView(k) {
     stagger: `<i></i><i></i><i></i><i></i>`,
     idle: `<i class="blk"></i>`,
     transition: `<i class="fa"></i><i class="fb"></i>`,
-    text: `<em>Aa</em>`,
+    text: `<em>Aa</em><em>Bb</em>`,
   }[k] || "";
-  let t = 0, cur = null;
+  let t = 0, cur = null, turn = 0;
   el.play = (m) => {
     cur = m; clearTimeout(t);
     el.getAnimations({ subtree: true }).forEach((a) => a.cancel());
@@ -442,19 +507,15 @@ function knobView(k) {
       const a = val(m, "idle");
       el.querySelector(".blk").animate([{ transform: "translateY(0)" }, { transform: `translateY(${-7 * a}px)` }, { transform: "translateY(0)" }], { duration: 1800, iterations: Infinity, easing: "ease-in-out" });
     } else if (k === "transition") {
-      const tr = val(m, "transition"), d = tr === "cut" ? 1 : 450 * pace, A = el.querySelector(".fa"), B = el.querySelector(".fb");
-      const out = { cut: [{ opacity: 1 }, { opacity: 0 }], blurThrough: [{ filter: "blur(0)", opacity: 1 }, { filter: "blur(4px)", opacity: 0 }], fadeThrough: [{ opacity: 1 }, { opacity: 0 }],
-        sharedAxisX: [{ transform: "none", opacity: 1 }, { transform: "translateX(-14px)", opacity: 0 }], sharedAxisZ: [{ transform: "none", opacity: 1 }, { transform: "scale(1.2)", opacity: 0 }] }[tr];
-      const inn = { cut: [{ opacity: 0 }, { opacity: 1 }], blurThrough: [{ filter: "blur(4px)", opacity: 0 }, { filter: "blur(0)", opacity: 1 }], fadeThrough: [{ opacity: 0 }, { opacity: 1 }],
-        sharedAxisX: [{ transform: "translateX(14px)", opacity: 0 }, { transform: "none", opacity: 1 }], sharedAxisZ: [{ transform: "scale(0.8)", opacity: 0 }, { transform: "none", opacity: 1 }] }[tr];
-      A.animate(out, { duration: d, delay: 600, fill: "both" });
-      B.animate(inn, { duration: d, delay: 600 + (tr.endsWith("Through") ? d * 0.4 : 0), fill: "both", easing: curveOf(m) });
-      loop(600 + d * 1.4 + 1100);
+      const list = val(m, "transition"), kind = el.pin || list[turn++ % list.length] || "cut";
+      el.onturn?.(kind);
+      const done = playChange(el.querySelector(".fa"), el.querySelector(".fb"), kind, { dur: 450 * pace, delay: 500, curve: curveOf(m), w: 0.3 });
+      loop(done + 1000);
     } else if (k === "text") {
-      const e = el.querySelector("em"), grey = val(m, "text") === "greyToInk";
-      e.animate(grey ? [{ opacity: 0, color: "var(--subtle-foreground)" }, { opacity: 1, color: "var(--subtle-foreground)", offset: 0.4 }, { opacity: 1, color: "var(--foreground)" }]
-        : [{ opacity: 0, filter: "blur(4px)", transform: "translateY(5px)" }, { opacity: 1, filter: "blur(0)", transform: "none" }], { duration: (grey ? 1200 : 600) * pace, easing: curveOf(m), fill: "both" });
-      loop((grey ? 1200 : 600) * pace + 1100);
+      const list = val(m, "text"), kind = el.pin || list[turn++ % list.length] || "sharpen";
+      el.onturn?.(kind);
+      const done = playWords([...el.querySelectorAll("em")], kind, { pace, stagger: val(m, "stagger"), delay: 200, curve: curveOf(m), grey: "var(--subtle-foreground)", ink: "var(--foreground)", w: 0.5 });
+      loop(done + 1000);
     }
   };
   return el;
@@ -602,7 +663,7 @@ function detail(main, slug) {
   const startsEl = page.querySelector(".pf-starts"), mot = page.querySelector(".pf-motion"), mhead = page.querySelector(".pf-mhead");
   const own = (m) => Object.keys(KNOB).concat(Object.keys(CHOICE)).filter((k) => k in m);
   const startOf = (m) => starts.find((x) => x.slug === (m.from || m.base)) || { slug: m.base, name: m.base, base: m.base, kind: "kit" };
-  const edited = (m) => { const s = startOf(m); return [...Object.keys(KNOB), ...Object.keys(CHOICE)].some((k) => (k in m ? m[k] : undefined) !== (k in s ? s[k] : undefined)) || s.base !== m.base; };
+  const edited = (m) => { const s = startOf(m); return [...Object.keys(KNOB), ...Object.keys(CHOICE)].some((k) => JSON.stringify(k in m ? m[k] : null) !== JSON.stringify(k in s ? s[k] : null)) || s.base !== m.base; };
   const views = [];
   const playAll = () => views.forEach((v) => v.play(p.motion));
   const commit = (patch) => later("motion", () => save({ motion: patch }).then(paintHead), 350);
@@ -646,12 +707,22 @@ function detail(main, slug) {
     const rows = [...Object.entries(KNOB).map(([k, d]) => [k, d, "range"]), ...Object.entries(CHOICE).map(([k, d]) => [k, d, "choice"])];
     for (const [k, d, kind] of rows) {
       const v = val(m, k), mine = k in m;
-      const row = h(`<div class="pf-mrow"><span class="pf-ml"><span class="pf-kv-slot"></span><span><b>${d.label}</b><small>${esc(d.tip)}</small></span></span>
+      const short = d.tip.split(".")[0];
+      const row = h(`<div class="pf-mrow ${kind === "choice" ? "wide" : ""}"><span class="pf-ml"><span class="pf-kv-slot"></span><span><b>${d.label}</b><small>${esc(kind === "choice" ? `${short}. Pick as many as fit; the first leads.` : d.tip)}</small></span></span>
         ${kind === "range" ? `<input type="range" data-knob="${k}" min="${d.min}" max="${d.max}" step="${d.step}" value="${v}" title="${esc(d.tip)}" aria-label="${d.label}" class="${mine ? "own" : ""}">`
-          : `<div class="seg" data-choice="${k}">${d.opts.map(([o, t]) => `<button data-v="${o}" class="${v === o ? "on" : ""}" title="${o === b[k] ? "What the base does" : esc(d.tip)}">${t}</button>`).join("")}</div>`}
-        <span class="pf-mv"><span class="pf-mv-t">${kind === "range" ? esc(d.show(+v)) : mine ? "changed" : "as the base"}</span>${mine ? `<button class="pf-reset" data-reset="${k}" title="Back to what the base does">reset</button>` : ""}</span></div>`);
+          : `<div class="pf-pills ${mine ? "own" : ""}" data-choice="${k}">${d.opts.map(([o, t, tip]) => { const n = v.indexOf(o) + 1;
+              return `<button data-v="${o}" class="${n ? "on" : ""}" aria-pressed="${!!n}" title="${esc(tip)}. ${n ? (n === 1 && v.length > 1 ? "Leads. Click to take it out" : "Click to take it out") : "Click to add it"}">${n && v.length > 1 ? `<span class="pf-n">${n}</span>` : ""}${t}</button>`; }).join("")}</div>`}
+        <span class="pf-mv"><span class="pf-mv-t">${kind === "range" ? esc(d.show(+v)) : mine ? "" : "as the base"}</span>${mine ? `<button class="pf-reset" data-reset="${k}" title="Back to what the base does">reset</button>` : ""}</span></div>`);
       const kv = knobView(k); row.querySelector(".pf-kv-slot").append(kv); views.push(kv);
       row.addEventListener("mouseenter", () => kv.play(p.motion));
+      if (kind === "choice") {
+        const pills = row.querySelector(".pf-pills");
+        kv.onturn = (x) => pills.querySelectorAll("button").forEach((y) => y.classList.toggle("playing", y.dataset.v === x));
+        pills.querySelectorAll("button").forEach((y) => {   // hovering a style plays it, picked or not
+          y.addEventListener("mouseenter", () => { kv.pin = y.dataset.v; kv.play(p.motion); });
+          y.addEventListener("mouseleave", () => { kv.pin = null; });
+        });
+      }
       mot.append(row);
     }
     mot.querySelectorAll("[data-knob]").forEach((r) => (r.oninput = () => {
@@ -659,8 +730,12 @@ function detail(main, slug) {
       p = { ...p, motion: { ...p.motion, [k]: +r.value } }; live(); views.find((v) => v.dataset.k === k)?.play(p.motion); commit({ [k]: +r.value });
     }));
     mot.querySelectorAll("[data-choice] button").forEach((x) => (x.onclick = () => {
-      const k = x.parentElement.dataset.choice; x.parentElement.querySelectorAll("button").forEach((y) => y.classList.toggle("on", y === x));
-      p = { ...p, motion: { ...p.motion, [k]: x.dataset.v } }; live(); views.find((v) => v.dataset.k === k)?.play(p.motion); commit({ [k]: x.dataset.v });
+      const k = x.parentElement.dataset.choice, cur = val(p.motion, k), o = x.dataset.v;
+      const next = cur.includes(o) ? cur.filter((y) => y !== o) : [...cur, o];
+      const m2 = { ...p.motion };
+      if (next.length) m2[k] = next; else delete m2[k];   // none picked: back to the base's own
+      p = { ...p, motion: m2 }; live();
+      save({ motion: { [k]: next.length ? next : "base" } }).then(() => { paintMotion(); paintHead(); });
     }));
     mot.querySelectorAll("[data-reset]").forEach((x) => (x.onclick = () => {
       const k = x.dataset.reset, m2 = { ...p.motion }; delete m2[k]; p = { ...p, motion: m2 }; live();

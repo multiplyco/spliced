@@ -13,8 +13,9 @@ sets one up in a click: drop a brand book, logo, screenshots or a film and your 
 your library, or start blank. On its page, tell your AI what to change in your own words, and it does. Each one
 plays itself at the top of its page, in its palette and typefaces, with its motion. Choose the typefaces from the ones
 on your Mac or from Google Fonts, each shown in its own face. Start the motion from one of the built-in motions, then
-change the pace, bounce, stagger, how scenes change and how words arrive; each setting has a small picture of what it
-does, and Reset takes you back. New makes a motion of your own that any profile can use. Colours and typefaces its
+change the pace, bounce, stagger and float, and pick as many scene changes (sixteen, from a cut on the beat to a whip
+pan or an iris) and ways for words to arrive (eleven, from typewriter to scramble) as fit the look, the first leading.
+Each setting has a small picture of what it does, hovering a style plays it, and Reset takes you back. New makes a motion of your own that any profile can use. Colours and typefaces its
 words already name are offered in one click. Add the scenes that show the
 look from a picker that puts the closest palettes first, and take the palette from them in one click.
 

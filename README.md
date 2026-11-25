@@ -146,8 +146,8 @@ individuals and small teams and needs a paid licence above that.
 
 A profile is a look your films are made in: your company's own (its brand, type, sound direction) or a look you want
 to try. Each one is a folder in the project, `profiles/<name>/`: its palette, its typefaces (chosen from the ones on
-your Mac or from Google Fonts), its motion (a starting motion and what it changes: pace, bounce, stagger, scene
-changes, how words arrive), its own words in `PROFILE.md`, the scenes that show the look, and the rules your AI learns
+your Mac or from Google Fonts), its motion (a starting motion and what it changes: pace, bounce, stagger, and as
+many scene changes and ways for words to arrive as fit), its own words in `PROFILE.md`, the scenes that show the look, and the rules your AI learns
 while making films ("never bounce the logo"). Your AI reads it before the kit's defaults. A motion you have tuned can
 be saved, and any profile can start from it (`spliced profile save-motion`, `profile motions`).
 

@@ -93,13 +93,16 @@ class Profiles(unittest.TestCase):
         self.cli("profile", "new", "Calm")
         code, out = self.cli("profile", "motion", "calm", "--pace", "1.3", "--bounce", "0", "--transition", "blurThrough", "--text", "greyToInk")
         self.assertEqual(code, 0, out)
-        self.assertEqual(self.profile("calm")["motion"], {"base": "soft", "pace": 1.3, "bounce": 0.0, "transition": "blurThrough", "text": "greyToInk"})
+        self.assertEqual(self.profile("calm")["motion"], {"base": "soft", "pace": 1.3, "bounce": 0.0, "transition": ["blur"], "text": ["grey-to-ink"]}, "old names read as their new ones")
+        self.cli("profile", "motion", "calm", "--transition", "whip, blur, whip", "--text", "typewriter,grey-to-ink")
+        self.assertEqual((self.profile("calm")["motion"]["transition"], self.profile("calm")["motion"]["text"]), (["whip", "blur"], ["typewriter", "grey-to-ink"]), "as many as fit, in order, each once")
+        self.cli("profile", "motion", "calm", "--transition", "blur")
         code, out = self.cli("profile", "show", "calm")
-        for bit in ("Base: `soft`", "- pace: 1.3", "- transition: blur through", "- text: land grey, then darken", "remotion/src/profiles.ts"):
+        for bit in ("Base: `soft`", "- pace: 1.3", "  - blur: blur out of one scene", "  - typewriter (leads): typed letter by letter; no kit helper", "  - grey-to-ink: words land light grey", "remotion/src/profiles.ts"):
             self.assertIn(bit, out)
         self.cli("profile", "motion", "calm", "--bounce", "base", "--base", "apple")
-        self.assertEqual(self.profile("calm")["motion"], {"base": "apple", "pace": 1.3, "transition": "blurThrough", "text": "greyToInk"}, "base resets one, the rest stay")
-        for bad in (("--pace", "9"), ("--transition", "wipe"), ("--stagger", "fast")):
+        self.assertEqual(self.profile("calm")["motion"], {"base": "apple", "pace": 1.3, "transition": ["blur"], "text": ["typewriter", "grey-to-ink"]}, "base resets one, the rest stay")
+        for bad in (("--pace", "9"), ("--transition", "teleport"), ("--stagger", "fast")):
             code, out = self.cli("profile", "motion", "calm", *bad)
             self.assertNotEqual(code, 0, bad)
         with open(os.path.join(self.root, "profiles", "calm", "profile.json"), "w") as f:
@@ -117,7 +120,7 @@ class Profiles(unittest.TestCase):
         self.cli("profile", "new", "Other")
         self.cli("profile", "motion", "other", "--bounce", "0.3")
         self.cli("profile", "motion", "other", "--from", "slow-ink")
-        self.assertEqual(self.profile("other")["motion"], {"base": "soft", "from": "slow-ink", "pace": 1.4, "text": "greyToInk"}, "starting again drops what it had")
+        self.assertEqual(self.profile("other")["motion"], {"base": "soft", "from": "slow-ink", "pace": 1.4, "text": ["grey-to-ink"]}, "starting again drops what it had")
         self.cli("profile", "motion", "other", "--from", "apple")
         self.assertEqual(self.profile("other")["motion"], {"base": "apple", "from": "apple"})
         self.assertNotEqual(self.cli("profile", "save-motion", "calm", "soft")[0], 0, "a saved motion can't take a kit motion's name")
@@ -211,11 +214,11 @@ class ProfilesOverTheServer(unittest.TestCase):
                                                 "palette": [{"hex": "#111111", "name": "ink"}, {"hex": "javascript:x"}], "motion": {"pace": 1.2, "transition": "fadeThrough"}})
         f = j["profiles"][0]
         self.assertEqual((f["md"], f["font"], f["palette"], f["motion"]), ("Dark stage, one headline at a time.", "Inter", [{"hex": "#111111", "name": "ink"}],
-                                                                          {"base": "soft", "pace": 1.2, "transition": "fadeThrough"}), "a colour that isn't one is dropped")
+                                                                          {"base": "soft", "pace": 1.2, "transition": ["fade"]}), "a colour that isn't one is dropped")
         self.assertEqual(req("POST", "/api/profiles", {"op": "set", "profile": "fixture", "motion": {"pace": 40}})[0], 400)
         g = req("GET", "/api/profiles")[1]
         self.assertIn("soft", g["kit"])
-        self.assertEqual(g["knobs"]["transition"]["allowed"], ["cut", "blurThrough", "fadeThrough", "sharedAxisX", "sharedAxisZ"])
+        self.assertEqual(g["knobs"]["transition"]["allowed"][:4], ["cut", "cut-on-beat", "match-cut", "blur"])
         self.assertEqual(req("POST", "/api/profiles", {"op": "pin", "profile": "fixture", "scene": "../../etc"})[0], 400)
         self.assertEqual(req("POST", "/api/profiles", {"op": "set", "profile": "../x", "about": "x"})[0], 400, "a profile is a name, never a path")
         self.assertEqual(req("POST", "/api/profiles", {"op": "learn", "profile": "fixture", "text": "x"}, headers={"Origin": "http://evil.test"})[0], 403)

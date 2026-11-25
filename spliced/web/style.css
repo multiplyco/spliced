@@ -2695,3 +2695,16 @@ body.dropping[data-drop-profile]::after { content: "Drop to draft " attr(data-dr
 .pf-askbar > .i { width: 16px; height: 16px; color: var(--muted-foreground); flex: none; }
 .pf-askbar input { flex: 1; height: 34px; border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 14px; }
 .pf-askbar input:focus { outline: none; }
+
+/* profiles: scene changes and word styles, as many as fit */
+.pf-mrow.wide { grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) auto; align-items: start; padding: 6px 0; }
+.pf-mrow.wide .pf-ml, .pf-mrow.wide .pf-mv { padding-top: 4px; }
+.pf-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf-pills button { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: 14px; border: 1px solid var(--border); background: transparent; color: var(--muted-foreground); font-size: 12.5px; transition: background 0.12s, color 0.12s, border-color 0.12s; }
+.pf-pills button:hover { color: var(--foreground); border-color: var(--border-strong); }
+.pf-pills button.on { color: var(--foreground); background: var(--splice-bg-raised); border-color: var(--border-strong); }
+.pf-pills.own button.on { border-color: var(--splice-volt); }
+.pf-pills button.playing { box-shadow: 0 0 0 2px color-mix(in srgb, var(--splice-volt) 35%, transparent); }
+.pf-n { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-left: -5px; border-radius: 50%; background: var(--splice-volt); color: var(--splice-ink); font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pf-kv[data-k="text"] { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.pf-kv[data-k="text"] em { display: inline-block; font-size: 13px; }

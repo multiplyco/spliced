@@ -271,7 +271,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._json(200, {"folders": paths.reload_folders()})
         if url.path == "/api/profiles":  # the looks the project's films are made in (profiles.py; spliced profile)
             return self._json(200, {"profiles": profiles.every(), "default": profiles.default(), "motion": paths.PROFILES,
-                                    "knobs": {k: {"allowed": list(v[0]), "about": v[1]} for k, v in profiles.MOTION.items()}, "kit": profiles.KIT_MOTION,
+                                    "knobs": {k: {"allowed": list(profiles.LISTS[k]) if k in profiles.LISTS else list(v[0]), "about": v[1]} for k, v in profiles.MOTION.items()}, "kit": profiles.KIT_MOTION,
                                     "motions": profiles.motions()})
         if url.path == "/api/fonts":  # what the typeface picker offers: this machine's families, and Google Fonts unless the project says no
             return self._json(200, {"installed": profiles.installed_fonts(), "google": paths.CONFIG.get("google_fonts", True) is not False})

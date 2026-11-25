@@ -27,7 +27,8 @@ its first profile, once, and leaves both files where they were.
   spliced profile set <profile> [--name ..] [--about ..] [--font ..] [--font-source local|google] [--text-font ..]
                       [--text-font-source local|google] [--type ..] [--palette "#hex name, #hex name"]
   spliced profile motion <profile> [--base soft] [--pace 1.2] [--bounce 0.15] [--stagger 0.08]
-                         [--transition cut|blurThrough|fadeThrough|sharedAxisX|sharedAxisZ] [--text sharpen|greyToInk] [--idle 0.4]
+                         [--transition "blur, whip"] [--text "sharpen, typewriter"] [--idle 0.4]
+                                                    scene changes and word styles: as many as fit, the first leading
                                                     "base" for any of them goes back to the base's own
   spliced profile motion <profile> --from <motion>  start again from a kit motion profile or a saved motion (spliced profile motions)
   spliced profile motions                           the motions to start from: the kit's, the project's, and the ones saved here
@@ -64,21 +65,66 @@ MOTION = {
     "pace": ((0.5, 2.0), "how long every move takes, against the base (1 = the base's, 1.3 = slower, 0.8 = brisker)"),
     "bounce": ((0.0, 0.5), "overshoot on UI and emphasis (0 = none, 0.15 = a little, 0.3 = playful)"),
     "stagger": ((0.0, 0.3), "seconds between grouped items: words, cards, rows"),
-    "transition": (("cut", "blurThrough", "fadeThrough", "sharedAxisX", "sharedAxisZ"), "how one scene becomes the next"),
-    "text": (("sharpen", "greyToInk"), "how words arrive: sharpen from a blur, or land grey and darken"),
+    "transition": (None, "how one scene becomes the next: as many as fit the look, the first leading"),
+    "text": (None, "how words arrive: as many as fit the look, the first leading"),
     "idle": ((0.0, 1.0), "how much held things float (0 = still)"),
 }
 # The kit's own motion profiles as the app shows them (remotion/src/lib/motion/profile.tsx): the base values a
 # look changes, and the curve and length of an entrance, for the app's preview. A project's own profiles have no row
 # here; they are previewed with the soft row's values.
 KIT_MOTION = {
-    "soft": {"pace": 1, "bounce": 0, "stagger": 0.1, "transition": "cut", "text": "sharpen", "idle": 1, "curve": [0.2, 0.8, 0.2, 1], "enter": 0.6},
-    "material": {"pace": 1, "bounce": 0.1, "stagger": 0.05, "transition": "sharedAxisZ", "text": "sharpen", "idle": 0, "curve": [0.05, 0.7, 0.1, 1], "enter": 0.8},
-    "apple": {"pace": 1, "bounce": 0.15, "stagger": 0.06, "transition": "sharedAxisX", "text": "sharpen", "idle": 0.6, "curve": [0.25, 0.9, 0.3, 1], "enter": 0.6},
-    "splice": {"pace": 1, "bounce": 0, "stagger": 0.07, "transition": "blurThrough", "text": "sharpen", "idle": 0.3, "curve": [0.16, 1, 0.3, 1], "enter": 0.75},
+    "soft": {"pace": 1, "bounce": 0, "stagger": 0.1, "transition": ["cut"], "text": ["sharpen"], "idle": 1, "curve": [0.2, 0.8, 0.2, 1], "enter": 0.6},
+    "material": {"pace": 1, "bounce": 0.1, "stagger": 0.05, "transition": ["push-in"], "text": ["sharpen"], "idle": 0, "curve": [0.05, 0.7, 0.1, 1], "enter": 0.8},
+    "apple": {"pace": 1, "bounce": 0.15, "stagger": 0.06, "transition": ["slide"], "text": ["sharpen"], "idle": 0.6, "curve": [0.25, 0.9, 0.3, 1], "enter": 0.6},
+    "splice": {"pace": 1, "bounce": 0, "stagger": 0.07, "transition": ["blur"], "text": ["sharpen"], "idle": 0.3, "curve": [0.16, 1, 0.3, 1], "enter": 0.75},
 }
-WORDS = {"cut": "a straight cut", "blurThrough": "blur through", "fadeThrough": "fade through", "sharedAxisX": "slide along the x axis",
-         "sharedAxisZ": "push along the z axis (scale and fade)", "sharpen": "sharpen in from a blur", "greyToInk": "land grey, then darken"}
+# The scene changes and word styles a look may use, each: (what it is, the kit's own helper for it or None, the library's tag).
+# The kit's viewChange kinds (remotion/src/lib/motion/spec.ts) cover the first few; the rest an agent builds in the film's
+# code, looking at the library's scenes with the same tag (library/TAXONOMY.md) for how others did it.
+TRANSITIONS = {
+    "cut": ("a straight cut", "viewChange cut", "hard-cut"),
+    "cut-on-beat": ("a cut on the music's beat", "viewChange cut, placed on the beat grid", "cut-on-beat"),
+    "match-cut": ("a match cut: the next shot shares a shape, place or motion with the last", None, "match-cut"),
+    "blur": ("blur out of one scene and sharpen into the next", "viewChange blurThrough", "blur-dissolve"),
+    "fade": ("a fade through", "viewChange fadeThrough", "crossfade"),
+    "dip": ("a dip through a colour of the palette", None, "dip-to-colour"),
+    "slide": ("the next scene slides in along the x axis", "viewChange sharedAxisX", "push-slide"),
+    "push-in": ("push in: the old scene grows and fades, the new one settles in", "viewChange sharedAxisZ", "zoom-through"),
+    "whip": ("a whip pan: a fast blurred move into the next scene", None, "whip-pan"),
+    "wipe": ("a shape or line wipes the next scene on", None, "mask-wipe"),
+    "colour-wipe": ("a flat colour sweeps across and carries the cut", None, "colour-wipe"),
+    "iris": ("an iris: a circle closes on one scene and opens the next", None, "iris"),
+    "morph": ("an element of one scene becomes the next", "the kit's container transform (MOTION-SYSTEMS.md)", "morph-transition"),
+    "carry": ("an element stays while the world changes around it", None, "shared-element-carry"),
+    "pull-out": ("the old scene shrinks into a frame in the new one", None, "pull-out-transition"),
+    "one-move": ("one unbroken camera move, the cuts hidden in it", None, "continuous-move"),
+}
+TEXT_STYLES = {
+    "sharpen": ("words sharpen in from a blur", "text.style sharpen", "blur-in"),
+    "grey-to-ink": ("words land light grey, then darken", "text.style greyToInk", "word-by-word"),
+    "word-by-word": ("a word at a time, rising", "m.textReveal", "word-by-word"),
+    "typewriter": ("typed letter by letter", None, "typewriter"),
+    "mask-reveal": ("lines wipe up out of a mask", None, "mask-reveal"),
+    "highlight": ("a line lights up word by word, as if read aloud", None, "type-highlight-sweep"),
+    "kinetic": ("type moves big: scale, tracking, slides", None, "kinetic-type"),
+    "slot-reel": ("a word spins through options and lands", None, "slot-reel"),
+    "scramble": ("letters scramble, then resolve", None, "scramble-type"),
+    "swap": ("one word in a line swaps in place", None, "inline-swap"),
+    "fly-past": ("type scales past the lens", None, "fly-past"),
+}
+LISTS = {"transition": TRANSITIONS, "text": TEXT_STYLES}
+OLD = {"blurThrough": "blur", "fadeThrough": "fade", "sharedAxisX": "slide", "sharedAxisZ": "push-in", "greyToInk": "grey-to-ink"}   # names before lists
+
+
+def _styles(k, v):
+    """A list field's value as a clean list: from a list, one name, or "a, b"; old names read as their new ones."""
+    items = v if isinstance(v, list) else str(v or "").split(",")
+    out = []
+    for x in items:
+        x = OLD.get(str(x).strip(), str(x).strip())
+        if x in LISTS[k] and x not in out:
+            out.append(x)
+    return out
 
 
 def now():
@@ -113,9 +159,9 @@ def _motion(v):
         x = v.get(k)
         if x is None:
             continue
-        if isinstance(allowed[0], str):
-            if x in allowed:
-                out[k] = x
+        if k in LISTS:
+            if _styles(k, x):
+                out[k] = _styles(k, x)
         else:
             try:
                 out[k] = round(min(allowed[1], max(allowed[0], float(x))), 3)
@@ -271,10 +317,12 @@ def set_motion(slug, changes, p=None):
                 m.pop(k, None)
                 continue
             allowed = MOTION[k][0]
-            if isinstance(allowed[0], str):
-                if v not in allowed:
-                    raise ValueError(f"{k} is one of {', '.join(allowed)}")
-                m[k] = v
+            if k in LISTS:
+                names = [OLD.get(x.strip(), x.strip()) for x in (v if isinstance(v, list) else str(v).split(",")) if str(x).strip()]
+                bad = [x for x in names if x not in LISTS[k]]
+                if bad or not names:
+                    raise ValueError(f"{k} takes one or more of {', '.join(LISTS[k])}" + (f"; not {', '.join(bad)}" if bad else ""))
+                m[k] = _styles(k, names)
             else:
                 try:
                     x = float(v)
@@ -516,10 +564,18 @@ def motion_lines(m):
         return out + ["Nothing changed from the base: build with motion('" + base + "')."]
     for k in changed:
         v = m[k]
-        out.append(f"- {k}: {WORDS.get(v, v)} ({MOTION[k][1]})")
+        if k in LISTS:
+            label = {"transition": "scene changes", "text": "words"}[k]
+            out.append(f"- {label} ({MOTION[k][1]}):")
+            for i, x in enumerate(v):
+                what, kit, tag = LISTS[k][x]
+                out.append(f"  - {x}{' (leads)' if i == 0 and len(v) > 1 else ''}: {what}; " + (f"in the kit: {kit}" if kit else f"no kit helper: build it in the film, and see the library's `{tag}` scenes"))
+        else:
+            out.append(f"- {k}: {v} ({MOTION[k][1]})")
     out.append(f"Build it as a motion profile named after this profile in remotion/src/profiles.ts: start from `{base}`'s roles, "
-               "scale every role's seconds by pace, give UI and emphasis springs the bounce, and set stagger, viewChange.kind "
-               "(transition), text.style and idle as above. Then use it with motion('<that name>').")
+               "scale every role's seconds by pace, give UI and emphasis springs the bounce, set stagger and idle as above, and "
+               "viewChange.kind and text.style from the first scene change and word style the kit has a helper for. Use the others "
+               "where a beat calls for them, so the film varies inside the look. Then use it with motion('<that name>').")
     return out
 
 

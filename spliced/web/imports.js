@@ -238,8 +238,11 @@ const watched = new Set(), most = new Map();   // most: the largest queue an ana
 const KEEP = "cr.dockKeep", KEEP_MAX = 8;   // the finished rows the dock keeps (job id -> when), newest last
 const finished = new Map((() => { try { return Object.entries(JSON.parse(localStorage.getItem(KEEP) || "{}")); } catch { return []; } })());
 const saveKeep = () => { while (finished.size > KEEP_MAX) finished.delete(finished.keys().next().value); localStorage.setItem(KEEP, JSON.stringify(Object.fromEntries(finished))); };
-const keepDone = (id) => { finished.set(id, Date.now()); saveKeep(); };
-const putAway = (id) => { finished.delete(id); saveKeep(); };
+// what has been put away stays away: the refresh that follows must not bring a watched job's row straight back
+const AWAY = "cr.dockAway";
+const away = new Set((() => { try { return JSON.parse(localStorage.getItem(AWAY) || "[]"); } catch { return []; } })());
+const keepDone = (id) => { if (away.has(id)) return; finished.set(id, Date.now()); saveKeep(); };
+const putAway = (id) => { finished.delete(id); saveKeep(); away.add(id); localStorage.setItem(AWAY, JSON.stringify([...away].slice(-200))); };
 let dockEl = null, dockMin = localStorage.getItem("cr.dockMin") === "1", dockClosed = false, closedIds = new Set(), rowsSig = [];
 const analysing = () => up && jobs.some((j) => j.type === "uploads" && new Date(j.created).getTime() >= up.id - 5000);
 const dockUps = () => up && (!up.ended || (!up.away && !(analysing() && Date.now() - up.ended > 6000)));

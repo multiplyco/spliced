@@ -4,6 +4,14 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+## Closing the corner panel works again
+2026-11-25
+*A finished, failed or cancelled import closes with its ×, and the panel folds small again.*
+
+In 1.1.0 a cancelled or failed import came straight back a moment after you closed it, so the ×, the panel's own ×
+and the fold seemed to do nothing. Now what you close stays closed, also after a reload, and folding the panel hides
+its rows.
+
 <!-- release 1.1.0 2026-11-25 -->
 
 ## Recreate a whole film

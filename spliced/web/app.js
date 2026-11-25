@@ -118,6 +118,7 @@ document.addEventListener("dragleave", (e) => { if (!isFileDrag(e)) return; if (
 document.addEventListener("drop", (e) => {
   if (!isFileDrag(e)) return; e.preventDefault(); endDrag();
   if (route().view === "assets" && window.AssetsView?.drop) { window.AssetsView.drop(e.dataTransfer.files); return; }   // into a film's assets
+  if (route().view === "profiles" && window.Profiles?.drop) { window.Profiles.drop(e.dataTransfer.files); return; }   // a profile drafted from them
   uploadFiles(e.dataTransfer.files);
 });
 document.addEventListener("paste", (e) => {
@@ -565,7 +566,7 @@ function renderBase(hash) {
   if (view !== "scenes") closeFpop();
   if (path !== lastPath) { $("#main").scrollTop = 0; lastPath = path; }
   $("#main").dataset.view = view;
-  build.stop(); stopPreviews(); window.AssetsView?.stop?.(); window.StylesView?.stop?.();
+  build.stop(); stopPreviews(); window.AssetsView?.stop?.(); window.StylesView?.stop?.(); delete document.body.dataset.dropProfile;
   filmHero = null;
   if (view === "scenes") renderScenes();
   else if (view === "moments") renderMoments();

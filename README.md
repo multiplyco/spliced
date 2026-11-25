@@ -145,10 +145,15 @@ individuals and small teams and needs a paid licence above that.
 ### Profiles
 
 A profile is a look your films are made in: your company's own (its brand, type, sound direction) or a look you want
-to try. Each one is a folder in the project, `profiles/<name>/`: its palette and typeface, its motion (a base motion
-profile and what it changes: pace, bounce, stagger, scene changes, how words arrive), its own words in `PROFILE.md`,
-the scenes that show the look, and the rules your AI learns while making films ("never bounce the logo"). Your AI
-reads it before the kit's defaults.
+to try. Each one is a folder in the project, `profiles/<name>/`: its palette, its typefaces (chosen from the ones on
+your Mac or from Google Fonts), its motion (a starting motion and what it changes: pace, bounce, stagger, scene
+changes, how words arrive), its own words in `PROFILE.md`, the scenes that show the look, and the rules your AI learns
+while making films ("never bounce the logo"). Your AI reads it before the kit's defaults. A motion you have tuned can
+be saved, and any profile can start from it (`spliced profile save-motion`, `profile motions`).
+
+Drop a brand book, a logo, screenshots or a film on Profiles and your AI drafts a profile from them: the files go into
+the profile's `sources/`, and the reading is an import like a film's breakdown (`spliced profile draft "<name>"
+<files>`; your AI picks it up with `spliced imports next`, or a background session does when `spliced.json` asks for one).
 
 Briefs start in the default profile. Every brief you copy (a board's build prompt, a scene, a whole reference film) can
 choose another, or **No profile**: then the film recreates its references as they are, in their own look. In the app:
@@ -170,7 +175,7 @@ makes them its first profile.
 | `spliced import <folder>`, `--go` | Look at a folder of pictures, clips and films you already have; bring it in, each thing once |
 | `spliced imports list`, `next`, `done <id>` | The import queue, and an agent picking a job up |
 | `spliced board find "<words>"`, `show "<board>"` | Search the library; read a board as a script |
-| `spliced profile`, `show <profile>`, `new`, `learn` | The looks your films are made in, the default marked; what your AI reads before building in one |
+| `spliced profile`, `show <profile>`, `new`, `draft`, `learn` | The looks your films are made in, the default marked; what your AI reads before building in one; a profile drafted from a brand book or film |
 | `spliced film status <slug>`, `render`, `note` | A film in production, beat by beat |
 | `spliced library --check` | Is every breakdown valid? |
 | `spliced keys`, `keys set <service>` | Which service keys the project has (ElevenLabs, footage libraries); paste one into `.env` without it showing |
@@ -198,6 +203,11 @@ and `spliced doctor` says so. `spliced update` asks now. To turn it off: `"updat
 `SPLICED_NO_UPDATE_CHECK=1`. Run through `npx`, Spliced is the newest each time it starts. After an update,
 `spliced setup` brings a project's copies of Spliced's files (the skills, the film kit) up to date. The Mac app
 checks for itself and installs the update.
+
+The typeface picker's Google Fonts tab shows each family in its own face, so while it is open the page loads those
+previews from Google Fonts (the request names the font, nothing about you or your project); a profile that uses a
+Google font loads it the same way to show it. Spliced ships the list of names, not the fonts. To turn it off:
+`"google_fonts": false` in `spliced.json`.
 
 ## Working on Spliced
 

@@ -19,7 +19,7 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
 | `spliced/toolbox.py` | The server: `/app/` (the web app), `/project/<path>` (media only), `/api/` |
 | `spliced/toolbox_state.py`, `board.py` | Boards, reviews, moments: named operations on `library/state.json` |
 | `spliced/film.py`, `sound.py`, `soundkit.py`, `voice.py` | Films in production |
-| `spliced/profiles.py`, `web/profiles.js` | Profiles: the looks a project's films are made in (`profiles/<slug>/`: profile.json and PROFILE.md), the default, the rules learned on films. A board, a brief or a film names one, or none (as the reference) |
+| `spliced/profiles.py`, `web/profiles.js` | Profiles: the looks a project's films are made in (`profiles/<slug>/`: profile.json and PROFILE.md), the default, the rules learned on films, saved motions (`profiles/motions.json`), and the files one is drafted from (`sources/`, read by the person's AI as an import job of type "profile"). A board, a brief or a film names one, or none (as the reference). `web/google-fonts.json` is the Google Fonts name list the typeface picker offers |
 | `spliced/folders.py`, `web/folders.js` | The project's folders (spliced.json "folders"): films, boards and assets sorted by kind of video or by client. Build, Boards and Assets group and filter by them; the Library never |
 | `spliced/add_reference.py`, `analyze_reference.py`, `build_library.py`, `importer.py`, `runners.py`, `uploads.py`, `stock.py` | The library and what feeds it |
 | `spliced/web/` | The app: plain HTML, CSS and JavaScript, no build step |

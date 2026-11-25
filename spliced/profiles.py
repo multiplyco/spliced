@@ -1,9 +1,12 @@
 """A project's profiles: the looks its films are made in, each one built up over time.
 
 A profile is a folder in the project, profiles/<slug>/:
-  profile.json   its name, palette, typeface, motion, the scenes that show the look, the rules learned while making films
+  profile.json   its name, palette, typefaces (headlines and text, each from this Mac or Google Fonts), motion, the
+                 scenes that show the look, the rules learned while making films
   PROFILE.md     the profile in prose: voice, stage, type, what to do and never do. The person's to write, and the
                  first thing an agent reads before building in it.
+  sources/       what a profile was drafted from, when the person dropped a brand book, logo, screenshots or a film on
+                 it: the person's AI reads them and fills the profile in (an import job, importer.py, type "profile")
 
 One profile may be the default: a brief starts in it. Every brief can choose another, or none ("as the reference":
 recreate what the reference shows, in its own look).
@@ -21,10 +24,17 @@ its first profile, once, and leaves both files where they were.
   spliced profile show <profile>                    everything an agent needs to build in it (words, motion, rules, scenes)
   spliced profile new "<name>" [--motion soft] [--about ".."] [--from-film <slug>] [--default]
                                                     --from-film starts it from a reference film's palette, type and moves
-  spliced profile set <profile> [--name ..] [--about ..] [--font ..] [--type ..] [--palette "#hex name, #hex name"]
+  spliced profile set <profile> [--name ..] [--about ..] [--font ..] [--font-source local|google] [--text-font ..]
+                      [--text-font-source local|google] [--type ..] [--palette "#hex name, #hex name"]
   spliced profile motion <profile> [--base soft] [--pace 1.2] [--bounce 0.15] [--stagger 0.08]
                          [--transition cut|blurThrough|fadeThrough|sharedAxisX|sharedAxisZ] [--text sharpen|greyToInk] [--idle 0.4]
                                                     "base" for any of them goes back to the base's own
+  spliced profile motion <profile> --from <motion>  start again from a kit motion profile or a saved motion (spliced profile motions)
+  spliced profile motions                           the motions to start from: the kit's, the project's, and the ones saved here
+  spliced profile save-motion <profile> "<name>"    keep this profile's motion as a starting point for others
+  spliced profile draft <profile | "New name"> <file>...   copy a brand book, logo, screenshots or a film into its
+                                                    sources/ and have the person's AI fill the profile in from them
+  spliced profile drafted <profile>                 the agent that drafted it says it is done
   spliced profile default <profile | none>          the profile a brief starts in
   spliced profile learn <profile> "never bounce the logo" [--from "launch-film note 3"]
   spliced profile forget <profile> <n>              take rule n out
@@ -38,6 +48,10 @@ import paths
 
 DIR = paths.PROFILE_DIR
 NONE = "none"   # a build in no profile: as the reference
+FONT_SOURCES = ("local", "google")
+SOURCE_EXT = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".mp4", ".mov", ".m4v", ".webm", ".txt", ".md", ".key", ".pptx"}
+SOURCE_MAX = 400 * 1024 * 1024
+MOTIONS = os.path.join(DIR, "motions.json")   # motions saved as starting points: {slug: {name, base, pace?, ...}}
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
 MD_INTRO = ("<!-- This profile in your own words: the voice, the stage, the type, what its films always do and never do. "
             "Your AI reads it before building a film in this profile. -->\n")
@@ -92,6 +106,8 @@ def _motion(v):
     """A stored motion as {base, and only the fields it changes}. An old profile's motion was just a base's name."""
     v = {"base": v} if isinstance(v, str) else v if isinstance(v, dict) else {}
     out = {"base": v.get("base") if v.get("base") in paths.PROFILES else paths.DEFAULT_PROFILE}
+    if isinstance(v.get("from"), str) and SLUG.match(v["from"]):
+        out["from"] = v["from"]   # the motion it started from (a kit one or a saved one), so the app can say "edited" and reset
     for k, (allowed, _) in MOTION.items():
         x = v.get(k)
         if x is None:
@@ -108,7 +124,8 @@ def _motion(v):
 
 
 def _save(slug, p):
-    keep = {k: p[k] for k in ("name", "about", "palette", "font", "type", "motion", "scenes", "rules", "from_film", "created", "updated") if k in p}
+    keep = {k: p[k] for k in ("name", "about", "palette", "font", "font_source", "text_font", "text_font_source", "type", "motion", "scenes", "rules",
+                              "from_film", "drafted", "created", "updated") if k in p}
     keep["default"] = bool(p.get("default"))
     keep["motion"] = _motion(p.get("motion"))
     _write(os.path.join(_dir(slug), "profile.json"), json.dumps(keep, indent=1, ensure_ascii=False) + "\n")
@@ -129,6 +146,9 @@ def _read(slug):
         md = ""
     return {"slug": slug, "name": str(p.get("name") or slug), "default": bool(p.get("default")), "about": str(p.get("about") or ""),
             "palette": _palette(p.get("palette") or []), "font": str(p.get("font") or ""), "type": str(p.get("type") or ""),
+            "font_source": p.get("font_source") if p.get("font_source") in FONT_SOURCES else "",
+            "text_font": str(p.get("text_font") or ""), "text_font_source": p.get("text_font_source") if p.get("text_font_source") in FONT_SOURCES else "",
+            "sources": sources(slug), "drafted": p.get("drafted") or "",
             "motion": _motion(p.get("motion")), "scenes": [str(x) for x in (p.get("scenes") or [])],
             "rules": [r for r in (p.get("rules") or []) if isinstance(r, dict) and r.get("text")], "from_film": p.get("from_film") or "",
             "created": p.get("created") or "", "updated": p.get("updated") or "", "md": md.replace(MD_INTRO, "", 1)}
@@ -210,9 +230,14 @@ def create(name, motion=None, about="", from_film=None, md=None, is_default=Fals
 
 def update(slug, patch):
     p = get(slug)
-    for k in ("name", "about", "font", "type"):
+    for k in ("name", "about", "font", "type", "text_font"):
         if k in patch and patch[k] is not None:
             p[k] = str(patch[k]).strip() or (p[k] if k == "name" else "")
+    for k in ("font_source", "text_font_source"):
+        if patch.get(k) is not None:
+            if patch[k] not in ("", *FONT_SOURCES):
+                raise ValueError(f"{k} is local or google")
+            p[k] = patch[k]
     if patch.get("palette") is not None:
         p["palette"] = _palette(patch["palette"])
     if patch.get("md") is not None:
@@ -229,11 +254,16 @@ def set_motion(slug, changes, p=None):
     own = p is not None
     p = p or get(slug)
     m = dict(p["motion"])
+    if changes.get("from"):
+        start = motion_start(changes["from"])
+        m = {"base": start["base"], "from": changes["from"], **{k: start[k] for k in MOTION if k in start}}
+        changes = {k: v for k, v in changes.items() if k != "from"}
     for k, v in changes.items():
         if k == "base":
             if v not in paths.PROFILES:
                 raise ValueError(f"the base is one of {', '.join(paths.PROFILES)}")
             m["base"] = v
+            m.pop("from", None)
         elif k in MOTION:
             if v is None or v == "base" or v == "":
                 m.pop(k, None)
@@ -259,6 +289,122 @@ def set_motion(slug, changes, p=None):
         _save(slug, p)
         return get(slug)
     return p
+
+
+def saved_motions():
+    try:
+        with open(MOTIONS) as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return {k: {"name": str(v.get("name") or k), **_motion(v)} for k, v in (d.items() if isinstance(d, dict) else []) if SLUG.match(k) and isinstance(v, dict)}
+
+
+def motions():
+    """Every motion a profile can start from: the kit's and the project's motion profiles, then the ones saved here."""
+    out = [{"slug": k, "name": k, "about": v, "kind": "kit" if k in KIT_MOTION else "project", "base": k} for k, v in paths.PROFILES.items()]
+    return out + [{"slug": k, "kind": "saved", "about": "", **v} for k, v in saved_motions().items()]
+
+
+def motion_start(name):
+    if name in paths.PROFILES:
+        return {"base": name}
+    m = saved_motions().get(name)
+    if not m:
+        raise ValueError(f"no motion called {name!r} (`{paths.CLI} profile motions` lists them)")
+    return m
+
+
+def save_motion(slug, name):
+    """Keep a profile's motion as a starting point any profile can begin from."""
+    p = get(slug)
+    name = str(name or "").strip()
+    key = slugify(name)
+    if not key or key in paths.PROFILES:
+        raise ValueError(f"{name!r} can't be a motion's name" + (" (the kit has one called that)" if key in paths.PROFILES else ""))
+    d = saved_motions()
+    d[key] = {"name": name, **{k: v for k, v in p["motion"].items() if k != "from"}}
+    _write(MOTIONS, json.dumps(d, indent=1, ensure_ascii=False) + "\n")
+    return key
+
+
+def remove_motion(key):
+    d = saved_motions()
+    if key not in d:
+        raise ValueError(f"no saved motion called {key!r}")
+    del d[key]
+    _write(MOTIONS, json.dumps(d, indent=1, ensure_ascii=False) + "\n")
+
+
+def sources(slug):
+    """What a profile was drafted from: [{file, kind, bytes}], project-relative paths."""
+    d = os.path.join(DIR, slug, "sources")
+    if not os.path.isdir(d):
+        return []
+    kind = lambda e: "video" if e in (".mp4", ".mov", ".m4v", ".webm") else "image" if e in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg") else "document"
+    return [{"file": paths.rel(os.path.join(d, n)), "name": n, "kind": kind(os.path.splitext(n)[1].lower()), "bytes": os.path.getsize(os.path.join(d, n))}
+            for n in sorted(os.listdir(d)) if not n.startswith(".") and os.path.isfile(os.path.join(d, n))]
+
+
+def add_source(slug, name, data):
+    """Keep one file a profile is drafted from in its sources/: a safe name, a kind Spliced knows, never over another."""
+    get(slug)
+    base, ext = os.path.splitext(os.path.basename(str(name or "")))
+    ext = ext.lower()
+    if ext not in SOURCE_EXT:
+        raise ValueError(f"{ext or 'a file with no extension'} can't be a profile's source: a PDF, an image, a film, a deck or text")
+    if len(data) > SOURCE_MAX:
+        raise ValueError("that file is too big (under 400 MB, please)")
+    stem = re.sub(r"[^A-Za-z0-9._ -]+", "", base).strip(" .")[:80] or "source"
+    d = os.path.join(_dir(slug), "sources")
+    os.makedirs(d, exist_ok=True)
+    out, n = os.path.join(d, stem + ext), 2
+    while os.path.exists(out):
+        out, n = os.path.join(d, f"{stem} {n}{ext}"), n + 1
+    with open(out, "wb") as f:
+        f.write(data)
+    return paths.rel(out)
+
+
+def draft(slug):
+    """Have the person's AI fill the profile in from its sources: an import job (importer.py), so it is worked like a film's breakdown."""
+    if not sources(slug):
+        raise ValueError(f"{slug} has no sources to draft from: drop a brand book, logo, screenshots or a film on it")
+    import importer
+    return importer.add_profile_job(slug)
+
+
+def mark_drafted(slug):
+    p = get(slug)
+    p["drafted"] = now()
+    p["updated"] = now()
+    _save(slug, p)
+    return get(slug)
+
+
+_FONTS = [0.0, []]
+
+
+def installed_fonts():
+    """The font families on this machine (macOS: what Font Book has; Linux: fontconfig), asked once an hour at most."""
+    import subprocess, time
+    if _FONTS[1] and time.time() - _FONTS[0] < 3600:
+        return _FONTS[1]
+    out = []
+    try:
+        if sys.platform == "darwin":
+            r = subprocess.run(["osascript", "-l", "JavaScript", "-e",
+                                'ObjC.import("AppKit"); JSON.stringify($.NSFontManager.sharedFontManager.availableFontFamilies.js.map(x => x.js))'],
+                               capture_output=True, text=True, timeout=20)
+            out = json.loads(r.stdout or "[]")
+        elif shutil.which("fc-list"):
+            r = subprocess.run(["fc-list", ":", "family"], capture_output=True, text=True, timeout=20)
+            out = [ln.split(",")[0].strip() for ln in r.stdout.splitlines() if ln.strip()]
+    except (OSError, ValueError, subprocess.SubprocessError):
+        out = []
+    fams = sorted({f for f in out if f and not f.startswith(".")}, key=str.lower)
+    _FONTS[:] = [time.time(), fams]
+    return fams
 
 
 def set_default(slug):
@@ -364,13 +510,17 @@ def brief(slug):
         lines += [p["about"], ""]
     if p["palette"]:
         lines += ["**Palette:** " + ", ".join(f"{c['hex']}{(' (' + c['name'] + ')') if c.get('name') else ''}" for c in p["palette"]), ""]
-    if p["font"] or p["type"]:
-        lines += [f"**Type:** {p['font'] + ('. ' if p['font'] and p['type'] else '') if p['font'] else ''}{p['type']}", ""]
+    face = lambda f, src: f"{f} ({'Google Fonts: load it with @remotion/google-fonts' if src == 'google' else 'installed on this Mac'})" if f else ""
+    if p["font"] or p["text_font"] or p["type"]:
+        lines += ["**Type:** " + "; ".join(x for x in (p["font"] and f"headlines in {face(p['font'], p['font_source'])}",
+                                                         p["text_font"] and f"text in {face(p['text_font'], p['text_font_source'])}", p["type"]) if x), ""]
     lines += ["## Motion", "", *motion_lines(p["motion"]), ""]
     if p["md"].strip():
         lines += [p["md"].strip(), ""]
     if p["rules"]:
         lines += ["## Rules learned while making films", ""] + [f"{i}. {r['text']}{(' (from ' + r['from'] + ')') if r.get('from') else ''}" for i, r in enumerate(p["rules"], 1)] + [""]
+    if p["sources"]:
+        lines += ["## What it was drafted from", "", ", ".join(f"`{x['file']}`" for x in p["sources"]), ""]
     if p["scenes"]:
         lines += ["## Scenes that show the look", "", "Read each with `" + paths.CLI + " board scene <id>`: " + ", ".join(f"`{k}`" for k in p["scenes"]), ""]
     return "\n".join(lines).rstrip() + "\n"
@@ -384,11 +534,15 @@ def main():
     x = sub.add_parser("new"); x.add_argument("name"); x.add_argument("--motion")
     x.add_argument("--about", default=""); x.add_argument("--from-film"); x.add_argument("--default", action="store_true")
     x = sub.add_parser("set"); x.add_argument("profile")
-    for f in ("name", "about", "font", "type", "palette"):
+    for f in ("name", "about", "font", "font-source", "text-font", "text-font-source", "type", "palette"):
         x.add_argument(f"--{f}")
-    x = sub.add_parser("motion"); x.add_argument("profile"); x.add_argument("--base")
+    x = sub.add_parser("motion"); x.add_argument("profile"); x.add_argument("--base"); x.add_argument("--from", dest="start")
     for f in MOTION:
         x.add_argument(f"--{f}")
+    sub.add_parser("motions")
+    x = sub.add_parser("save-motion"); x.add_argument("profile"); x.add_argument("name")
+    x = sub.add_parser("draft"); x.add_argument("profile"); x.add_argument("files", nargs="+")
+    x = sub.add_parser("drafted"); x.add_argument("profile")
     x = sub.add_parser("default"); x.add_argument("profile")
     x = sub.add_parser("learn"); x.add_argument("profile"); x.add_argument("rule"); x.add_argument("--from", dest="source", default="")
     x = sub.add_parser("forget"); x.add_argument("profile"); x.add_argument("n", type=int)
@@ -412,12 +566,31 @@ def main():
             p = create(a.name, a.motion, a.about, a.from_film, is_default=a.default)
             print(f"Made the profile {p['slug']}{', the default' if p['default'] else ''}: profiles/{p['slug']}/PROFILE.md is its text.")
         elif a.cmd == "set":
-            p = update(a.profile, {k: getattr(a, k) for k in ("name", "about", "font", "type", "palette")})
+            p = update(a.profile, {k: getattr(a, k) for k in ("name", "about", "font", "font_source", "text_font", "text_font_source", "type", "palette")})
             print(f"{p['slug']}: saved")
         elif a.cmd == "motion":
             ch = {k: getattr(a, k) for k in ("base", *MOTION) if getattr(a, k) is not None}
+            if a.start:
+                ch["from"] = a.start
             p = set_motion(a.profile, ch) if ch else get(a.profile)
             print("\n".join(motion_lines(p["motion"])))
+        elif a.cmd == "motions":
+            for m in motions():
+                print(f"  {m['slug']:24} {m['kind']:8} " + (m["about"] if m["kind"] != "saved" else f"on {m['base']}: " + ", ".join(f"{k} {m[k]}" for k in MOTION if k in m)))
+            print(f"\nStart a profile's motion from one: {paths.CLI} profile motion <profile> --from <motion>")
+        elif a.cmd == "save-motion":
+            print(f"Saved the motion {save_motion(a.profile, a.name)}: any profile can start from it now")
+        elif a.cmd == "draft":
+            if not SLUG.match(a.profile) or not _read(a.profile):
+                a.profile = create(a.profile)["slug"] if not _read(slugify(a.profile)) else slugify(a.profile)
+            for fp in a.files:
+                with open(os.path.expanduser(fp), "rb") as f:
+                    print(f"  {add_source(a.profile, os.path.basename(fp), f.read())}")
+            j = draft(a.profile)
+            print(f"Drafting the profile {a.profile} from {len(sources(a.profile))} source(s): import {j['id']} ({j['status']}). `{paths.CLI} imports list` follows it.")
+        elif a.cmd == "drafted":
+            mark_drafted(a.profile)
+            print(f"{a.profile}: drafted")
         elif a.cmd == "default":
             d = set_default("" if a.profile == NONE else a.profile)
             print(f"The default profile is {d}" if d else "No default profile: a brief starts with no profile, recreating its reference as it is")

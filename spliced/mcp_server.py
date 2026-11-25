@@ -172,13 +172,23 @@ def profile_tool(a):
         if a.get("from_film"):
             args += ["--from-film", str(a["from_film"])]
         return text(*run(*args))
+    if action == "set":
+        args = ["profile", "set", prof]
+        for k in ("about", "palette", "font", "font_source", "text_font", "text_font_source", "type"):
+            if a.get(k) is not None:
+                args += [f"--{k.replace('_', '-')}", str(a[k])]
+        return text(*run(*args))
+    if action == "drafted":
+        return text(*run("profile", "drafted", prof))
     if action == "motion":
         args = ["profile", "motion", prof]
-        for k in ("base", "pace", "bounce", "stagger", "transition", "text", "idle"):
+        if a.get("from"):
+            args += ["--from", str(a["from"])]
+        for k, flag in (("base", "base"), ("pace", "pace"), ("bounce", "bounce"), ("stagger", "stagger"), ("transition", "transition"), ("words", "text"), ("idle", "idle")):
             if a.get(k) is not None:
-                args += [f"--{k}", str(a[k])]
+                args += [f"--{flag}", str(a[k])]
         return text(*run(*args))
-    raise Bad("`action` is list, show, learn, pin, unpin, motion or new")
+    raise Bad("`action` is list, show, set, learn, pin, unpin, motion, drafted or new")
 
 
 def folders_tool(a):
@@ -350,16 +360,22 @@ TOOLS = [
     ("profile", profile_tool, "The project's profiles: the looks its films are made in (a company's own, or looks to explore), each with its motion, palette, type, "
      "its own text and the rules learned while making films. list: every profile, the default marked. show: everything to read before building in one (do this first when a "
      "prompt names a profile). learn: keep a lasting preference the person stated (\"never bounce the logo\") in the profile, with where it came from. pin / unpin: a scene "
-     "that shows the look. motion: change its motion (a base motion profile, and pace, bounce, stagger, transition, text, idle; \"base\" resets one). "
+     "that shows the look. set: its about line, palette (\"#hex name, #hex name\"), typefaces (font and text_font, each with a source: local or google) "
+     "and how type is set. motion: change its motion (a base motion profile, and pace, bounce, stagger, transition, words, idle; \"base\" resets one; "
+     "`from` starts again from a kit or saved motion). drafted: say a profile you filled in from its sources is done. "
      "new: a profile (from_film starts it from a reference film's look). A build in no profile recreates its references as they are.",
-     S({"action": {"type": "string", "enum": ["list", "show", "learn", "pin", "unpin", "motion", "new"]}, "profile": {"type": "string", "description": "The profile's name, as list shows it"},
-        "text": {"type": "string", "description": "learn: the rule, in a sentence"}, "from": {"type": "string", "description": "learn: where it came from, e.g. launch-film note 3"},
+     S({"action": {"type": "string", "enum": ["list", "show", "set", "learn", "pin", "unpin", "motion", "drafted", "new"]},
+        "about": {"type": "string"}, "palette": {"type": "string", "description": "set: \"#hex name, #hex name\""},
+        "font": {"type": "string", "description": "set: the headline typeface"}, "font_source": {"type": "string", "enum": ["local", "google"]},
+        "text_font": {"type": "string", "description": "set: the text typeface"}, "text_font_source": {"type": "string", "enum": ["local", "google"]},
+        "type": {"type": "string", "description": "set: how type is set"}, "profile": {"type": "string", "description": "The profile's name, as list shows it"},
+        "text": {"type": "string", "description": "learn: the rule, in a sentence"}, "from": {"type": "string", "description": "learn: where it came from, e.g. launch-film note 3; motion: a kit or saved motion to start from"},
         "scene": {"type": "string", "description": "pin / unpin: a scene id like acme-launch/s05"}, "name": {"type": "string", "description": "new: its name"},
         "motion": {"type": "string", "description": "new: its base motion profile"}, "base": {"type": "string", "description": "motion: the base motion profile"},
         "pace": {"type": ["number", "string"], "description": "motion: 0.5 to 2, how long moves take against the base (1 = the base's)"},
         "bounce": {"type": ["number", "string"], "description": "motion: 0 to 0.5 overshoot"}, "stagger": {"type": ["number", "string"], "description": "motion: seconds between grouped items"},
         "transition": {"type": "string", "enum": ["cut", "blurThrough", "fadeThrough", "sharedAxisX", "sharedAxisZ", "base"]},
-        "text": {"type": "string", "enum": ["sharpen", "greyToInk", "base"]}, "idle": {"type": ["number", "string"], "description": "motion: 0 to 1, how much held things float"},
+        "words": {"type": "string", "enum": ["sharpen", "greyToInk", "base"], "description": "motion: how words arrive"}, "idle": {"type": ["number", "string"], "description": "motion: 0 to 1, how much held things float"},
         "about": {"type": "string", "description": "new: one line about it"}, "from_film": {"type": "string", "description": "new: a reference film's slug to start from"}})),
     ("film_sheet", film_sheet, "See a film's newest render against its plan: storyboard, reference frames and render frames, beat by beat, as one picture. Ask for one beat to see it larger.",
      S({"film": FILM, "beat": {"type": "string", "description": "One beat's id"}}, ["film"])),

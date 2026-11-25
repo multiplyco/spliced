@@ -89,6 +89,50 @@ class Profiles(unittest.TestCase):
         code, out = self.cli("profile", "show", "calm")
         self.assertIn("Base: `material`", out, "a profile written before motion had knobs still reads")
 
+    def test_a_motion_can_be_saved_and_started_from(self):
+        self.cli("profile", "new", "Calm")
+        self.cli("profile", "motion", "calm", "--pace", "1.4", "--text", "greyToInk")
+        code, out = self.cli("profile", "save-motion", "calm", "Slow ink")
+        self.assertEqual(code, 0, out)
+        code, out = self.cli("profile", "motions")
+        self.assertIn("slow-ink", out)
+        self.cli("profile", "new", "Other")
+        self.cli("profile", "motion", "other", "--bounce", "0.3")
+        self.cli("profile", "motion", "other", "--from", "slow-ink")
+        self.assertEqual(self.profile("other")["motion"], {"base": "soft", "from": "slow-ink", "pace": 1.4, "text": "greyToInk"}, "starting again drops what it had")
+        self.cli("profile", "motion", "other", "--from", "apple")
+        self.assertEqual(self.profile("other")["motion"], {"base": "apple", "from": "apple"})
+        self.assertNotEqual(self.cli("profile", "save-motion", "calm", "soft")[0], 0, "a saved motion can't take a kit motion's name")
+
+    def test_a_profile_is_drafted_from_what_is_dropped_on_it(self):
+        brief = os.path.join(os.path.dirname(self.root), "brand book.txt")
+        with open(brief, "w") as f:
+            f.write("Colours: #0B1B3F midnight. Never stretch the logo.\n")
+        bad = os.path.join(os.path.dirname(self.root), "tool.sh")
+        open(bad, "w").close()
+        self.assertNotEqual(self.cli("profile", "draft", "Globex", bad)[0], 0, "only files Spliced can read")
+        code, out = self.cli("profile", "draft", "Globex", brief)
+        self.assertEqual(code, 0, out)
+        self.assertTrue(os.path.isfile(os.path.join(self.root, "profiles", "globex", "sources", "brand book.txt")))
+        code, out = self.cli("imports", "next")
+        self.assertIn("Draft the Spliced profile `globex`", out)
+        self.assertIn("profiles/globex/sources/brand book.txt", out)
+        jid = out.split()[1]
+        code, out = self.cli("imports", "done", jid)
+        self.assertNotEqual(code, 0, "not done until the agent says the profile is drafted")
+        self.cli("profile", "drafted", "globex")
+        code, out = self.cli("imports", "done", jid)
+        self.assertEqual(code, 0, out)
+        self.assertIn("What it was drafted from", self.cli("profile", "show", "globex")[1])
+
+    def test_typefaces_say_where_they_come_from(self):
+        self.cli("profile", "new", "Calm")
+        self.cli("profile", "set", "calm", "--font", "Space Grotesk", "--font-source", "google", "--text-font", "Helvetica", "--text-font-source", "local")
+        out = self.cli("profile", "show", "calm")[1]
+        self.assertIn("headlines in Space Grotesk (Google Fonts: load it with @remotion/google-fonts)", out)
+        self.assertIn("text in Helvetica (installed on this Mac)", out)
+        self.assertNotEqual(self.cli("profile", "set", "calm", "--font-source", "dropbox")[0], 0)
+
     def test_a_board_and_its_film_are_made_in_a_profile(self):
         self.cli("profile", "new", "Acme house")
         code, out = self.cli("board", "show", "Fixture board")
@@ -127,7 +171,11 @@ class ProfilesOverTheServer(unittest.TestCase):
             c = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
             c.request(method, path, body=json.dumps(body).encode() if body is not None else None, headers={"Host": f"localhost:{port}", **(headers or {})})
             r = c.getresponse()
-            out = (r.status, json.loads(r.read() or b"{}"))
+            raw = r.read()
+            try:
+                out = (r.status, json.loads(raw or b"{}"))
+            except ValueError:
+                out = (r.status, {})
             c.close()
             return out
         for _ in range(900):
@@ -153,6 +201,23 @@ class ProfilesOverTheServer(unittest.TestCase):
         self.assertEqual(req("POST", "/api/profiles", {"op": "pin", "profile": "fixture", "scene": "../../etc"})[0], 400)
         self.assertEqual(req("POST", "/api/profiles", {"op": "set", "profile": "../x", "about": "x"})[0], 400, "a profile is a name, never a path")
         self.assertEqual(req("POST", "/api/profiles", {"op": "learn", "profile": "fixture", "text": "x"}, headers={"Origin": "http://evil.test"})[0], 403)
+        fonts = req("GET", "/api/fonts")[1]
+        self.assertIsInstance(fonts["installed"], list)
+        self.assertIs(fonts["google"], True)
+        code, j = req("POST", "/api/profiles", {"op": "motion-save", "profile": "fixture", "name": "House glide"})
+        self.assertIn("house-glide", [m["slug"] for m in j["motions"]])
+        self.assertEqual(req("POST", "/api/profiles", {"op": "motion-remove", "motion": "house-glide"})[0], 200)
+
+        def upload(name, data, slug="fixture"):
+            c = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+            c.request("POST", f"/api/profiles/{slug}/sources", body=data, headers={"Host": f"localhost:{port}", "X-Filename": name})
+            r = c.getresponse(); out = (r.status, json.loads(r.read() or b"{}")); c.close()
+            return out
+        code, j = upload("..%2F..%2Fbrand.pdf", b"%PDF-1.4")
+        self.assertEqual((code, j["file"]), (200, "profiles/fixture/sources/brand.pdf"), "a file's name is only ever its own, inside sources/")
+        self.assertEqual(upload("run.sh", b"#!/bin/sh")[0], 400)
+        self.assertEqual(upload("x.pdf", b"x", slug="nope")[0], 400)
+        self.assertEqual(req("GET", "/project/profiles/fixture/profile.json")[0], 404, "a profile's JSON is never served")
 
 
 if __name__ == "__main__":

@@ -13,13 +13,13 @@ const h = (html) => { const t = document.createElement("template"); t.innerHTML 
 const icon = (n) => window.icon(n);
 const toast = (m, ms) => window.crToast?.(m, ms);
 const NONE = "none";
-let list = [], def = "", motion = {}, knobs = {}, kit = {};
+let list = [], def = "", motion = {}, knobs = {}, kit = {}, starts = [], fonts = null;
 const listeners = new Set();
 
 async function load() {
   try {
     const j = await (await fetch("/api/profiles", { cache: "no-store" })).json();
-    list = j.profiles || []; def = j.default || ""; motion = j.motion || {}; knobs = j.knobs || {}; kit = j.kit || {};
+    list = j.profiles || []; def = j.default || ""; motion = j.motion || {}; knobs = j.knobs || {}; kit = j.kit || {}; starts = j.motions || [];
   } catch {}
   listeners.forEach((fn) => fn());
   return list;
@@ -29,7 +29,7 @@ async function post(body) {
   const r = await fetch("/api/profiles", { method: "POST", body: JSON.stringify(body) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error || "Couldn't save it");
-  list = j.profiles || list; def = j.default ?? def;
+  list = j.profiles || list; def = j.default ?? def; starts = j.motions || starts;
   listeners.forEach((fn) => fn());
   return j;
 }
@@ -141,6 +141,7 @@ function stage(p, { big = false } = {}) {
   let timer = 0, cur = p;
   const paint = () => {
     const r = roles(cur.palette), font = cur.font ? `"${cur.font.replace(/"/g, "")}", ` : "";
+    if (cur.font_source === "google") googleFace(cur.font);
     el.style.setProperty("--bg", r.bg); el.style.setProperty("--ink", r.ink); el.style.setProperty("--ac", r.accent); el.style.setProperty("--ac2", r.second);
     el.style.setProperty("--font", `${font}Inter, system-ui, sans-serif`);
     const words = (cur.about && cur.about.split(/\s+/).length <= 6 ? cur.about : cur.name).split(/\s+/).slice(0, 5);
@@ -178,6 +179,117 @@ function stage(p, { big = false } = {}) {
   return el;
 }
 
+/* ---------- typefaces ---------- */
+/* Google Fonts: the names ship with Spliced (google-fonts.json); a face is fetched from Google only when it is shown,
+   in the picker's Google tab or for a profile that uses one. spliced.json "google_fonts": false turns all of it off. */
+let gfList = null;
+const gfLoaded = new Set();
+const googleOK = () => fonts?.google !== false && SPLICED.google_fonts !== false;
+function googleFace(family, text) {
+  if (!family || !googleOK()) return;
+  const key = family + (text ? "|t" : "");
+  if (gfLoaded.has(key) || gfLoaded.has(family)) return;
+  gfLoaded.add(key);
+  const l = document.createElement("link");
+  l.rel = "stylesheet";
+  l.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, "+")}${text ? `&text=${encodeURIComponent(text)}` : ":wght@400;600;700"}&display=swap`;
+  document.head.append(l);
+}
+async function fontLists() {
+  if (!fonts) { try { fonts = await (await fetch("/api/fonts")).json(); } catch { fonts = { installed: [], google: false }; } }
+  if (!gfList && googleOK()) { try { gfList = (await (await fetch("google-fonts.json")).json()).families; } catch { gfList = []; } }
+  return { installed: fonts.installed || [], google: googleOK() ? gfList || [] : null };
+}
+const faceCss = (family, source) => family ? `"${family.replace(/"/g, "")}", Inter, system-ui, sans-serif` : "";
+
+/* The typeface sheet: this Mac's families (what Font Book has) or Google Fonts, each shown in its own face. */
+async function fontPicker({ title, current, source, sample, allowSame, onPick }) {
+  const L = await fontLists();
+  const CATS = [["", "All"], ["sans", "Sans"], ["serif", "Serif"], ["display", "Display"], ["hand", "Handwriting"], ["mono", "Mono"]];
+  let tab = source === "google" && L.google ? "google" : "local", cat = "";
+  const scrim = h(`<div class="pf-scrim"><div class="pf-sheet pf-fonts" role="dialog" aria-label="${esc(title)}">
+    <div class="pf-sheet-h"><b>${esc(title)}</b><input type="search" placeholder="Search typefaces" aria-label="Search typefaces" title="Search by name">
+      <input class="pf-sample" value="${esc(sample)}" aria-label="Sample text" title="The words each typeface shows"><button class="icon-btn sm" data-a="close" title="Close (Esc)">Close</button></div>
+    <div class="pf-font-bar"><div class="seg" data-tab>
+      <button data-v="local" title="The typefaces installed on this Mac, as Font Book lists them">On this Mac <span class="c">${L.installed.length}</span></button>
+      ${L.google ? `<button data-v="google" title="Free typefaces from Google Fonts. Your AI loads the one you choose when it renders">Google Fonts <span class="c">${L.google.length}</span></button>` : ""}</div>
+      <div class="seg pf-cats" data-cat hidden>${CATS.map(([v, t]) => `<button data-v="${v}" title="${t} typefaces">${t}</button>`).join("")}</div>
+      ${allowSame ? `<button class="pf-link" data-a="same" title="Use the headline typeface for text too">Same as headlines</button>` : ""}
+      <span class="pf-gf-note" hidden>Previews load from Google Fonts while this tab is open.</span></div>
+    <div class="pf-font-list" role="listbox"></div></div></div>`);
+  document.body.append(scrim);
+  const box = scrim.querySelector(".pf-font-list"), q = scrim.querySelector('input[type="search"]'), sm = scrim.querySelector(".pf-sample");
+  let shown = 0, items = [];
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting && e.target.dataset.g) { googleFace(e.target.dataset.f, sm.value || e.target.dataset.f); io.unobserve(e.target); } }), { root: box, rootMargin: "200px" });
+  const row = (f, g) => `<button class="pf-font ${f === current && (g ? "google" : "local") === (source || "local") ? "on" : ""}" role="option" data-f="${esc(f)}" ${g ? 'data-g="1"' : ""} title="${esc(f)}">
+      <span class="pf-font-n">${esc(f)}${g ? `<small>${esc({ sans: "Sans", serif: "Serif", display: "Display", hand: "Handwriting", mono: "Mono" }[g[1]] || "")}</small>` : ""}</span>
+      <span class="pf-font-s" style="font-family:${esc(faceCss(f))}">${esc(sm.value || f)}</span></button>`;
+  const more = () => {
+    const next = items.slice(shown, shown + 80);
+    box.insertAdjacentHTML("beforeend", next.map(([f, g]) => row(f, g)).join(""));
+    [...box.children].slice(shown).forEach((el) => { if (el.dataset.g) io.observe(el); });
+    shown += next.length;
+  };
+  const paint = () => {
+    scrim.querySelector("[data-cat]").hidden = tab !== "google";
+    scrim.querySelector(".pf-gf-note").hidden = tab !== "google";
+    scrim.querySelectorAll("[data-tab] button").forEach((b) => b.classList.toggle("on", b.dataset.v === tab));
+    scrim.querySelectorAll("[data-cat] button").forEach((b) => b.classList.toggle("on", b.dataset.v === cat));
+    const w = q.value.toLowerCase().trim();
+    items = tab === "google" ? L.google.filter((g) => (!cat || g[1] === cat) && (!w || g[0].toLowerCase().includes(w))).map((g) => [g[0], g])
+      : L.installed.filter((f) => !w || f.toLowerCase().includes(w)).map((f) => [f, null]);
+    box.innerHTML = items.length ? "" : `<p class="meta pf-font-none">${tab === "local" && !L.installed.length ? "Spliced couldn't list this Mac's typefaces." : "No typeface matches."}</p>`;
+    shown = 0; box.scrollTop = 0; more();
+  };
+  box.addEventListener("scroll", () => { if (box.scrollTop + box.clientHeight > box.scrollHeight - 400 && shown < items.length) more(); });
+  box.addEventListener("click", (e) => { const b = e.target.closest(".pf-font"); if (!b) return; onPick(b.dataset.f, b.dataset.g ? "google" : "local"); close(); });
+  scrim.querySelectorAll("[data-tab] button").forEach((b) => (b.onclick = () => { tab = b.dataset.v; paint(); }));
+  scrim.querySelectorAll("[data-cat] button").forEach((b) => (b.onclick = () => { cat = b.dataset.v; paint(); }));
+  scrim.querySelector('[data-a="same"]')?.addEventListener("click", () => { onPick("", ""); close(); });
+  sm.oninput = () => box.querySelectorAll(".pf-font-s").forEach((el) => (el.textContent = sm.value || el.closest(".pf-font").dataset.f));
+  const close = () => { io.disconnect(); scrim.remove(); document.removeEventListener("keydown", onKey); };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  document.addEventListener("keydown", onKey);
+  scrim.addEventListener("mousedown", (e) => { if (e.target === scrim) close(); });
+  scrim.querySelector('[data-a="close"]').onclick = close;
+  q.oninput = paint; paint(); q.focus();
+}
+
+/* ---------- drafting from what the person drops ---------- */
+const DROP_OK = /\.(pdf|png|jpe?g|webp|gif|svg|mp4|mov|m4v|webm|txt|md|key|pptx)$/i;
+async function sendSources(slug, files, onEach) {
+  let n = 0;
+  for (const f of files) {
+    if (!DROP_OK.test(f.name)) { toast(`${f.name}: Spliced reads PDFs, images, films, decks and text`); continue; }
+    onEach?.(f.name, n, files.length);
+    const r = await fetch(`/api/profiles/${slug}/sources`, { method: "POST", headers: { "X-Filename": encodeURIComponent(f.name) }, body: f });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { toast(`${f.name}: ${j.error || "couldn't add it"}`); continue; }
+    n++;
+  }
+  return n;
+}
+/** Files dropped on Profiles: a new profile drafted from them by the person's AI. */
+async function draftNew(files) {
+  files = [...files];
+  if (!files.length) return;
+  const guess = files[0].name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/\b(brand ?book|guidelines?|brand|final|v\d+)\b/gi, "").trim();
+  const n = prompt(`Name the profile ${SP.ai} drafts from ${files.length === 1 ? files[0].name : `these ${files.length} files`}`, guess || "");
+  if (!n || !n.trim()) return;
+  try {
+    const j = await post({ op: "new", name: n.trim() });
+    toast(`Adding ${files.length} file${files.length > 1 ? "s" : ""}…`);
+    if (await sendSources(j.profile, files)) await post({ op: "draft", profile: j.profile });
+    location.hash = `#/profiles/${j.profile}`;
+    window.Imports?.refresh?.();
+  } catch (e) { toast(e.message); }
+}
+let dropTarget = null;   // the profile page open, if any: drops add to its sources
+function drop(files) { if (dropTarget) dropTarget(files); else draftNew(files); }
+async function jobFor(slug) {
+  try { const r = await (await fetch("/api/imports")).json(); return (r.jobs || []).filter((j) => j.type === "profile" && j.slug === slug).pop() || null; } catch { return null; }
+}
+
 /* ---------- the list ---------- */
 const thumbs = (keys, n) => keys.slice(0, n).map((k) => { const s = CR.scene(k); return s ? `<img alt="" loading="lazy" src="${esc(CR.sceneThumb(s))}">` : ""; }).join("");
 
@@ -189,23 +301,36 @@ async function create(from) {
     toast(`Made the profile ${n.trim()}`); location.hash = `#/profiles/${j.profile}`;
   } catch (e) { toast(e.message); }
 }
+const dropZone = (label) => h(`<label class="pf-drop" title="Drop a brand book, a logo, screenshots or a film, or click to choose files. ${esc(SP.Ai)} reads them and fills the profile in">
+  ${icon("upload")}<span><b>${label}</b><small>A brand book (PDF), a logo, screenshots, a film or a deck. ${esc(SP.Ai)} reads them and fills in the palette, typefaces, motion and rules.</small></span>
+  <input type="file" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.svg,.mp4,.mov,.m4v,.webm,.txt,.md,.key,.pptx"></label>`);
+function wireDrop(el, onFiles) {
+  el.querySelector("input").onchange = (e) => { onFiles(e.target.files); e.target.value = ""; };
+  el.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); el.classList.add("over"); });
+  el.addEventListener("dragleave", () => el.classList.remove("over"));
+  el.addEventListener("drop", (e) => { e.preventDefault(); e.stopPropagation(); el.classList.remove("over"); onFiles(e.dataTransfer.files); });
+}
 
 async function render(main, slug) {
   main.innerHTML = `<div class="empty">Loading profiles…</div>`;
   await load();
+  dropTarget = null;
+  document.body.dataset.dropProfile = "a new profile";
   if (slug) return detail(main, slug);
   main.innerHTML = "";
   const head = h(`<div class="view-head"><h1>Profiles</h1><span class="meta">${list.length ? `${list.length} profile${list.length > 1 ? "s" : ""}` : ""}</span><span class="spacer"></span>
     <button class="icon-btn sm primary" data-a="new" title="A new profile: a look your films can be made in">${icon("plus")}New profile</button></div>`);
   head.querySelector('[data-a="new"]').onclick = () => create();
   main.append(head);
+  const dz = dropZone("Drop a brand book or a film to draft a profile");
+  wireDrop(dz, draftNew);
   if (!list.length) {
-    const e = h(`<div class="empty pf-empty"><b>No profiles yet</b><p>A profile is a look your films are made in: your company's own, or one you want to try. It keeps a palette, a typeface, its motion and your rules, and ${esc(SP.ai)} adds what it learns on every film.</p><p>Without one, a brief copies its reference as it is.</p>
+    const e = h(`<div class="empty pf-empty"><b>No profiles yet</b><p>A profile is a look your films are made in: your company's own, or one you want to try. It keeps a palette, typefaces, its motion and your rules, and ${esc(SP.ai)} adds what it learns on every film.</p><p>Without one, a brief copies its reference as it is.</p>
       <div class="pf-empty-acts">${SPLICED.brand ? `<button class="icon-btn sm primary" data-a="house" title="Make ${esc(SPLICED.brand)}'s profile from the project's brand and house rules">${icon("palette")}Make ${esc(SPLICED.brand)}'s profile</button>` : ""}<button class="icon-btn sm" data-a="new2" title="A new profile">${icon("plus")}New profile</button></div></div>`);
     e.querySelector('[data-a="new2"]').onclick = () => create();
     const hb = e.querySelector('[data-a="house"]');
     if (hb) hb.onclick = async () => { try { const j = await post({ op: "house" }); location.hash = `#/profiles/${j.profile}`; } catch (err) { toast(err.message); } };
-    main.append(e);
+    main.append(e, dz);
     return;
   }
   const grid = h(`<div class="pf-grid"></div>`);
@@ -214,14 +339,83 @@ async function render(main, slug) {
       <div class="pf-cover"></div>
       <div class="pf-body"><div class="pf-t"><b>${esc(p.name)}</b>${p.slug === def ? `<span class="pf-badge on" title="Briefs start in this profile">${icon("check")}Default</span>` : ""}</div>
       ${p.about ? `<p>${esc(p.about)}</p>` : ""}
-      <div class="pf-meta"><span class="pf-dots">${dots(p.palette, 6)}</span><span>${esc(p.motion.base)}</span><span>${p.scenes.length} scene${p.scenes.length === 1 ? "" : "s"}</span><span>${p.rules.length} rule${p.rules.length === 1 ? "" : "s"}</span></div></div></a>`);
+      <div class="pf-meta"><span class="pf-dots">${dots(p.palette, 6)}</span>${p.font ? `<span style="font-family:${esc(faceCss(p.font))}">${esc(p.font)}</span>` : ""}<span>${p.scenes.length} scene${p.scenes.length === 1 ? "" : "s"}</span><span>${p.rules.length} rule${p.rules.length === 1 ? "" : "s"}</span></div></div></a>`);
+    if (p.font_source === "google") googleFace(p.font);
     const cover = c.querySelector(".pf-cover");
     if (p.scenes.length >= 3) { cover.classList.add("scenes"); cover.innerHTML = thumbs(p.scenes, 3); }
     else cover.append(stage(p));
     grid.append(c);
   }
-  main.append(grid);
+  main.append(grid, dz);
   main.append(h(`<p class="pf-foot">Every brief you copy can choose a profile, or <b>No profile</b> to copy the reference as it is. Briefs start in the default.</p>`));
+}
+
+/* ---------- motion, seen ---------- */
+const curveOf = (m) => `cubic-bezier(${baseOf(m).curve.join(",")})`;
+const easeOf = (m) => { const b = val(m, "bounce"); return b > 0.01 ? `cubic-bezier(0.34, ${(1 + b * 2.4).toFixed(2)}, 0.64, 1)` : curveOf(m); };
+/* A small picture of one setting, playing the value it has: pace races a dot against the base's, bounce lands a block,
+   stagger brings in a row one by one, float bobs, scene change swaps two frames, words arrive their way. */
+function knobView(k) {
+  const el = h(`<span class="pf-kv" data-k="${k}" aria-hidden="true"></span>`);
+  el.innerHTML = {
+    pace: `<i class="ghost"></i><i class="dot"></i><b class="rail"></b>`,
+    bounce: `<b class="floor"></b><i class="blk"></i>`,
+    stagger: `<i></i><i></i><i></i><i></i>`,
+    idle: `<i class="blk"></i>`,
+    transition: `<i class="fa"></i><i class="fb"></i>`,
+    text: `<em>Aa</em>`,
+  }[k] || "";
+  let t = 0, cur = null;
+  el.play = (m) => {
+    cur = m; clearTimeout(t);
+    el.getAnimations({ subtree: true }).forEach((a) => a.cancel());
+    const b = baseOf(m), pace = val(m, "pace"), dur = b.enter * 1000;
+    const loop = (ms) => { t = setTimeout(() => el.isConnected && el.play(cur), ms); };
+    if (k === "pace") {
+      el.querySelector(".ghost").animate([{ transform: "translateX(0)" }, { transform: "translateX(46px)" }], { duration: dur, easing: curveOf(m), fill: "both" });
+      el.querySelector(".dot").animate([{ transform: "translateX(0)" }, { transform: "translateX(46px)" }], { duration: dur * pace, easing: curveOf(m), fill: "both" });
+      loop(dur * Math.max(1, pace) + 900);
+    } else if (k === "bounce") {
+      el.querySelector(".blk").animate([{ transform: "translateY(-16px)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: dur * pace, easing: easeOf(m), fill: "both" });
+      loop(dur * pace + 1000);
+    } else if (k === "stagger") {
+      const st = val(m, "stagger") * 1000;
+      [...el.children].forEach((c, i) => c.animate([{ transform: "translateY(8px)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 380 * pace, delay: i * st, easing: curveOf(m), fill: "both" }));
+      loop(3 * st + 380 * pace + 900);
+    } else if (k === "idle") {
+      const a = val(m, "idle");
+      el.querySelector(".blk").animate([{ transform: "translateY(0)" }, { transform: `translateY(${-7 * a}px)` }, { transform: "translateY(0)" }], { duration: 1800, iterations: Infinity, easing: "ease-in-out" });
+    } else if (k === "transition") {
+      const tr = val(m, "transition"), d = tr === "cut" ? 1 : 450 * pace, A = el.querySelector(".fa"), B = el.querySelector(".fb");
+      const out = { cut: [{ opacity: 1 }, { opacity: 0 }], blurThrough: [{ filter: "blur(0)", opacity: 1 }, { filter: "blur(4px)", opacity: 0 }], fadeThrough: [{ opacity: 1 }, { opacity: 0 }],
+        sharedAxisX: [{ transform: "none", opacity: 1 }, { transform: "translateX(-14px)", opacity: 0 }], sharedAxisZ: [{ transform: "none", opacity: 1 }, { transform: "scale(1.2)", opacity: 0 }] }[tr];
+      const inn = { cut: [{ opacity: 0 }, { opacity: 1 }], blurThrough: [{ filter: "blur(4px)", opacity: 0 }, { filter: "blur(0)", opacity: 1 }], fadeThrough: [{ opacity: 0 }, { opacity: 1 }],
+        sharedAxisX: [{ transform: "translateX(14px)", opacity: 0 }, { transform: "none", opacity: 1 }], sharedAxisZ: [{ transform: "scale(0.8)", opacity: 0 }, { transform: "none", opacity: 1 }] }[tr];
+      A.animate(out, { duration: d, delay: 600, fill: "both" });
+      B.animate(inn, { duration: d, delay: 600 + (tr.endsWith("Through") ? d * 0.4 : 0), fill: "both", easing: curveOf(m) });
+      loop(600 + d * 1.4 + 1100);
+    } else if (k === "text") {
+      const e = el.querySelector("em"), grey = val(m, "text") === "greyToInk";
+      e.animate(grey ? [{ opacity: 0, color: "var(--subtle-foreground)" }, { opacity: 1, color: "var(--subtle-foreground)", offset: 0.4 }, { opacity: 1, color: "var(--foreground)" }]
+        : [{ opacity: 0, filter: "blur(4px)", transform: "translateY(5px)" }, { opacity: 1, filter: "blur(0)", transform: "none" }], { duration: (grey ? 1200 : 600) * pace, easing: curveOf(m), fill: "both" });
+      loop((grey ? 1200 : 600) * pace + 1100);
+    }
+  };
+  return el;
+}
+/* A starting point's own small loop: a block arriving and a row following, in that motion. */
+function startView(m) {
+  const el = h(`<span class="pf-sv" aria-hidden="true"><i class="blk"></i><span class="row"><i></i><i></i><i></i></span></span>`);
+  const go = () => {
+    if (!el.isConnected) return;
+    el.getAnimations({ subtree: true }).forEach((a) => a.cancel());
+    const b = baseOf(m), pace = val(m, "pace"), d = b.enter * 1000 * pace, st = val(m, "stagger") * 1000;
+    el.querySelector(".blk").animate([{ transform: "translateY(18px) scale(0.9)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: d, easing: easeOf(m), fill: "both" });
+    el.querySelectorAll(".row i").forEach((c, i) => c.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: d * 0.6, delay: d * 0.4 + i * st, easing: curveOf(m), fill: "both" }));
+    setTimeout(go, d + 3 * st + 1500);
+  };
+  requestAnimationFrame(go);
+  return el;
 }
 
 /* ---------- one profile ---------- */
@@ -251,41 +445,42 @@ function detail(main, slug) {
   });
 
   const page = h(`<div class="pf-page">
+    <div class="pf-drafting" hidden></div>
     <section class="pf-hero"><div class="pf-hero-stage"></div>
       <div class="pf-hero-side">
         <input class="pf-name" data-k="name" value="${esc(p.name)}" title="The profile's name" aria-label="Name">
         <input class="pf-about" data-k="about" value="${esc(p.about)}" placeholder="One line: what this look is" title="One line about this look" aria-label="About">
         <div class="pf-block"><div class="pf-lab"><span>Palette</span><span class="pf-acts"></span></div><div class="pf-pal"></div></div>
-        <div class="pf-block"><div class="pf-lab"><span>Typeface</span></div>
-          <div class="pf-type"><span class="pf-aa">Aa</span><div><input data-k="font" value="${esc(p.font)}" placeholder="A typeface, e.g. Inter" title="The typeface's name. The preview uses it when it is installed on this Mac" aria-label="Typeface">
-          <input data-k="type" value="${esc(p.type)}" placeholder="How it is set: weights, size, case, tracking" title="How the type is set" aria-label="How the type is set"></div></div></div>
+        <div class="pf-block"><div class="pf-lab"><span>Typefaces</span></div><div class="pf-faces"></div>
+          <input class="pf-typenote" data-k="type" value="${esc(p.type)}" placeholder="How type is set: weights, sizes, case, tracking" title="How the type is set" aria-label="How the type is set"></div>
       </div></section>
     <section class="pf-sec"><div class="pf-sec-h"><h3>Scenes that show the look</h3><button class="icon-btn sm" data-a="add-scenes" title="Choose scenes from the library that show this look">${icon("plus")}Add scenes</button></div>
       <p class="meta">A mood board ${esc(SP.ai)} looks at before building. Add from here, or from a scene's page (Shows the look of).</p><div class="pf-mood"></div></section>
-    <section class="pf-sec"><div class="pf-sec-h"><h3>Motion</h3></div>
-      <p class="meta">A base ${SP.term("motion profile")}, and what this look changes about it. The preview above plays it. Anything left alone follows the base.</p><div class="pf-motion"></div></section>
+    <section class="pf-sec"><div class="pf-sec-h"><h3>Motion</h3><span class="pf-mhead"></span></div>
+      <p class="meta">Start from a motion, then change what this look does differently. The preview at the top plays it.</p>
+      <div class="pf-starts"></div><div class="pf-motion"></div></section>
     <section class="pf-sec"><h3>In its own words</h3><p class="meta">The voice, the stage, what its films always do and never do. ${esc(SP.Ai)} reads this first. Saved as you type, in profiles/${esc(slug)}/PROFILE.md.</p>
       <textarea class="pf-md" data-k="md" rows="9" placeholder="Write it like a brief to a designer: what this look is, and what it never does" title="The profile in your own words" aria-label="In its own words">${esc(p.md)}</textarea></section>
     <section class="pf-sec"><h3>Rules learned</h3><p class="meta">What came up while making films: ${esc(SP.ai)} offers to keep a lasting preference here, and you can add your own.</p>
       <ol class="pf-rules"></ol>
       <div class="pf-add"><input placeholder="A rule, in a sentence: never bounce the logo" title="Add a rule to this profile" aria-label="New rule"><button class="icon-btn sm" data-a="learn" title="Keep this rule in the profile">Add rule</button></div></section>
+    <section class="pf-sec"><div class="pf-sec-h"><h3>Drafted from</h3><button class="icon-btn sm" data-a="redraft" hidden title="Have ${esc(SP.ai)} read the sources again and fill the profile in">${icon("rotate-cw")}Draft again</button></div>
+      <p class="meta">Drop a brand book, a logo, screenshots or a film here, or anywhere on this page. ${esc(SP.Ai)} reads them and fills the profile in.</p>
+      <div class="pf-sources"></div></section>
   </div>`);
   main.append(page);
   const st = stage(p, { big: true });
   page.querySelector(".pf-hero-stage").append(st);
   const live = () => st.update(p);
 
-  // text fields: saved as typed; the name, about and typeface also change the preview
   page.querySelectorAll("input[data-k], textarea[data-k]").forEach((el) => (el.oninput = () => {
     const k = el.dataset.k; p = { ...p, [k]: el.value };
     if (k === "name") head.querySelector(".nm").textContent = el.value || slug;
-    if (k === "font") page.querySelector(".pf-aa").style.fontFamily = el.value ? `"${el.value}", Inter` : "";
-    if (["name", "about", "font"].includes(k)) later("live", live, 250);
+    if (["name", "about"].includes(k)) later("live", live, 250);
     later(k, () => save({ [k]: el.value }));
   }));
-  page.querySelector(".pf-aa").style.fontFamily = p.font ? `"${p.font}", Inter` : "";
 
-  // palette: swatches to click and change, add, take out, or take from the scenes
+  // palette
   const pal = page.querySelector(".pf-pal"), palActs = page.querySelector(".pf-acts");
   const savePal = (next) => { p = { ...p, palette: next }; paintPal(); live(); later("palette", () => save({ palette: next })); };
   const paintPal = () => {
@@ -302,6 +497,27 @@ function detail(main, slug) {
   };
   paintPal();
 
+  // typefaces: headlines and text, each chosen from this Mac or Google Fonts
+  const faces = page.querySelector(".pf-faces");
+  const paintFaces = () => {
+    const slot = (role, label, f, src) => `<button class="pf-face" data-role="${role}" title="Choose the ${label.toLowerCase()} typeface, from this Mac or Google Fonts">
+      <span class="pf-aa" style="${f ? `font-family:${esc(faceCss(f))}` : ""}">Aa</span>
+      <span class="pf-face-t"><small>${label}</small><b style="${f ? `font-family:${esc(faceCss(f))}` : ""}">${esc(f || (role === "text" ? "Same as headlines" : "Choose a typeface"))}</b>
+      <small>${f ? (src === "google" ? "Google Fonts" : "On this Mac") : ""}</small></span>${icon("chevron-down")}</button>`;
+    faces.innerHTML = slot("font", "Headlines", p.font, p.font_source) + slot("text", "Text", p.text_font, p.text_font_source);
+    [[p.font, p.font_source], [p.text_font, p.text_font_source]].forEach(([f, s]) => s === "google" && googleFace(f));
+    faces.querySelectorAll(".pf-face").forEach((b) => (b.onclick = () => {
+      const text = b.dataset.role === "text";
+      fontPicker({ title: text ? "Typeface for text" : "Typeface for headlines", current: text ? p.text_font : p.font, source: text ? p.text_font_source : p.font_source,
+        sample: text ? "The quick brown fox jumps over the lazy dog" : p.name, allowSame: text,
+        onPick: (f, src) => {
+          const patch = text ? { text_font: f, text_font_source: src } : { font: f, font_source: src };
+          p = { ...p, ...patch }; paintFaces(); live(); save(patch, f ? `${text ? "Text" : "Headlines"} in ${f}` : "Text in the headline typeface");
+        } });
+    }));
+  };
+  paintFaces();
+
   // the mood board
   const mood = page.querySelector(".pf-mood");
   function openPicker() { scenePicker(p, async (key, on) => { await post({ op: on ? "pin" : "unpin", profile: slug, scene: key }); p = get(slug); paintMood(); paintPal(); return p; }); }
@@ -314,24 +530,74 @@ function detail(main, slug) {
   paintMood();
   page.querySelector('[data-a="add-scenes"]').onclick = openPicker;
 
-  // motion
-  const mot = page.querySelector(".pf-motion");
-  const setMotion = (k, v) => { const m = { ...p.motion }; if (v === null) delete m[k]; else m[k] = v; p = { ...p, motion: m }; live(); later(`motion.${k}`, () => save({ motion: { [k]: v === null ? "base" : v } }), 350); };
+  // motion: where it starts, what it changes, and a way back
+  const startsEl = page.querySelector(".pf-starts"), mot = page.querySelector(".pf-motion"), mhead = page.querySelector(".pf-mhead");
+  const own = (m) => Object.keys(KNOB).concat(Object.keys(CHOICE)).filter((k) => k in m);
+  const startOf = (m) => starts.find((x) => x.slug === (m.from || m.base)) || { slug: m.base, name: m.base, base: m.base, kind: "kit" };
+  const edited = (m) => { const s = startOf(m); return [...Object.keys(KNOB), ...Object.keys(CHOICE)].some((k) => (k in m ? m[k] : undefined) !== (k in s ? s[k] : undefined)) || s.base !== m.base; };
+  const views = [];
+  const playAll = () => views.forEach((v) => v.play(p.motion));
+  const commit = (patch) => later("motion", () => save({ motion: patch }).then(paintHead), 350);
+  const startFrom = (slugM) => { p = { ...p, motion: { ...(starts.find((x) => x.slug === slugM) || { base: slugM }), from: slugM } }; delete p.motion.name; delete p.motion.slug; delete p.motion.kind; delete p.motion.about;
+    live(); save({ motion: { from: slugM } }).then(() => { paintStarts(); paintMotion(); paintHead(); }); };
+  const paintHead = () => {
+    const m = p.motion, s = startOf(m);
+    mhead.innerHTML = edited(m) ? `<span class="pf-edited">Edited from ${esc(s.name)}</span><button class="icon-btn sm ghost" data-a="reset" title="Undo every change and start again from ${esc(s.name)}">${icon("rotate-cw")}Reset to ${esc(s.name)}</button>
+      <button class="icon-btn sm" data-a="save-motion" title="Keep this motion as a starting point any profile can use">${icon("plus")}Save as a motion</button>` : "";
+    mhead.querySelector('[data-a="reset"]')?.addEventListener("click", () => startFrom(s.slug));
+    mhead.querySelector('[data-a="save-motion"]')?.addEventListener("click", async () => {
+      const n = prompt("Name this motion, so any profile can start from it", `${p.name} motion`); if (!n || !n.trim()) return;
+      try { await post({ op: "motion-save", profile: slug, name: n.trim() }); const key = starts.find((x) => x.name === n.trim())?.slug; toast(`Saved the motion ${n.trim()}`); if (key) startFrom(key); else paintStarts(); } catch (e) { toast(e.message); }
+    });
+  };
+  const paintStarts = () => {
+    const cur = startOf(p.motion).slug;
+    startsEl.innerHTML = "";
+    for (const s of starts) {
+      const m = { base: s.base, ...Object.fromEntries([...Object.keys(KNOB), ...Object.keys(CHOICE)].filter((k) => k in s).map((k) => [k, s[k]])) };
+      const card = h(`<button class="pf-start ${s.slug === cur ? "on" : ""}" title="${esc(s.about || `Start from ${s.name}`)}${s.slug === cur ? "" : ". Starts this profile's motion again from it"}">
+        <span class="pf-start-v"></span><b>${esc(s.name)}</b><small>${esc(s.kind === "saved" ? `Yours, on ${s.base}` : s.kind === "project" ? "This project's" : "Built in")}</small>
+        ${s.kind === "saved" ? `<span class="pf-start-x" data-x="${esc(s.slug)}" title="Delete this saved motion">${icon("x")}</span>` : ""}</button>`);
+      card.querySelector(".pf-start-v").append(startView(m));
+      card.onclick = (e) => {
+        if (e.target.closest("[data-x]")) { if (confirm(`Delete the saved motion ${s.name}? Profiles that started from it keep their motion.`)) post({ op: "motion-remove", motion: s.slug }).then(paintStarts).catch((er) => toast(er.message)); return; }
+        if (s.slug === cur && !edited(p.motion)) return;
+        if (edited(p.motion) && !confirm(`Start again from ${s.name}? This profile's changes to its motion go.`)) return;
+        startFrom(s.slug);
+      };
+      startsEl.append(card);
+    }
+  };
   const paintMotion = () => {
     const m = p.motion, b = baseOf(m);
-    mot.innerHTML = `<div class="pf-mrow"><span class="pf-ml" title="The motion profile this look starts from">Base</span><div class="seg" data-base>${Object.keys(motion).map((x) => `<button data-v="${esc(x)}" class="${m.base === x ? "on" : ""}" title="${esc(motion[x])}">${esc(x)}</button>`).join("")}</div><span class="pf-mv">${esc(motion[m.base] || "")}</span></div>`
-      + Object.entries(KNOB).map(([k, d]) => { const v = val(m, k), own = k in m;
-        return `<div class="pf-mrow"><span class="pf-ml" title="${esc(d.tip)}">${d.label}</span><input type="range" data-knob="${k}" min="${d.min}" max="${d.max}" step="${d.step}" value="${v}" title="${esc(d.tip)}" aria-label="${d.label}" class="${own ? "own" : ""}">
-          <span class="pf-mv">${esc(d.show(+v))}${own ? `<button class="pf-reset" data-reset="${k}" title="Back to the base's own (${esc(d.show(+b[k]))})">reset</button>` : ""}</span></div>`; }).join("")
-      + Object.entries(CHOICE).map(([k, d]) => { const v = val(m, k), own = k in m;
-        return `<div class="pf-mrow"><span class="pf-ml" title="${esc(d.tip)}">${d.label}</span><div class="seg" data-choice="${k}">${d.opts.map(([o, t]) => `<button data-v="${o}" class="${v === o ? "on" : ""}" title="${o === b[k] ? "The base's own" : esc(d.tip)}">${t}</button>`).join("")}</div>
-          <span class="pf-mv">${own ? `<button class="pf-reset" data-reset="${k}" title="Back to the base's own">reset</button>` : "as the base"}</span></div>`; }).join("");
-    mot.querySelectorAll("[data-base] button").forEach((x) => (x.onclick = () => { p = { ...p, motion: { ...p.motion, base: x.dataset.v } }; live(); save({ motion: { base: x.dataset.v } }).then(paintMotion); }));
-    mot.querySelectorAll("[data-knob]").forEach((r) => (r.oninput = () => { const k = r.dataset.knob; r.classList.add("own"); r.parentElement.querySelector(".pf-mv").firstChild.textContent = KNOB[k].show(+r.value); setMotion(k, +r.value); }));
-    mot.querySelectorAll("[data-choice] button").forEach((x) => (x.onclick = () => { const k = x.parentElement.dataset.choice; setMotion(k, x.dataset.v); x.parentElement.querySelectorAll("button").forEach((y) => y.classList.toggle("on", y === x)); }));
-    mot.querySelectorAll("[data-reset]").forEach((x) => (x.onclick = () => { setMotion(x.dataset.reset, null); paintMotion(); }));
+    views.length = 0;
+    mot.innerHTML = "";
+    const rows = [...Object.entries(KNOB).map(([k, d]) => [k, d, "range"]), ...Object.entries(CHOICE).map(([k, d]) => [k, d, "choice"])];
+    for (const [k, d, kind] of rows) {
+      const v = val(m, k), mine = k in m;
+      const row = h(`<div class="pf-mrow"><span class="pf-ml"><span class="pf-kv-slot"></span><span><b>${d.label}</b><small>${esc(d.tip)}</small></span></span>
+        ${kind === "range" ? `<input type="range" data-knob="${k}" min="${d.min}" max="${d.max}" step="${d.step}" value="${v}" title="${esc(d.tip)}" aria-label="${d.label}" class="${mine ? "own" : ""}">`
+          : `<div class="seg" data-choice="${k}">${d.opts.map(([o, t]) => `<button data-v="${o}" class="${v === o ? "on" : ""}" title="${o === b[k] ? "What the base does" : esc(d.tip)}">${t}</button>`).join("")}</div>`}
+        <span class="pf-mv"><span class="pf-mv-t">${kind === "range" ? esc(d.show(+v)) : mine ? "changed" : "as the base"}</span>${mine ? `<button class="pf-reset" data-reset="${k}" title="Back to what the base does">reset</button>` : ""}</span></div>`);
+      const kv = knobView(k); row.querySelector(".pf-kv-slot").append(kv); views.push(kv);
+      row.addEventListener("mouseenter", () => kv.play(p.motion));
+      mot.append(row);
+    }
+    mot.querySelectorAll("[data-knob]").forEach((r) => (r.oninput = () => {
+      const k = r.dataset.knob; r.classList.add("own"); r.closest(".pf-mrow").querySelector(".pf-mv-t").textContent = KNOB[k].show(+r.value);
+      p = { ...p, motion: { ...p.motion, [k]: +r.value } }; live(); views.find((v) => v.dataset.k === k)?.play(p.motion); commit({ [k]: +r.value });
+    }));
+    mot.querySelectorAll("[data-choice] button").forEach((x) => (x.onclick = () => {
+      const k = x.parentElement.dataset.choice; x.parentElement.querySelectorAll("button").forEach((y) => y.classList.toggle("on", y === x));
+      p = { ...p, motion: { ...p.motion, [k]: x.dataset.v } }; live(); views.find((v) => v.dataset.k === k)?.play(p.motion); commit({ [k]: x.dataset.v });
+    }));
+    mot.querySelectorAll("[data-reset]").forEach((x) => (x.onclick = () => {
+      const k = x.dataset.reset, m2 = { ...p.motion }; delete m2[k]; p = { ...p, motion: m2 }; live();
+      save({ motion: { [k]: "base" } }).then(() => { paintMotion(); paintHead(); });
+    }));
+    requestAnimationFrame(playAll);
   };
-  paintMotion();
+  paintStarts(); paintMotion(); paintHead();
 
   // rules
   const rules = page.querySelector(".pf-rules");
@@ -343,6 +609,43 @@ function detail(main, slug) {
   const add = page.querySelector(".pf-add input"), learn = () => { const v = add.value.trim(); if (!v) return add.focus(); post({ op: "learn", profile: slug, text: v, from: "the person" }).then(() => { p = get(slug); add.value = ""; paintRules(); }).catch((e) => toast(e.message)); };
   page.querySelector('[data-a="learn"]').onclick = learn;
   add.onkeydown = (e) => { if (e.key === "Enter") learn(); };
+
+  // drafted from: the sources, and the reading of them by the person's AI
+  const srcEl = page.querySelector(".pf-sources"), banner = page.querySelector(".pf-drafting"), redraft = page.querySelector('[data-a="redraft"]');
+  const kindIcon = { video: "film", image: "image", document: "file-text" };
+  const paintSources = () => {
+    srcEl.innerHTML = `<div class="pf-src-list">${p.sources.map((x) => `<span class="pf-src">${x.kind === "image" && !/\.svg$/i.test(x.name) ? `<img alt="" src="${esc(SP.fileUrl(x.file))}">` : `<span class="pf-src-i">${icon(kindIcon[x.kind] || "file-text")}</span>`}<small title="${esc(x.file)}">${esc(x.name)}</small></span>`).join("")}</div>`;
+    const dz = dropZone(p.sources.length ? "Add more" : "Drop files to draft this profile"); dz.classList.add("small");
+    wireDrop(dz, addFiles); srcEl.append(dz);
+    redraft.hidden = !p.sources.length;
+  };
+  const addFiles = async (files) => {
+    files = [...files]; if (!files.length) return;
+    toast(`Adding ${files.length} file${files.length > 1 ? "s" : ""}…`);
+    const n = await sendSources(slug, files);
+    if (!n) return;
+    await post({ op: "draft", profile: slug }).catch((e) => toast(e.message));
+    await load(); p = get(slug); paintSources(); watch();
+    window.Imports?.refresh?.();
+  };
+  redraft.onclick = async () => { try { await post({ op: "draft", profile: slug }); toast(`${SP.Ai} will read the sources again`); watch(); window.Imports?.refresh?.(); } catch (e) { toast(e.message); } };
+  dropTarget = addFiles;
+  document.body.dataset.dropProfile = p.name;
+  let watchT = 0;
+  const watch = async () => {
+    clearTimeout(watchT);
+    if (!page.isConnected) return;
+    const j = await jobFor(slug);
+    const run = j && ["queued", "running"].includes(j.status), wait = j && j.status === "waiting";
+    banner.hidden = !(run || wait);
+    if (run) banner.innerHTML = `<span class="dk-load"><img class="on-dark" src="brand/splice-loader-white.svg" alt=""><img class="on-light" src="brand/splice-loader-black.svg" alt=""></span><span><b>${esc(SP.Ai)} is drafting this profile</b><small>${esc(j.activity || "Reading the sources")}</small></span>`;
+    else if (wait) { banner.innerHTML = `${icon("info")}<span><b>The sources are waiting for ${esc(SP.ai)}</b><small>Ask it to pick up the import, or copy the line.</small></span><button class="icon-btn sm" data-a="pickup" title="Copy the line that tells ${esc(SP.ai)} to draft this profile">${icon("copy")}Copy for ${esc(SP.ai)}</button>`;
+      banner.querySelector('[data-a="pickup"]').onclick = () => CR.copy(`Run \`${SP.cmd("imports", "next")}\` and do what it prints.`, `Copied: paste it to ${SP.ai}`); }
+    if (run || wait) watchT = setTimeout(watch, run ? 3000 : 15000);
+    else if (j && j.status === "done" && banner.dataset.was === "run") { await load(); detail(main, slug); toast(`${p.name} is drafted`); return; }
+    banner.dataset.was = run ? "run" : wait ? "wait" : "";
+  };
+  paintSources(); watch();
 }
 
 /* A sheet of library scenes to add to a profile: search, closest to its palette first, click to add or take out. */
@@ -368,5 +671,5 @@ function scenePicker(p, toggle) {
   q.oninput = paint; paint(); q.focus();
 }
 
-return { ready, load, get, resolve, name, line, pick, splitCopy, briefFor, pinRow, render, create, remembered, remember, NONE, all: () => list, default: () => def, onChange: (fn) => listeners.add(fn) };
+return { ready, load, get, resolve, name, line, pick, splitCopy, briefFor, pinRow, render, create, drop, googleFace, remembered, remember, NONE, all: () => list, default: () => def, onChange: (fn) => listeners.add(fn) };
 })();

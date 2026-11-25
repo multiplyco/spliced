@@ -47,13 +47,14 @@ Run commands from inside a project, or pass `--project <folder>`.
 | `spliced board` | Find scenes, read and edit a board's script, point the open app at one |
 | `spliced film` | Films in production: status, notes, render, the storyboard beside the render |
 | `spliced folders` | The project's folders: list, `add`, `remove` |
+| `spliced profile` | [Profiles](profiles.md): the looks your films are made in, the default, the rules learned. `show`, `new`, `set`, `motion`, `draft`, `learn`, `default` |
 
 ## Making films
 
 | Command | What it does |
 | --- | --- |
 | `spliced kit` | The film kit in `remotion/`: `install`, `update`, `starter`, `packages` |
-| `spliced motion` | Check that a film's motion comes from its profile |
+| `spliced motion` | Check that a film's motion comes from its motion profile |
 | `spliced moves` | Rebuild the library's film of the kit's own moves |
 | `spliced voice` | Voice-over line by line |
 | `spliced sound` | A film's sound taken apart: music, voice and effects on the beat grid |

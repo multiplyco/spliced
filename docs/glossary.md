@@ -27,6 +27,7 @@ In the app, a word with a dotted underline shows its meaning when you point at i
 | --- | --- |
 | Board | Your film's script: the scenes you borrow, in order, each with its words and its length |
 | Beat | One step of your film, and one line on a board. It borrows a scene, says what is on screen, and lasts a few seconds |
+| Profile | A look your films are made in: a palette, typefaces, a motion, its own words and rules. See [Profiles](profiles.md) |
 | Motion profile | How everything in one film moves: how fast things arrive, whether they bounce. One per film, so it feels made by one hand |
 | Storyboard | A film's plan, beat by beat, once you start building it from a board |
 | Render | A video file made from the film as it stands. Each new one gets a version number, so you can compare |

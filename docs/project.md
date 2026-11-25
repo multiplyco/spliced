@@ -14,6 +14,7 @@ Everything Spliced knows about your work is in one folder on your machine. There
 | `spliced.json` | The project's settings |
 | `library/` | Reference films broken down scene by scene, your uploads, your boards and reviews |
 | `reference/` | The downloaded films |
+| `profiles/` | Your [profiles](profiles.md): the looks your films are made in, one folder each |
 | `remotion/`, `videos/` | Films in production, if you make them here |
 | `.cache/` | Rebuilt on demand. Never served or committed |
 | `.env` | Your service keys. Never served or committed |

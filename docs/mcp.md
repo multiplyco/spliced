@@ -24,6 +24,7 @@ spliced mcp
 | `library_scene` | One scene's breakdown, with its frames as a picture |
 | `library_build` | Rebuild the library after a breakdown changed, or only validate it |
 | `folders` | The project's folders |
+| `profile` | The project's [profiles](profiles.md): list them, read one before building in it, start one, keep a rule the person stated, pin a scene that shows the look |
 
 ### Boards
 

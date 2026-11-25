@@ -40,14 +40,14 @@ A project that had one brand and house rules before profiles has them as its fir
 
 ```bash
 spliced profile                                  # the profiles, the default marked
-spliced profile show acme                        # everything an agent reads before building in one
+spliced profile show acme                        # what an agent reads before building in it
 spliced profile new "Acme" --motion soft --default
-spliced profile new "Study" --from-film launch-film   # from a reference film's palette, type and moves
+spliced profile new "Study" --from-film launch-film   # from a film's look
 spliced profile set acme --palette "#0B0B0C ink, #F4F4F1 chalk"
 spliced profile motion acme --pace 1.2 --bounce 0 --transition "blur, whip"
-spliced profile draft acme brand-book.pdf logo.svg    # your AI fills it in from these
+spliced profile draft acme brand-book.pdf logo.svg    # your AI fills it in
 spliced profile learn acme "never bounce the logo"
-spliced profile default none                     # briefs start with no profile
+spliced profile default none                     # briefs start in no profile
 ```
 
 A profile is a folder in the project, `profiles/<name>/`: `profile.json`, its words in `PROFILE.md`, and what it was drafted from in `sources/`. Your AI reaches the same through the `profile` tool over [MCP](mcp.md).

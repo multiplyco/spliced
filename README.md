@@ -9,6 +9,29 @@ answers your notes. Everything stays in a folder on your machine.
 
 **Status: pre-release.** It works, it is tested, and it is still being shaped. Expect names to move.
 
+![The Library: every scene of every film you have added, with its moves named](docs/readme/library.jpg)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/readme/scene.jpg" alt="A scene open beside the Library, with its player, timeline and breakdown"></td>
+    <td width="50%"><img src="docs/readme/search.jpg" alt="Search across scenes, films, boards and moves"></td>
+  </tr>
+  <tr>
+    <td><b>A scene, read closely.</b> Play it frame by frame, see where it sits in its film, and read how it moves and how to make it.</td>
+    <td><b>Find it in seconds.</b> One search across scenes, films, board beats and named moves.</td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/readme/board.jpg" alt="A board: borrowed scenes in order, each with its words and a note"></td>
+    <td width="50%"><img src="docs/readme/build.jpg" alt="Build: a render of your film beside the scene each beat borrows from"></td>
+  </tr>
+  <tr>
+    <td><b>Board it.</b> Line up the scenes you want to borrow and write the script beside them.</td>
+    <td><b>Build it.</b> Your film, beat by beat, next to the reference each beat came from. Leave a note on a frame and your AI picks it up.</td>
+  </tr>
+</table>
+
+The pictures are of a made-up film for a made-up company, drawn in code. Nothing in them is anyone's real work.
+
 ## Start
 
 Open your AI (Claude Code, Codex, Cursor or Gemini CLI) in a new, empty folder and paste this:
@@ -60,6 +83,7 @@ A project is a folder with a `spliced.json`. Run commands from inside it, or pas
 | --- | --- |
 | `spliced.json` | Its name, whose films these are (`brand`), motion profiles it adds, who reads imports (`agent`), and where your app's real code is (`app`) |
 | `library/` | Reference films broken down scene by scene, your uploads, your boards and reviews (`state.json`) |
+| `profiles/` | The looks your films are made in, one folder each (Profiles) |
 | `reference/` | The downloaded films |
 | `remotion/`, `videos/` | Films in production, if you make them here |
 | `.cache/`, `.env` | Rebuilt on demand; your API keys. Neither is ever served or committed |
@@ -114,10 +138,27 @@ spliced kit update               # after updating Spliced: its files replaced wi
 
 The kit's files (`remotion/src/lib`, `src/specimen`, `docs/CRAFT.md`, `MOTION-SYSTEMS.md`, `SOUND.md`, the UI sounds)
 are Spliced's, and `update` replaces them; a file you changed by hand is listed and left alone. Your films, your
-`Root.tsx` and your own motion profiles (`remotion/src/profiles.ts`) are yours and never touched. House rules for
-your films (brand, type, sound direction, where your product's code is) go in `remotion/docs/HOUSE.md`; your AI reads
-them before the kit's defaults. Ask your AI to make a film and it follows the `make-film` skill (`spliced agents install`
-puts it in the project). Remotion is free for individuals and small teams and needs a paid licence above that.
+`Root.tsx` and your own motion profiles (`remotion/src/profiles.ts`) are yours and never touched. Ask your AI to make
+a film and it follows the `make-film` skill (`spliced agents install` puts it in the project). Remotion is free for
+individuals and small teams and needs a paid licence above that.
+
+### Profiles
+
+A profile is a look your films are made in: your company's own (its brand, type, sound direction) or a look you want
+to try. Each one is a folder in the project, `profiles/<name>/`: its palette, its typefaces (chosen from the ones on
+your Mac or from Google Fonts), its motion (a starting motion and what it changes: pace, bounce, stagger, and as
+many scene changes and ways for words to arrive as fit), its own words in `PROFILE.md`, the scenes that show the look, and the rules your AI learns
+while making films ("never bounce the logo"). Your AI reads it before the kit's defaults. A motion you have tuned can
+be saved, and any profile can start from it (`spliced profile save-motion`, `profile motions`).
+
+Drop a brand book, a logo, screenshots or a film on Profiles and your AI drafts a profile from them: the files go into
+the profile's `sources/`, and the reading is an import like a film's breakdown (`spliced profile draft "<name>"
+<files>`; your AI picks it up with `spliced imports next`, or a background session does when `spliced.json` asks for one).
+
+Briefs start in the default profile. Every brief you copy (a board's build prompt, a scene, a whole reference film) can
+choose another, or **No profile**: then the film recreates its references as they are, in their own look. In the app:
+Profiles, under Make. A project from before profiles keeps its brand and `remotion/docs/HOUSE.md`; `spliced setup`
+makes them its first profile.
 
 ## Commands
 
@@ -134,6 +175,7 @@ puts it in the project). Remotion is free for individuals and small teams and ne
 | `spliced import <folder>`, `--go` | Look at a folder of pictures, clips and films you already have; bring it in, each thing once |
 | `spliced imports list`, `next`, `done <id>` | The import queue, and an agent picking a job up |
 | `spliced board find "<words>"`, `show "<board>"` | Search the library; read a board as a script |
+| `spliced profile`, `show <profile>`, `new`, `draft`, `learn` | The looks your films are made in, the default marked; what your AI reads before building in one; a profile drafted from a brand book or film |
 | `spliced film status <slug>`, `render`, `note` | A film in production, beat by beat |
 | `spliced library --check` | Is every breakdown valid? |
 | `spliced keys`, `keys set <service>` | Which service keys the project has (ElevenLabs, footage libraries); paste one into `.env` without it showing |
@@ -162,6 +204,11 @@ and `spliced doctor` says so. `spliced update` asks now. To turn it off: `"updat
 `spliced setup` brings a project's copies of Spliced's files (the skills, the film kit) up to date. The Mac app
 checks for itself and installs the update.
 
+The typeface picker's Google Fonts tab shows each family in its own face, so while it is open the page loads those
+previews from Google Fonts (the request names the font, nothing about you or your project); a profile that uses a
+Google font loads it the same way to show it. Spliced ships the list of names, not the fonts. To turn it off:
+`"google_fonts": false` in `spliced.json`.
+
 ## Working on Spliced
 
 ```bash
@@ -171,6 +218,9 @@ uv run tests/smoke.py                  # the app in a real browser, on the fixtu
 
 `AGENTS.md` has the rules for changing the tool. The tests run on `tests/fixture`, a tiny project made by
 `tests/make_fixture.py`; they never touch a project of yours.
+
+The pictures at the top of this file are taken by `uv run scripts/readme_shots.py`, on a project it makes up in a
+temporary folder. Run it again after a change to how the app looks.
 
 ## How Spliced is published
 

@@ -19,6 +19,7 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
 | `spliced/toolbox.py` | The server: `/app/` (the web app), `/project/<path>` (media only), `/api/` |
 | `spliced/toolbox_state.py`, `board.py` | Boards, reviews, moments: named operations on `library/state.json` |
 | `spliced/film.py`, `sound.py`, `soundkit.py`, `voice.py` | Films in production |
+| `spliced/profiles.py`, `web/profiles.js` | Profiles: the looks a project's films are made in (`profiles/<slug>/`: profile.json and PROFILE.md), the default, the rules learned on films, saved motions (`profiles/motions.json`), and the files one is drafted from (`sources/`, read by the person's AI as an import job of type "profile"). A board, a brief or a film names one, or none (as the reference). `web/google-fonts.json` is the Google Fonts name list the typeface picker offers |
 | `spliced/folders.py`, `web/folders.js` | The project's folders (spliced.json "folders"): films, boards and assets sorted by kind of video or by client. Build, Boards and Assets group and filter by them; the Library never |
 | `spliced/add_reference.py`, `analyze_reference.py`, `build_library.py`, `importer.py`, `runners.py`, `uploads.py`, `stock.py` | The library and what feeds it |
 | `spliced/web/` | The app: plain HTML, CSS and JavaScript, no build step |
@@ -30,6 +31,8 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
 | `package.json`, `bin/spliced.js` | The npm package `spliced-app`: the `spliced/` package plus a Node launcher that finds a Python (or uv) and runs it. Under npx it sets `SPLICED_VIA`, so what Spliced writes for agents names `npx -y spliced-app` |
 | `mac/` | The Mac app: a native window per project around the same server and page (`mac/README.md`). Swift, built by `mac/build.sh` |
 | `tests/` | Unit tests, `smoke.py` (a real browser), and `fixture/`, the tiny project they run on. `perf.py` measures the app on a synthetic library of 600 and 5,000 scenes |
+| `scripts/readme_shots.py`, `docs/readme/` | The README's pictures of the app, taken on a made-up project (the example film's made-up Acme film), never a real library |
+| `docs/` | The docs: how to use Spliced, one Markdown page per file, pictures in `docs/images/` (`docs/README.md`). spliced.video/docs renders this folder at the released version |
 
 ## Rules
 
@@ -49,6 +52,12 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
   for them: a title, the date, one line in italics, a paragraph, a picture if it helps (under `web/changelog/`, a
   JPEG below 250 KB, taken on the fixture project or an empty one, never on a real library: a real library's
   thumbnails are frames of other people's films). The app shows it under Settings, What's new. Never edit the version by hand.
+- **The docs change with the tool.** `docs/` is how to use Spliced, and spliced.video/docs is that folder rendered
+  at the version npm serves. A change someone using Spliced would notice updates every page it touches in the same
+  pull request: a new control, key or command gets its line, and one that is renamed, moved or removed is changed
+  wherever a page says it (search `docs/` for the old word). Every sentence is true of the tool as it is; nothing
+  planned. `docs/README.md` has the page format; `tests/test_docs.py` fails on a `spliced` command that doesn't exist
+  and on a link or picture that isn't there.
 - **A release is cut when the owner says "release"**, with `scripts/release.py`: `prepare minor` (something a user would
   notice) or `prepare patch` (fixes only) writes the number and marks the changelog; that goes through a pull request
   like any change; after the merge, `publish` tags it and makes the GitHub release. Below 1.0 until the repo is public.
@@ -62,6 +71,10 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
 - **Stacks.** Images in one folder whose names differ only by a number (three or more) are a stack
   (`film.stack_assets`). The asset lists still carry every frame, marked with `stack` and `frame`, so an agent reaches
   each one; only the app folds them into one card. Don't drop frames from an API to make a list shorter.
+- **A film is made in a profile, or in none.** What a film looks like is the project's, in `profiles/`, never the
+  tool's: a prompt names the profile (`Profiles.line` in `web/profiles.js`), and the make-film skill reads it with
+  `spliced profile show`. "none" recreates the references as they are. A board's `style` is its profile and its
+  `profile` its motion profile; a film keeps the profile it was started in (storyboard.json `style`).
 - **A new main view gets an explainer**: an entry in `VIEWS` in `web/explain.js` (a title and two or three lines, for
   someone who has never edited a film). Views don't call it; it places itself under the view's heading. A loop can
   sit beside the words when `web/explainers/<key>.mp4` exists.

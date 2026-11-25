@@ -12,8 +12,8 @@ there (.claude/skills/.spliced.json), and tells three cases apart:
 Whatever is replaced without being provably Spliced's own goes to .cache/skills-kept/<time>/ first, so nothing a
 person wrote is ever lost. Files a person added to a skill's folder are theirs and are never touched.
 
-A project's own rules belong outside the skills anyway: in its AGENTS.md (outside Spliced's section) and in
-remotion/docs/HOUSE.md, which the skills read first.
+A project's own rules belong outside the skills anyway: in its AGENTS.md (outside Spliced's section) and in its
+profiles (profiles/<slug>/PROFILE.md), which the skills read first.
 
 Needs no project module (the command line calls it before one is loaded), and nothing but the standard library.
 """

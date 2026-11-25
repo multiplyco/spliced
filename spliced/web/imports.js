@@ -34,17 +34,18 @@ async function refresh() {
   try { const r = await call("/api/imports"); jobs = r.jobs; claude = r.claude; runner = r.runner || "claude"; } catch { return; }
   badge(); if (sheet) paintList();
   if (jobs.some((j) => j.type === "uploads" && (j.status === "running" || j.status === "queued")) || dockUps()) await loadPending();
+  // a browser that has never seen this project's jobs takes them as read: the dock keeps news, not the whole history
+  if (!localStorage.getItem("cr.importsSeen")) { for (const j of jobs) if (j.status === "done") seenDone.add(j.id); localStorage.setItem("cr.importsSeen", JSON.stringify([...seenDone])); }
   for (const j of jobs) if (j.status === "done" && !seenDone.has(j.id)) {
     seenDone.add(j.id); localStorage.setItem("cr.importsSeen", JSON.stringify([...seenDone]));
     if (j.type === "uploads" && !j.scenes) continue;
     // the Mac app: a notification when the person is in another app (only for jobs this page saw running)
-    if (watched.has(j.id)) notify(j.type === "folder" ? "Folder brought in" : j.type === "uploads" ? "Uploads analysed" : "Film added",
-      j.type === "folder" ? (j.summary || "The folder is in the library") : j.type === "uploads" ? `${j.scenes} upload${j.scenes > 1 ? "s" : ""} analysed` : `${j.film}${j.scenes ? `, ${j.scenes} scenes` : ""} is in the library`);
-    if (j.type === "folder") { if (!(watched.has(j.id) || dockShown())) toast(j.summary || "The folder is in", 5000); else finished.set(j.id, Date.now()); continue; }
-    if (watched.has(j.id) || dockShown()) { finished.set(j.id, Date.now()); continue; }   // the dock says it
-    toast(j.type === "uploads" ? `${j.scenes} upload${j.scenes > 1 ? "s" : ""} analysed: they filter like film scenes now` : `In the library: ${j.film}${j.scenes ? `, ${j.scenes} scenes` : ""}`, 4000);
+    if (watched.has(j.id)) notify(j.type === "folder" ? "Folder brought in" : j.type === "uploads" ? "Uploads analysed" : j.type === "profile" ? "Profile drafted" : "Film added",
+      j.type === "profile" ? `${j.slug} is filled in from its sources` : j.type === "folder" ? (j.summary || "The folder is in the library") : j.type === "uploads" ? `${j.scenes} upload${j.scenes > 1 ? "s" : ""} analysed` : `${j.film}${j.scenes ? `, ${j.scenes} scenes` : ""} is in the library`);
+    keepDone(j.id);   // the dock says it, and keeps saying it until it is put away
   }
-  for (const j of jobs) if (watched.has(j.id) && j.status === "cancelled" && !finished.has(j.id)) finished.set(j.id, Date.now());
+  for (const j of jobs) if (watched.has(j.id) && (j.status === "cancelled" || j.status === "failed") && !finished.has(j.id)) keepDone(j.id);
+  if (jobs.length) for (const id of [...finished.keys()]) if (!jobs.some((j) => j.id === id)) finished.delete(id);   // a job the server no longer lists
   for (const j of active()) watched.add(j.id);
   paintDock();
   clearTimeout(pollT); pollT = setTimeout(refresh, active().length || sheet || up ? 2000 : 15000);
@@ -200,7 +201,7 @@ function paintList() {
       <div class="imp-top"><div class="imp-t"><b>${esc(j.title || j.film || j.src.replace(/^https?:\/\/(www\.)?/, ""))}</b><span>${esc(j.film ? j.film : j.src)}</span></div>
         <span class="imp-when">${j.status === "running" ? since(j.started) : j.status === "done" ? "done" : j.status === "failed" ? "failed" : j.status === "cancelled" ? "cancelled" : j.status === "waiting" ? "needs your AI" : "waiting"}</span>
         <span class="imp-acts"></span></div>
-      <div class="imp-steps">${(j.type === "uploads" ? [["analyse", "Analyse each upload"]] : j.type === "folder" ? [["bring", "Bring the files in"]] : STEPS).map(([k, l]) => `<span class="st-${esc(j.steps[k]?.status || "todo")}${k === cur && j.status === "running" ? " cur" : ""}"><i></i>${l}</span>`).join("")}</div>
+      <div class="imp-steps">${(j.type === "uploads" ? [["analyse", "Analyse each upload"]] : j.type === "folder" ? [["bring", "Bring the files in"]] : j.type === "profile" ? [["read", "Read the sources, fill the profile in"]] : STEPS).map(([k, l]) => `<span class="st-${esc(j.steps[k]?.status || "todo")}${k === cur && j.status === "running" ? " cur" : ""}"><i></i>${l}</span>`).join("")}</div>
       ${j.status === "running" || j.status === "queued" ? `<div class="imp-act">${esc(j.activity || "")}</div>` : ""}
       ${j.status === "waiting" ? `<div class="imp-act">Downloaded and analysed. Ask your AI to pick it up: <code>${esc(PICKUP)}</code></div>` : ""}
       ${j.status === "failed" ? `<div class="imp-err">${esc((j.error || "").split("\n").slice(-3).join(" "))}</div>` : ""}
@@ -210,6 +211,7 @@ function paintList() {
     const acts = $(".imp-acts", el);
     const btn = (label, ic, fn, title = "") => { const b = h(`<button class="icon-btn sm ghost" title="${esc(title)}">${icon(ic)}${label}</button>`); b.onclick = fn; acts.append(b); };
     if (j.status === "done" && (j.type === "uploads" || (j.type === "folder" && j.scenes))) btn("Open", "library-big", () => { close(); location.hash = "#/scenes?film=uploads"; }, "See them in the Library");
+    if (j.status === "done" && j.type === "profile") btn("Open", "palette", () => { close(); location.hash = `#/profiles/${j.slug}`; }, "Open the profile");
     if (j.status === "done" && j.film) btn("Open", "film", () => { close(); location.hash = `#/film/${j.film}`; }, "Open the film in the library");
     if (j.status === "waiting") btn("Copy for your AI", "copy", () => { navigator.clipboard?.writeText(PICKUP); toast("Copied: paste it to your AI"); }, "Copy the line that tells your AI to pick this import up");
     if (j.status === "running" || j.status === "queued" || j.status === "waiting") btn("", "x", () => act(j, "cancel"), "Cancel");
@@ -228,13 +230,23 @@ async function act(j, what) {
 
 /* ---------- the dock: a small panel at the bottom right while references upload and get analysed ----------
    Rows: the files uploading (real progress per file), the analysis working through the uploads (what it's looking at,
-   a strip of what's left), and any film being imported (its step). Finished rows say so for a few seconds, then the
-   dock folds away. It takes the place of the toasts for the work it shows. */
+   a strip of what's left), and any film being imported (its step). A finished row stays, with Open, until it is put
+   away (its own ×, or the dock's), also after a reload (cr.dockKeep): someone who looked away still learns what came
+   in. It takes the place of the toasts for the work it shows. */
 let up = null;                       // the batch uploading from this tab: {files: [{name, url, kind}], i, frac, ok, failed, fetching, ended}
 let pending = [];                    // uploads not analysed yet (from /api/uploads)
-const watched = new Set(), finished = new Map(), most = new Map();   // most: the largest queue an analysis job has had, to count it down
+const watched = new Set(), most = new Map();   // most: the largest queue an analysis job has had, to count it down
+const KEEP = "cr.dockKeep", KEEP_MAX = 8;   // the finished rows the dock keeps (job id -> when), newest last
+const finished = new Map((() => { try { return Object.entries(JSON.parse(localStorage.getItem(KEEP) || "{}")); } catch { return []; } })());
+const saveKeep = () => { while (finished.size > KEEP_MAX) finished.delete(finished.keys().next().value); localStorage.setItem(KEEP, JSON.stringify(Object.fromEntries(finished))); };
+// what has been put away stays away: the refresh that follows must not bring a watched job's row straight back
+const AWAY = "cr.dockAway";
+const away = new Set((() => { try { return JSON.parse(localStorage.getItem(AWAY) || "[]"); } catch { return []; } })());
+const keepDone = (id) => { if (away.has(id)) return; finished.set(id, Date.now()); saveKeep(); };
+const putAway = (id) => { finished.delete(id); saveKeep(); away.add(id); localStorage.setItem(AWAY, JSON.stringify([...away].slice(-200))); };
 let dockEl = null, dockMin = localStorage.getItem("cr.dockMin") === "1", dockClosed = false, closedIds = new Set(), rowsSig = [];
-const dockUps = () => up && (!up.ended || Date.now() - up.ended < 6000);
+const analysing = () => up && jobs.some((j) => j.type === "uploads" && new Date(j.created).getTime() >= up.id - 5000);
+const dockUps = () => up && (!up.ended || (!up.away && !(analysing() && Date.now() - up.ended > 6000)));
 const dockShown = () => !!dockEl && !dockEl.hidden;
 const fileUrl = SP.fileUrl;
 const thumbOf = (it) => it.kind === "video" ? `/api/frame?file=${encodeURIComponent(it.file)}&t=0.5&w=120` : fileUrl(it.file);
@@ -245,8 +257,6 @@ const loader = `<span class="dk-load"><img class="on-dark" src="brand/splice-loa
 const mark = (st) => st === "done" ? `<span class="dk-mark ok">${icon("check")}</span>` : st === "failed" ? `<span class="dk-mark bad">${icon("x")}</span>` : st === "off" ? `<span class="dk-mark off">${icon("x")}</span>` : loader;
 const cancels = new Map();   // row key -> how to stop it (an upload aborts its request; a job asks the server)
 function paintDock() {
-  const now = Date.now();
-  for (const [id, t] of finished) if (now - t > 8000) finished.delete(id);
   const rows = [];
   if (dockUps()) {
     const n = up.files.length, doneN = up.ok + up.failed, frac = up.ended ? 1 : (doneN + (up.frac || 0)) / n, f = up.files[Math.min(up.i, n - 1)];
@@ -272,6 +282,10 @@ function paintDock() {
         sub: run ? (looking ? `Looking at ${seen?.title || looking}` : j.activity || "") : j.status === "done" ? "Tags, palette and how it moves: they filter like film scenes now" : (j.error || "").split("\n").pop(),
         right: run ? el : "", bar: run ? (tot > 1 ? (at - 0.5) / tot : -1) : null, open: j.status === "done" ? "#/scenes?film=uploads" : "",
         strip: run ? pending.slice(0, 8).map((x) => ({ src: thumbOf(x), kind: x.kind, cur: !!looking && x.file.endsWith(looking) })) : [] });
+    } else if (j.type === "profile") {
+      rows.push({ st: run ? "run" : j.status === "done" ? "done" : "failed", job: j, cancel: cancelJob, t: run ? `Drafting the profile ${j.slug}` : j.status === "done" ? `Profile ${j.slug} drafted` : `Couldn't draft ${j.slug}`,
+        sub: run ? j.activity || "" : j.status === "done" ? "Palette, typefaces, motion and rules, from its sources" : (j.error || "").split("\n").pop(), right: run ? el : "", bar: run ? -1 : null,
+        open: j.status === "done" ? `#/profiles/${j.slug}` : "" });
     } else if (j.type === "folder") {
       rows.push({ st: run ? "run" : j.status === "done" ? "done" : "failed", job: j, cancel: cancelJob, t: j.title || "Folder",
         sub: run ? j.activity || "" : j.status === "done" ? j.summary || "" : (j.error || "").split("\n").pop(), right: run ? el : "", bar: run ? -1 : null,
@@ -294,7 +308,12 @@ function paintDock() {
     dockEl.addEventListener("click", (e) => {
       const b = e.target.closest("[data-a]"); if (!b) return;
       if (b.dataset.a === "min") { dockMin = !dockMin; localStorage.setItem("cr.dockMin", dockMin ? "1" : "0"); paintDock(); }
-      else if (b.dataset.a === "x") { dockClosed = true; closedIds = new Set(rowsSig); paintDock(); }
+      else if (b.dataset.a === "x") {
+        if (!rowsSig.length) { for (const id of [...finished.keys()]) putAway(id); if (up?.ended) up.away = true; }   // nothing running: put it all away
+        else { dockClosed = true; closedIds = new Set(rowsSig); }
+        paintDock();
+      }
+      else if (b.dataset.a === "away") { const k = b.dataset.k; if (k.startsWith("up")) { if (up) up.away = true; } else putAway(k); paintDock(); }
       else if (b.dataset.a === "open") location.hash = b.dataset.h;
       else if (b.dataset.a === "cancel") { const fn = cancels.get(b.dataset.k); b.disabled = true; b.textContent = "Stopping"; fn?.(); }
       else if (b.dataset.a === "more") open();
@@ -315,7 +334,7 @@ function paintDock() {
   set($(".dk-head b", dockEl), "textContent", head);
   const mb = $('[data-a="min"]', dockEl), mt = dockMin ? "Show the details" : "Fold it small";
   if (mb.title !== mt) { mb.title = mt; mb.innerHTML = icon(dockMin ? "chevron-up" : "chevron-down"); }
-  set($('[data-a="x"]', dockEl), "title", running ? "Hide it (the work goes on; Add reference shows it)" : "Close");
+  set($('[data-a="x"]', dockEl), "title", running ? "Hide it (the work goes on; Add reference shows it)" : "Put them all away");
   const box = $(".dk-rows", dockEl); box.hidden = dockMin;
   const keep = new Set();
   rows.forEach((r, i) => {
@@ -328,7 +347,7 @@ function paintDock() {
     set(el, "className", `dk-row s-${r.st}`);
     const mk = $(".dk-mk", el); if (mk.dataset.st !== r.st) { mk.dataset.st = r.st; mk.innerHTML = mark(r.st); }
     if (r.cancel) cancels.set(k, r.cancel); else cancels.delete(k);
-    const l1 = `<b>${esc(r.t)}</b>${r.right ? `<span class="dk-r">${esc(r.right)}</span>` : ""}${r.open ? `<button class="dk-open" data-a="open" data-h="${esc(r.open)}">Open</button>` : ""}${r.cancel ? `<button class="dk-open dk-cancel" data-a="cancel" data-k="${esc(k)}" title="Stop it">Cancel</button>` : ""}`;
+    const l1 = `<b>${esc(r.t)}</b>${r.right ? `<span class="dk-r">${esc(r.right)}</span>` : ""}${r.open ? `<button class="dk-open" data-a="open" data-h="${esc(r.open)}" title="Go to what came in">Open</button>` : ""}${r.cancel ? `<button class="dk-open dk-cancel" data-a="cancel" data-k="${esc(k)}" title="Stop it">Cancel</button>` : ""}${r.st !== "run" && (finished.has(k) || k.startsWith("up")) ? `<button class="dk-away" data-a="away" data-k="${esc(k)}" title="Put this away">${icon("x")}</button>` : ""}`;
     set($(".dk-l1", el), "innerHTML", l1);
     const sub = $(".dk-sub", el); set(sub, "textContent", r.sub || ""); sub.hidden = !r.sub;
     const st = $(".dk-steps", el), stH = (r.steps || []).map((x) => `<i class="st-${esc(x)}"></i>`).join(""); if (st.dataset.h !== stH) { st.dataset.h = stH; st.innerHTML = stH; } st.hidden = !r.steps;
@@ -363,7 +382,7 @@ const upload = {
   done(ok) { if (!up) return; ok ? up.ok++ : up.failed++; up.frac = 0; paintDock(); },
   end({ cancelled = false } = {}) { if (!up) return; up.cancelled = cancelled; up.ended = Date.now(); up.i = up.files.length; paintDock(); refresh(); setTimeout(paintDock, 6200); },
 };
-setInterval(() => { if (dockShown()) paintDock(); }, 1000);   // the clocks, and finished rows folding away
+setInterval(() => { if (dockShown()) paintDock(); }, 1000);   // the clocks
 
 /* paste a link anywhere (not into a field) to add it */
 document.addEventListener("paste", (e) => {

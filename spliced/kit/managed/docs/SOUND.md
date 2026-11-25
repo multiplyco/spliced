@@ -14,7 +14,7 @@ spliced soundkit loudness remotion/out/<slug>-vN.mp4   # about -16 LUFS
 ## 1. Direction (before spending anything)
 
 Ask for the direction in one message if the person hasn't given it: tempo, genre, energy, what to avoid. A project
-can keep its approved direction in its own house rules (for example `docs/HOUSE.md`). Defaults that have held up:
+can keep its approved direction in the profile a film is made in (`spliced profile show <profile>`). Defaults that have held up:
 
 - **Forward-moving**, about 120 to 126 BPM, for a product film. Slow, sparse music makes a short film feel long.
 - **The beat builds with the picture:** drums alone from the first click, then the bass, then the band.

@@ -44,6 +44,7 @@ Statuses: todo -> wip (being built) -> review (rendered, waiting for the person)
 import datetime as dt, hashlib, json, os, re, subprocess, sys, time
 
 import paths
+import profiles
 
 ROOT = paths.ROOT
 FILMS_DIR = paths.FILMS
@@ -222,7 +223,7 @@ def remotion_film(slug, films_dir=None):
         "folder": folder if folder in paths.FOLDER_NAMES else "",
         "renders_dir": rel(paths.renders_dir(folder if folder in paths.FOLDER_NAMES else "")),
         "storyboard": rel(os.path.join(d, "storyboard.json")), "message": sb.get("message", ""),
-        "format": sb.get("format", "1920x1080"), "fps": sb.get("fps", 60), "profile": sb.get("profile", paths.DEFAULT_PROFILE),
+        "format": sb.get("format", "1920x1080"), "fps": sb.get("fps", 60), "profile": sb.get("profile", paths.DEFAULT_PROFILE), "style": sb.get("style", ""),
         "board": sb.get("board", ""), "composition": sb.get("composition", ""), "cues": rel(cues_p),
         "duration": cues.get("duration") or max([b["end"] or 0 for b in beats] or [0]),
         "beats": beats, "renders": renders, "editable": True,
@@ -1229,7 +1230,7 @@ def update_beat(slug, beat_id, patch, done=None):
     return production(slug)
 
 
-def new_from_board(slug, board_name, items=None, profile=None, folder=None):
+def new_from_board(slug, board_name, items=None, profile=None, folder=None, style=None):
     """Start a Remotion film from a board. Its folder: the one given, else the board's, else the one work here belongs in."""
     slug = slugify(slug, 48)
     if not slug:
@@ -1244,6 +1245,8 @@ def new_from_board(slug, board_name, items=None, profile=None, folder=None):
         if bd is None:
             raise KeyError(f"no board called {board_name!r} in library/state.json")
         items, profile = bd.get("items", []), profile or bd.get("profile")
+    # the profile it is made in, fixed now: a later change of the project's default doesn't move a film already started
+    style = style or (bd or {}).get("style") or profiles.default() or profiles.NONE
     if folder is None:
         folder = (bd or {}).get("folder") if (bd or {}).get("folder") in paths.FOLDER_NAMES else paths.here_folder()
     folder = paths.clean_folder(folder)
@@ -1265,7 +1268,7 @@ def new_from_board(slug, board_name, items=None, profile=None, folder=None):
         "_note": "The plan, beat by beat: Spliced's Build view pairs it with every render (spliced open, Build). "
                  "Beat id = its key in cues.json scenes. Statuses: todo, wip, review, changes, approved. "
                  "`review` is the person's open note; resolve it with `spliced film mark <slug> <beat> review --done \"...\"`.",
-        "title": board_name or slug, "board": board_name, "profile": profile or paths.DEFAULT_PROFILE, "composition": "", "fps": 60,
+        "title": board_name or slug, "board": board_name, "style": style, "profile": profile or paths.DEFAULT_PROFILE, "composition": "", "fps": 60,
         "format": "1920x1080", "message": "", "beats": beats, **({"folder": folder} if folder else {}),
     }
     write_json(os.path.join(d, "storyboard.json"), sb)
@@ -1359,7 +1362,9 @@ def cmd_status(a):
     print(f"# {p['title']}  ({p['engine']}, {p['dir']})")
     if p["message"]:
         print(f"News: {p['message']}")
-    print(f"Plan: {p['storyboard']}   {fmt_t(p['duration'])}   profile {p['profile'] or '-'}   board {p['board'] or '-'}")
+    print(f"Plan: {p['storyboard']}   {fmt_t(p['duration'])}   made in {('the profile ' + p['style']) if p.get('style') and p['style'] != 'none' else 'no profile (as the reference)' if p.get('style') else 'the project default'}   motion {p['profile'] or '-'}   board {p['board'] or '-'}")
+    if p.get("style") and p["style"] != "none":
+        print(f"  Read the profile before building: {paths.CLI} profile show {p['style']}")
     for w in p["warnings"]:
         print(f"! {w}")
     print()

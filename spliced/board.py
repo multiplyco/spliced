@@ -6,9 +6,14 @@ picks up the file within ~2s). SPLICED_OFFLINE=1 forces the file path.
 
   spliced board boards                                  list boards
   spliced board show "Areas launch v1" [--md]           the board as a script (brief, beats, copy, timecode)
-  spliced board new "Areas launch v1" [--profile soft] [--folder branding-videos] [--news "..."] [--audience ..] [--aspect 16:9] [--length 40]
+  spliced board new "Areas launch v1" [--style acme] [--motion soft] [--folder branding-videos] [--news "..."] [--audience ..] [--aspect 16:9] [--length 40]
+                                                        --style: the profile it is built in (spliced profile), none to recreate the
+                                                        references as they are; without it, the project's default profile.
+                                                        --motion (or --profile): its motion profile
                                                         (no --folder: the folder you are in, if you are in one of the project's)
-  spliced board brief "Areas launch v1" [--news ..] [--audience ..] [--aspect ..] [--length ..] [--notes ..] [--profile ..]
+  spliced board new "Study: Plan it together" --from-film acme-launch
+                                                        a board of a whole reference film: one beat per scene, in order, each its length
+  spliced board brief "Areas launch v1" [--news ..] [--audience ..] [--aspect ..] [--length ..] [--notes ..] [--style ..] [--motion ..]
   spliced board add "Areas launch v1" film/s05 [--time 0:21.40] [--beat hook] [--copy "On-screen words"] [--vo "Voice-over line"] [--seconds 3] [--note ..] [--at 2]
   spliced board edit "Areas launch v1" 3 [--scene film/s07] [--time 0:21.40 | --time none] [--beat ..] [--copy ..] [--vo ..] [--seconds ..] [--note ..]
       --time is the moment inside the scene the beat borrows (seconds or m:ss.xx in the reference film); --at is the beat's position.
@@ -29,6 +34,7 @@ import argparse, json, os, sys, urllib.error, urllib.parse, urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import paths
+import profiles
 import toolbox_state as ts
 
 def _url():
@@ -102,6 +108,18 @@ def run(ops, quiet=False):
     return res
 
 
+def style_of(b):
+    """The profile a board is built in: (slug, words). "none" when it recreates its references as they are."""
+    v = b.get("style") or profiles.default() or profiles.NONE
+    if v == profiles.NONE:
+        return v, "none (recreate the references as they are)"
+    try:
+        p = profiles.get(v)
+        return v, f"{p['name']} ({v})" + ("" if b.get("style") else ", the default")
+    except KeyError:
+        return v, f"{v} (missing: no such profile now)"
+
+
 def library():
     out = {}
     refs = paths.REFS
@@ -118,6 +136,18 @@ def tc(t):
     return f"{int(t // 60)}:{t % 60:04.1f}"
 
 
+def film_items(slug):
+    """A reference film as board beats: every scene in order, the scene's role as the beat, its length as the seconds."""
+    p = os.path.join(paths.REFS, slug, "breakdown.json")
+    if not os.path.exists(p):
+        sys.exit(f"no film called {slug} in the library (library/references/{slug}/breakdown.json)")
+    b = json.load(open(p))
+    items = [{"id": f"{slug}/{s['id']}", "beat": s.get("role", ""), "seconds": round(s["end"] - s["start"], 2)} for s in b["scenes"]]
+    fmt = str(b.get("format", ""))
+    return b, items, {"length": round(b.get("duration") or sum(i["seconds"] for i in items), 1), **({"aspect": fmt.replace("x", ":")} if "x" in fmt else {}),
+                      "news": f"A study of {b.get('title', slug)}: every scene, in order, as close to the reference as we can make it."}
+
+
 def tcf(t):
     return f"{int(t // 60)}:{t % 60:05.2f}"
 
@@ -130,7 +160,7 @@ def show(name, md=False):
     br = b.get("brief", {})
     total = sum((it.get("seconds") or 0) for it in b["items"])
     L = [f"# {name}", "",
-         f"Profile: {b.get('profile', ts.DEFAULT_PROFILE)} · {len(b['items'])} beats · {total:.1f}s scripted" + (f" of {br['length']}s" if br.get("length") else "") + (f" · {br['aspect']}" if br.get("aspect") else ""),
+         f"Profile: {style_of(b)[1]} · motion {b.get('profile', ts.DEFAULT_PROFILE)} · {len(b['items'])} beats · {total:.1f}s scripted" + (f" of {br['length']}s" if br.get("length") else "") + (f" · {br['aspect']}" if br.get("aspect") else ""),
          ""]
     for k in ("news", "audience", "notes"):
         if br.get(k):
@@ -202,9 +232,12 @@ def main():
     x = sub.add_parser("show"); x.add_argument("board"); x.add_argument("--md", action="store_true")
     for name in ("new", "brief"):
         x = sub.add_parser(name); x.add_argument("board")
-        for f in ("news", "audience", "aspect", "notes", "profile", "folder"):
+        for f in ("news", "audience", "aspect", "notes", "folder", "style"):
             x.add_argument(f"--{f}")
+        x.add_argument("--profile", "--motion", dest="profile", help="its motion profile")
         x.add_argument("--length", type=float)
+        if name == "new":
+            x.add_argument("--from-film", metavar="SLUG", help="fill it with every scene of this reference film, in order")
     x = sub.add_parser("add"); x.add_argument("board"); x.add_argument("scene")
     for f in ("beat", "copy", "vo", "note"):
         x.add_argument(f"--{f}")
@@ -246,10 +279,17 @@ def main():
         show(a.board, a.md)
     elif a.cmd in ("new", "brief"):
         brief = {k: getattr(a, k) for k in ("news", "audience", "aspect", "notes", "length") if getattr(a, k) is not None}
+        items = []
+        if a.cmd == "new" and a.from_film:
+            _, items, seeded = film_items(a.from_film)
+            brief = {**seeded, **brief}
+            a.style = a.style or profiles.NONE   # a study of one film: in its own look
         if a.cmd == "new":
             op = {"op": "board.create", "name": a.board, "brief": brief}
             if a.profile:
                 op["profile"] = a.profile
+            if a.style:
+                op["style"] = a.style
             folder = a.folder if a.folder is not None else paths.here_folder()   # a board started inside a folder is that folder's
             if folder and folder != "-":
                 op["folder"] = folder
@@ -257,9 +297,11 @@ def main():
             op = {"op": "board.set", "name": a.board, "brief": brief}
             if a.profile:
                 op["profile"] = a.profile
+            if a.style is not None:
+                op["style"] = "" if a.style == "default" else a.style
             if a.folder is not None:
                 op["folder"] = "" if a.folder == "-" else a.folder
-        run([op])
+        run([op] + [{"op": "item.add", "board": a.board, **it} for it in items])
     elif a.cmd == "add":
         op = {"op": "item.add", "board": a.board, "id": a.scene}
         for f in ("beat", "copy", "vo", "note", "seconds", "at"):

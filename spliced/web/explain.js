@@ -40,6 +40,10 @@ const VIEWS = {
   assets: ["Everything your films are made of", () => [
     `Every still, clip and sound across your films, with what made each one and whether it is used.`,
     `The search also looks in free footage libraries. <b>Add</b> pulls a clip or photo into a film and writes down its author and licence.`]],
+  profiles: ["The looks your films are made in", () => [
+    `A ${T("profile")} is a look: your company's own, or one you want to try. It keeps a palette, a typeface, its motion, the scenes that show it and your own words, and ${esc(SP.ai)} adds the rules it learns on every film.`,
+    `Briefs start in the default profile. Each brief you copy can choose another, or <b>No profile</b> to copy the reference as it is.`,
+    `Start one with <b>New profile</b>, or from a film you like: its page has <b>Start a profile</b>.`]],
   sound: ["The film's sound, taken apart", () => [
     `Music, voice and effects, each on its own line, laid over the music's own pulse so you can see what lands on it.`,
     `Turn the sound on to hear the parts in step with the picture; mute or solo any line. Drag across a stretch to loop it or leave a note about it.`,
@@ -71,6 +75,7 @@ function keyOf() {
   if (v === "scene") return null;
   if (v === "boards") return parts[1] ? "board" : "boards";
   if (v === "build") return parts[1] ? "build-film" : "build";
+  if (v === "profiles") return parts[1] ? null : "profiles";
   return v;
 }
 

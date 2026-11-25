@@ -32,6 +32,7 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
 | `mac/` | The Mac app: a native window per project around the same server and page (`mac/README.md`). Swift, built by `mac/build.sh` |
 | `tests/` | Unit tests, `smoke.py` (a real browser), and `fixture/`, the tiny project they run on. `perf.py` measures the app on a synthetic library of 600 and 5,000 scenes |
 | `scripts/readme_shots.py`, `docs/readme/` | The README's pictures of the app, taken on a made-up project (the example film's made-up Acme film), never a real library |
+| `docs/` | The docs: how to use Spliced, one Markdown page per file, pictures in `docs/images/` (`docs/README.md`). spliced.video/docs renders this folder at the released version |
 
 ## Rules
 
@@ -51,6 +52,12 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
   for them: a title, the date, one line in italics, a paragraph, a picture if it helps (under `web/changelog/`, a
   JPEG below 250 KB, taken on the fixture project or an empty one, never on a real library: a real library's
   thumbnails are frames of other people's films). The app shows it under Settings, What's new. Never edit the version by hand.
+- **The docs change with the tool.** `docs/` is how to use Spliced, and spliced.video/docs is that folder rendered
+  at the version npm serves. A change someone using Spliced would notice updates every page it touches in the same
+  pull request: a new control, key or command gets its line, and one that is renamed, moved or removed is changed
+  wherever a page says it (search `docs/` for the old word). Every sentence is true of the tool as it is; nothing
+  planned. `docs/README.md` has the page format; `tests/test_docs.py` fails on a `spliced` command that doesn't exist
+  and on a link or picture that isn't there.
 - **A release is cut when the owner says "release"**, with `scripts/release.py`: `prepare minor` (something a user would
   notice) or `prepare patch` (fixes only) writes the number and marks the changelog; that goes through a pull request
   like any change; after the merge, `publish` tags it and makes the GitHub release. Below 1.0 until the repo is public.

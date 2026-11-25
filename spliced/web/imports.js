@@ -40,8 +40,8 @@ async function refresh() {
     seenDone.add(j.id); localStorage.setItem("cr.importsSeen", JSON.stringify([...seenDone]));
     if (j.type === "uploads" && !j.scenes) continue;
     // the Mac app: a notification when the person is in another app (only for jobs this page saw running)
-    if (watched.has(j.id)) notify(j.type === "folder" ? "Folder brought in" : j.type === "uploads" ? "Uploads analysed" : "Film added",
-      j.type === "folder" ? (j.summary || "The folder is in the library") : j.type === "uploads" ? `${j.scenes} upload${j.scenes > 1 ? "s" : ""} analysed` : `${j.film}${j.scenes ? `, ${j.scenes} scenes` : ""} is in the library`);
+    if (watched.has(j.id)) notify(j.type === "folder" ? "Folder brought in" : j.type === "uploads" ? "Uploads analysed" : j.type === "profile" ? "Profile drafted" : "Film added",
+      j.type === "profile" ? `${j.slug} is filled in from its sources` : j.type === "folder" ? (j.summary || "The folder is in the library") : j.type === "uploads" ? `${j.scenes} upload${j.scenes > 1 ? "s" : ""} analysed` : `${j.film}${j.scenes ? `, ${j.scenes} scenes` : ""} is in the library`);
     keepDone(j.id);   // the dock says it, and keeps saying it until it is put away
   }
   for (const j of jobs) if (watched.has(j.id) && (j.status === "cancelled" || j.status === "failed") && !finished.has(j.id)) keepDone(j.id);
@@ -201,7 +201,7 @@ function paintList() {
       <div class="imp-top"><div class="imp-t"><b>${esc(j.title || j.film || j.src.replace(/^https?:\/\/(www\.)?/, ""))}</b><span>${esc(j.film ? j.film : j.src)}</span></div>
         <span class="imp-when">${j.status === "running" ? since(j.started) : j.status === "done" ? "done" : j.status === "failed" ? "failed" : j.status === "cancelled" ? "cancelled" : j.status === "waiting" ? "needs your AI" : "waiting"}</span>
         <span class="imp-acts"></span></div>
-      <div class="imp-steps">${(j.type === "uploads" ? [["analyse", "Analyse each upload"]] : j.type === "folder" ? [["bring", "Bring the files in"]] : STEPS).map(([k, l]) => `<span class="st-${esc(j.steps[k]?.status || "todo")}${k === cur && j.status === "running" ? " cur" : ""}"><i></i>${l}</span>`).join("")}</div>
+      <div class="imp-steps">${(j.type === "uploads" ? [["analyse", "Analyse each upload"]] : j.type === "folder" ? [["bring", "Bring the files in"]] : j.type === "profile" ? [["read", "Read the sources, fill the profile in"]] : STEPS).map(([k, l]) => `<span class="st-${esc(j.steps[k]?.status || "todo")}${k === cur && j.status === "running" ? " cur" : ""}"><i></i>${l}</span>`).join("")}</div>
       ${j.status === "running" || j.status === "queued" ? `<div class="imp-act">${esc(j.activity || "")}</div>` : ""}
       ${j.status === "waiting" ? `<div class="imp-act">Downloaded and analysed. Ask your AI to pick it up: <code>${esc(PICKUP)}</code></div>` : ""}
       ${j.status === "failed" ? `<div class="imp-err">${esc((j.error || "").split("\n").slice(-3).join(" "))}</div>` : ""}
@@ -211,6 +211,7 @@ function paintList() {
     const acts = $(".imp-acts", el);
     const btn = (label, ic, fn, title = "") => { const b = h(`<button class="icon-btn sm ghost" title="${esc(title)}">${icon(ic)}${label}</button>`); b.onclick = fn; acts.append(b); };
     if (j.status === "done" && (j.type === "uploads" || (j.type === "folder" && j.scenes))) btn("Open", "library-big", () => { close(); location.hash = "#/scenes?film=uploads"; }, "See them in the Library");
+    if (j.status === "done" && j.type === "profile") btn("Open", "palette", () => { close(); location.hash = `#/profiles/${j.slug}`; }, "Open the profile");
     if (j.status === "done" && j.film) btn("Open", "film", () => { close(); location.hash = `#/film/${j.film}`; }, "Open the film in the library");
     if (j.status === "waiting") btn("Copy for your AI", "copy", () => { navigator.clipboard?.writeText(PICKUP); toast("Copied: paste it to your AI"); }, "Copy the line that tells your AI to pick this import up");
     if (j.status === "running" || j.status === "queued" || j.status === "waiting") btn("", "x", () => act(j, "cancel"), "Cancel");
@@ -281,6 +282,10 @@ function paintDock() {
         sub: run ? (looking ? `Looking at ${seen?.title || looking}` : j.activity || "") : j.status === "done" ? "Tags, palette and how it moves: they filter like film scenes now" : (j.error || "").split("\n").pop(),
         right: run ? el : "", bar: run ? (tot > 1 ? (at - 0.5) / tot : -1) : null, open: j.status === "done" ? "#/scenes?film=uploads" : "",
         strip: run ? pending.slice(0, 8).map((x) => ({ src: thumbOf(x), kind: x.kind, cur: !!looking && x.file.endsWith(looking) })) : [] });
+    } else if (j.type === "profile") {
+      rows.push({ st: run ? "run" : j.status === "done" ? "done" : "failed", job: j, cancel: cancelJob, t: run ? `Drafting the profile ${j.slug}` : j.status === "done" ? `Profile ${j.slug} drafted` : `Couldn't draft ${j.slug}`,
+        sub: run ? j.activity || "" : j.status === "done" ? "Palette, typefaces, motion and rules, from its sources" : (j.error || "").split("\n").pop(), right: run ? el : "", bar: run ? -1 : null,
+        open: j.status === "done" ? `#/profiles/${j.slug}` : "" });
     } else if (j.type === "folder") {
       rows.push({ st: run ? "run" : j.status === "done" ? "done" : "failed", job: j, cancel: cancelJob, t: j.title || "Folder",
         sub: run ? j.activity || "" : j.status === "done" ? j.summary || "" : (j.error || "").split("\n").pop(), right: run ? el : "", bar: run ? -1 : null,

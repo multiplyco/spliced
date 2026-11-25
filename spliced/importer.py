@@ -296,6 +296,10 @@ def done(jid, slug=None):
         raise ValueError(f"import {jid} isn't waiting for an agent (it is {j['status']})")
     if j.get("type") == "uploads":
         j["steps"]["analyse"]["status"] = "todo"  # the worker looks again: more to read means another round, none means done
+    elif j.get("type") == "profile":
+        if not profile_drafted(j):
+            raise ValueError(f"the profile {j['slug']} isn't marked drafted yet: run {paths.CLI} profile drafted {j['slug']} once it is filled in")
+        j["steps"]["read"].update(status="done", ended=now())
     else:
         if slug:
             j["film"] = slug
@@ -307,6 +311,71 @@ def done(jid, slug=None):
     save(j)
     ensure_worker()
     return j
+
+
+# ---------- a profile drafted from what the person dropped on it (profiles.py) ----------
+def add_profile_job(slug, request=""):
+    """Queue the reading of a profile's sources (a brand book, logo, screenshots, a film) and words, or a change the
+    person asked for: their AI fills the profile in. A request while one waits is added to it."""
+    for j in jobs():
+        if j.get("type") == "profile" and j.get("slug") == slug and j["status"] in ("queued", "waiting"):
+            if request:
+                j["request"] = (j.get("request", "") + "\n" + request).strip()
+                if j["status"] == "waiting":   # its prompt is written already: write it again with the new words
+                    j.update(status="queued", activity="Waiting to start", prompt="")
+                    j["steps"]["read"]["status"] = "todo"
+                save(j)
+                ensure_worker()
+            return j
+    j = {"id": secrets.token_hex(3), "type": "profile", "src": f"profiles/{slug}/sources", "slug": slug, "breakdown": True, "status": "queued",
+         "created": now(), "steps": {"read": {"status": "todo"}}, "activity": "Waiting to start", "log": [], "film": None, "request": request,
+         "title": f"Change the profile {slug}" if request else f"Draft the profile {slug}", "error": "", "pid": None}
+    save(j)
+    ensure_worker()
+    return j
+
+
+def profile_drafted(j):
+    import profiles
+    try:
+        return (profiles.get(j["slug"]).get("drafted") or "") >= j["created"]
+    except KeyError:
+        return False
+
+
+def draft_profile(j):
+    import profiles
+    slug = j["slug"]
+    p = profiles.get(slug)
+    files = "\n".join(f"- {x['file']} ({x['kind']}, {x['bytes'] // 1024} KB)" for x in p["sources"])
+    cli, request = paths.CLI, (j.get("request") or "").strip()
+    what = (f"The person asks for this change, in their words:\n{request}\n\nMake it: read `{cli} profile show {slug}` first, change only what "
+            "the request is about, and say what you changed.\n" if request else "")
+    given = (f"The person dropped these on it, so read them and fill the profile in from what they show:\n{files}\n\n" if p["sources"] and not request
+             else f"Its own words are in profiles/{slug}/PROFILE.md: fill in what they state (colours, typefaces, motion, rules) and is still empty.\n\n" if not request
+             else "")
+    prompt = (
+        f"Repo: {ROOT}. Work only from that directory.\n\n"
+        f"{'Change' if request else 'Draft'} the Spliced profile `{slug}` (\"{p['name']}\"): the look a project's films are made in. " + what + given +
+        "Read every file it was drafted from when it helps: a PDF or deck page by page (a brand book: its colours with their hex codes, typefaces, logo rules, tone of voice, "
+        f"do's and don'ts); an image by looking at it; a film by looking at its frames (`{cli} analyze strip <file> 0 <seconds> 10 /tmp/frames.jpg`, "
+        "several stretches for a long one; its pace, how things arrive, how scenes change, how words appear).\n"
+        "Then set what you found, only what the sources show (leave the rest as it is):\n"
+        f"- `{cli} profile set {slug} --about \"<one line>\" --palette \"#hex name, #hex name\" --font \"<headline typeface>\" --font-source local|google "
+        "--text-font \"<text typeface>\" --text-font-source local|google --type \"<how type is set>\"` (a typeface is google when it is on Google Fonts, "
+        "local when it is installed on this machine; name the closest Google Fonts family for a typeface that is neither, and say so in --type)\n"
+        f"- `{cli} profile motion {slug} --base <soft|material|apple|splice> [--pace ..] [--bounce ..] [--stagger ..] [--transition ..] [--text ..] [--idle ..]` "
+        f"(`{cli} profile motion {slug}` prints what each means); only from a film or a brand book's motion rules\n"
+        f"- write profiles/{slug}/PROFILE.md: the look in words for a designer (voice, stage, type, logo, what its films always do and never do), "
+        "keeping its first comment line\n"
+        f"- `{cli} profile learn {slug} \"<rule>\" --from \"<file>\"` for each hard rule the sources state (never stretch the logo, ...)\n"
+        f"Finish with `{cli} profile drafted {slug}`. Don't commit. Don't ask questions: decide sensibly and say what was uncertain in a short summary."
+    )
+    note(j, "Making the change you asked for" if request else f"Reading {len(p['sources'])} source(s)", "Changing the profile" if request else "Reading the sources")
+    final = agent(j, prompt)
+    if not profile_drafted(j):
+        raise RuntimeError("The agent finished without marking the profile drafted")
+    j["summary"] = (final or "").strip()[:1500] or f"The profile {p['name']} is drafted"
 
 
 # ---------- a folder of things already collected (folder.py) ----------
@@ -401,11 +470,11 @@ def analyse_uploads(j):
 def work(j):
     j.update(status="running", started=now(), error="")
     save(j)
-    if j.get("type") in ("uploads", "folder"):
-        name, fn = ("analyse", analyse_uploads) if j["type"] == "uploads" else ("bring", bring_folder)
+    if j.get("type") in ("uploads", "folder", "profile"):
+        name, fn = {"uploads": ("analyse", analyse_uploads), "folder": ("bring", bring_folder), "profile": ("read", draft_profile)}[j["type"]]
         try:
             step(j, name, lambda: fn(j))
-            j.update(status="done", ended=now(), activity=j.get("summary") or "Analysed")
+            j.update(status="done", ended=now(), activity=(j.get("summary") or "Analysed").splitlines()[0][:200])
         except NeedsAgent as e:
             return wait_for_agent(j, str(e))
         except InterruptedError:
@@ -514,7 +583,7 @@ def main():
             print("Nothing is waiting for an agent.")
             return
         print(f"Import {j['id']} is waiting for you: {j.get('title') or j.get('film') or j['src']}\n\n{j.get('prompt', '')}\n\n"
-              f"When that is done, run:  {paths.CLI} imports done {j['id']}" + ("" if j.get("type") == "uploads" else "   (add --slug <new slug> if you renamed the film)"))
+              f"When that is done, run:  {paths.CLI} imports done {j['id']}" + ("" if j.get("type") in ("uploads", "profile") else "   (add --slug <new slug> if you renamed the film)"))
     elif a[0] == "done":
         try:
             j = done(a[1], a[a.index("--slug") + 1] if "--slug" in a else None)

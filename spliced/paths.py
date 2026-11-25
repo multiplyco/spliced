@@ -90,7 +90,7 @@ def _config():
 
 
 CONFIG = _config()
-LAYOUT = {"library": "library", "reference": "reference", "remotion": "remotion", "videos": "videos", "music": "music",
+LAYOUT = {"library": "library", "reference": "reference", "remotion": "remotion", "videos": "videos", "music": "music", "profiles": "profiles",
           **{k: v for k, v in (CONFIG.get("layout") or {}).items() if isinstance(v, str) and v}}
 
 
@@ -126,7 +126,7 @@ APP_CODE = _app_code()
 # A Remotion film's code stays in remotion/ and names its folder in storyboard.json; its renders go to the folder's
 # renders/. A HyperFrames film lives in its folder (<folder>/<slug>/). A board names its folder in library/state.json.
 # Whatever names no folder is the project's own: "" in code, Shared in the app. The library is never in a folder.
-RESERVED = ("library", "reference", "remotion", "videos", "music", "node_modules")
+RESERVED = ("library", "reference", "remotion", "videos", "music", "profiles", "node_modules")
 FOLDERS = []          # [{"folder": "branding-videos", "name": "Branding videos"}], in the order spliced.json gives
 FOLDER_NAMES = set()  # (both are changed in place by reload_folders, so a module holding them sees a new folder)
 
@@ -213,6 +213,11 @@ REFERENCE = _p(LAYOUT["reference"])
 REMOTION = _p(LAYOUT["remotion"])
 FILMS = os.path.join(REMOTION, "src", "films")
 OUT = os.path.join(REMOTION, "out")                 # a Remotion film's renders when it is in no folder
+HOUSE_MD = os.path.join(REMOTION, "docs", "HOUSE.md")   # house rules from before profiles (profiles.py takes them in)
+
+# the project's profiles: how its films look and move, one folder each (profiles.py). Not the motion profiles above:
+# a profile names the motion profile its films use, beside its palette, type and rules.
+PROFILE_DIR = _p(LAYOUT["profiles"])
 
 
 def renders_dir(folder, home=None):

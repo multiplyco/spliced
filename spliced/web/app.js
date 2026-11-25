@@ -118,6 +118,7 @@ document.addEventListener("dragleave", (e) => { if (!isFileDrag(e)) return; if (
 document.addEventListener("drop", (e) => {
   if (!isFileDrag(e)) return; e.preventDefault(); endDrag();
   if (route().view === "assets" && window.AssetsView?.drop) { window.AssetsView.drop(e.dataTransfer.files); return; }   // into a film's assets
+  if (route().view === "profiles" && window.Profiles?.drop) { window.Profiles.drop(e.dataTransfer.files); return; }   // a profile drafted from them
   uploadFiles(e.dataTransfer.files);
 });
 document.addEventListener("paste", (e) => {
@@ -332,6 +333,10 @@ function toast(msg, ms = 1600, actions = null) {
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), actions && actions.length ? Math.max(ms, 4200) : ms);
 }
 window.crToast = (msg, ms, actions) => toast(msg, ms, actions);  // for imports.js, assets.js, styles.js (window.toast is the #toast element)
+// for profiles.js: the app's menus, copying, and a scene by its key with its thumbnail
+Object.assign(window.CR, { menu: (...a) => menu(...a), copy: (...a) => copy(...a), scene: (k) => BY_KEY[k], scenes: () => SCENES,
+  films: () => Object.values(FILMS).filter((f) => f.file && f.slug !== "uploads" && f.slug !== "system-moves").map((f) => { const best = [...f.scenes].sort((a, b) => (b.steal || 0) - (a.steal || 0))[0]; return { slug: f.slug, title: f.title, thumb: best ? frameThumb(f.file, (best.start + best.end) / 2) : "" }; }),
+  sceneThumb: (x) => sceneThumb(x) });
 
 /* ---------- overflow menus and popovers ----------
    menu(anchor, items, onPick): items = [{value, html, on?, sep?, danger?, hint?}] (sep draws a line before the item) */
@@ -563,7 +568,7 @@ function renderBase(hash) {
   if (view !== "scenes") closeFpop();
   if (path !== lastPath) { $("#main").scrollTop = 0; lastPath = path; }
   $("#main").dataset.view = view;
-  build.stop(); stopPreviews(); window.AssetsView?.stop?.(); window.StylesView?.stop?.();
+  build.stop(); stopPreviews(); window.AssetsView?.stop?.(); window.StylesView?.stop?.(); delete document.body.dataset.dropProfile;
   filmHero = null;
   if (view === "scenes") renderScenes();
   else if (view === "moments") renderMoments();
@@ -574,6 +579,7 @@ function renderBase(hash) {
   else if (view === "settings") renderSettings();
   else if (view === "setup") window.SetupView.render($("#main"));
   else if (view === "boards") parts[1] ? renderBoards(decodeURIComponent(parts[1])) : renderBoardGrid();
+  else if (view === "profiles") window.Profiles.render($("#main"), parts[1] ? decodeURIComponent(parts[1]) : "");
   else if (view === "build") parts[1] ? build.renderFilm($("#main"), parts[1]) : build.renderList($("#main"));
   else if (view === "assets") { if (window.AssetsView) window.AssetsView.render($("#main")); else $("#main").innerHTML = `<div class="empty">Assets aren't available.</div>`; }
   else renderScenes();
@@ -1017,6 +1023,10 @@ function brief(s, withNote = true) {
     withNote && r.note ? `Our note: ${r.note}` : "",
   ].filter(Boolean).join("\n");
 }
+/* A scene's brief as a prompt: the profile it is to be made in (or none: as it is), then the scene. */
+const sceneBrief = (s, v) => [window.Profiles.line(v), "", brief(s)].join("\n");
+const sceneCopy = (s) => window.Profiles.splitCopy({ ctx: "scene", fallback: "", text: "Copy brief", title: `Copy a brief to paste into ${SP.ai} (C)`,
+  make: (v) => sceneBrief(s, v), msg: `Brief copied: paste it into ${SP.ai}` });
 function renderUploadDetail(s) {
   const x = s.upload, d = $("#detail"), f = FILMS.uploads, i = f.scenes.indexOf(s), prev = f.scenes[i - 1], next = f.scenes[i + 1];
   if (video) video.pause();
@@ -1024,7 +1034,7 @@ function renderUploadDetail(s) {
   d.innerHTML = "";
   d.append(h(`<div class="d-top"><button class="id" data-a="id" title="Copy the ID"><b>uploads</b>/${esc(x.id)}</button>
     <div class="review" id="review"></div>
-    <button class="icon-btn sm primary" data-a="brief" title="Copy a brief to paste into ${SP.ai} (C)">${icon("copy")}Copy brief</button>
+    <span class="brief-slot"></span>
     <span class="d-nav"><button class="icon-btn sm sq ghost" data-a="prev" title="Previous (${esc(KB.get("prev").map(KB.label).join(" or "))})">${icon("chevron-up")}</button><button class="icon-btn sm sq ghost" data-a="next" title="Next (${esc(KB.get("next").map(KB.label).join(" or "))})">${icon("chevron-down")}</button></span>
     <button class="icon-btn sm sq ghost" data-a="close" title="Close (Esc)">${icon("x")}</button></div>`));
   $('#detail [data-a="prev"]').onclick = () => goScene(neighbour(s.key, -1));
@@ -1033,11 +1043,11 @@ function renderUploadDetail(s) {
   const body = h(`<div class="d-body up-body">
     <input class="inl up-title" data-k="title" value="${esc(x.title)}" placeholder="Title" spellcheck="false">
     <div class="d-film">Uploaded${x.added ? ` ${esc(x.added.slice(0, 10))}` : ""}<span>·</span>${esc(x.kind === "gif" ? "GIF" : x.kind)}${x.width ? `<span>·</span>${x.width}x${x.height}` : ""}${x.duration ? `<span>·</span>${x.duration.toFixed(1)}s` : ""}</div>
-    <div class="d-sec"><h5>What to take from it</h5><textarea class="inl" data-k="note" rows="2" placeholder="The move, the type, the colour, the pace: what we'd steal${esc(SP.forBrand())}">${esc(x.note || "")}</textarea></div>
+    <div class="d-sec"><h5>What to take from it</h5><textarea class="inl" data-k="note" rows="2" placeholder="The move, the type, the colour, the pace: what we'd steal">${esc(x.note || "")}</textarea></div>
     ${x.analysis ? `${x.palette?.length ? `<div class="d-sec"><h5>Palette</h5><div class="swatches">${x.palette.map((c) => `<span class="sw" data-c="${esc(c)}"><i style="background:${esc(c)}"></i>${esc(c)}</span>`).join("")}</div></div>` : ""}
       <div class="d-sec"><h5>On screen</h5><p class="lead">${esc(x.analysis.on_screen || "")}</p></div>
       ${x.analysis.how_it_moves ? `<div class="d-sec"><h5>${x.kind === "image" ? "How it could move" : "How it moves"}</h5><p>${esc(x.analysis.how_it_moves)}</p></div>` : ""}
-      <div class="d-sec"><h5>Recreate${esc(SP.forBrand())}</h5><p>${esc(x.analysis.recreate || "")}</p></div>
+      <div class="d-sec"><h5>Recreate</h5><p>${esc(x.analysis.recreate || "")}</p></div>
       <div class="d-sec"><h5>Library tags</h5><div class="tagtable" id="up-tags"></div></div>`
       : `<div class="up-pending">${icon("loader")}<div><b>Being analysed</b><span>${SP.Ai} is reading it like a film scene: style, colours, motion and how we'd recreate it. It takes a minute or two.</span></div><button class="icon-btn sm ghost" data-a="analyse">Queue again</button></div>`}
     <div class="d-sec"><h5>Your tags</h5><input class="inl" data-k="tags" value="${esc((x.tags || []).join(", "))}" placeholder="e.g. kinetic type, grain, split screen" spellcheck="false"></div>
@@ -1050,7 +1060,7 @@ function renderUploadDetail(s) {
   });
   $('[data-a="close"]', d).onclick = () => closeDetail();
   $('[data-a="id"]', d).onclick = () => copy(s.key, `Copied ${s.key}`);
-  $('[data-a="brief"]', d).onclick = () => copy(brief(s), `Brief copied: paste it into ${SP.ai}`);
+  $(".brief-slot", d).replaceWith(sceneCopy(s));
   $('[data-a="finder"]', d).onclick = () => fetch("/api/reveal", { method: "POST", body: JSON.stringify({ path: x.file }) });
   const queue = async (ids) => { await fetch("/api/uploads/analyse", { method: "POST", body: JSON.stringify({ ids }) }); toast(`Queued: ${SP.ai} will analyse it`); };
   $('[data-a="analyse"]', d)?.addEventListener("click", () => queue([]));
@@ -1090,7 +1100,7 @@ function renderDetail(s) {
   d.innerHTML = "";
   d.append(h(`<div class="d-top"><button class="id" data-a="id" title="Copy the scene ID"><b>${esc(s.film)}</b>/${s.id}</button>
     <div class="review" id="review"></div>
-    <button class="icon-btn sm primary" data-a="brief" title="Copy a brief to paste into ${SP.ai} (C)">${icon("copy")}Copy brief</button>
+    <span class="brief-slot"></span>
     <span class="d-nav"><button class="icon-btn sm sq ghost" data-a="prev" title="Previous (${esc(KB.get("prev").map(KB.label).join(" or "))})">${icon("chevron-up")}</button><button class="icon-btn sm sq ghost" data-a="next" title="Next (${esc(KB.get("next").map(KB.label).join(" or "))})">${icon("chevron-down")}</button></span>
     <button class="icon-btn sm sq ghost" data-a="close" title="Close (Esc)">${icon("x")}</button></div>`));
   $('#detail [data-a="prev"]').onclick = () => goScene(neighbour(s.key, -1));
@@ -1125,16 +1135,18 @@ function renderDetail(s) {
   const body = h(`<div class="d-body">
     <h2 class="d-title">${esc(s.title)}</h2>
     <div class="d-film"><a href="#/film/${s.film}">${esc(f.title)}</a><span>·</span>${esc(f.brand)}<span>·</span><span class="mono">${tcCopy(`${ts(s.start)} to ${ts(s.end)}`, stampRange(s.key, s.start, s.end))}</span><span>·</span><span class="stars" title="Steal-worthy">${stars(s.steal)}</span></div>
-    <textarea class="inl d-note" id="note" rows="1" title="Your note on this scene. It is saved as you type and goes into the brief you copy" placeholder="Add a note: what to steal, what to change${esc(SP.forBrand())}"></textarea>
+    <textarea class="inl d-note" id="note" rows="1" title="Your note on this scene. It is saved as you type and goes into the brief you copy" placeholder="Add a note: what to steal, what to change"></textarea>
     ${(s.moves || []).length ? `<div class="d-sec"><h5>Signature move</h5><p class="lead">${s.moves.map(esc).join(" · ")}</p></div>` : ""}
     <div class="d-sec"><h5>On screen</h5><p class="lead">${esc(s.on_screen)}</p></div>
     <div class="d-sec"><h5>How it moves</h5><p>${esc(s.how_it_moves)}</p></div>
-    <div class="d-sec"><h5>Recreate${esc(SP.forBrand())}</h5><p>${esc(s.recreate)}</p></div>
+    <div class="d-sec"><h5>Recreate</h5><p>${esc(s.recreate)}</p></div>
+    <div class="pin-slot"></div>
     ${s.palette?.length ? `<div class="d-sec"><h5>Palette</h5><div class="swatches">${s.palette.map((c) => `<span class="sw" data-c="${esc(c)}"><i style="background:${esc(c)}"></i>${esc(c)}</span>`).join("")}</div></div>` : ""}
     <details class="d-more"><summary>${icon("chevron-right")}Details<span>tags, camera, pace, energy</span></summary><div class="tagtable" id="tagtable"></div></details>
     <div class="nav-row">${prev ? `<a href="#/scene/${prev.key}"><small>Previous <kbd>[</kbd></small>${esc(prev.title)}</a>` : "<span></span>"}${next ? `<a class="next" href="#/scene/${next.key}"><small><kbd>]</kbd> Next</small>${esc(next.title)}</a>` : "<span></span>"}</div>
   </div>`);
   d.append(body);
+  $(".pin-slot", body).replaceWith(window.Profiles.pinRow(s.key));
   const tt = $("#tagtable", body);
   for (const [field, label] of [["role", "role"], ["world", "world"], ["subject", "subject"], ["camera", "camera"], ["motion", "motion"], ["transition_in", "transition in"], ["type_treatment", "type"], ["pace", "pace"], ["energy", "energy"], ["sound_sync", "sound sync"], ["production", "production"]]) {
     const vals = [].concat(s[field] ?? []); if (!vals.length) continue;
@@ -1153,7 +1165,7 @@ function renderDetail(s) {
 
   $('[data-a="close"]', d).onclick = () => closeDetail();
   $('[data-a="id"]', d).onclick = () => copy(s.key, `Copied ${s.key}`);
-  $('[data-a="brief"]', d).onclick = () => copy(brief(s), `Brief copied: paste it into ${SP.ai}`);
+  $(".brief-slot", d).replaceWith(sceneCopy(s));
   const playBtn = $('[data-a="play"]', tr);
   playBtn.onclick = () => (video.paused ? video.play() : video.pause());
   video.onplay = video.onpause = () => (playBtn.innerHTML = icon(video.paused ? "play" : "pause"));
@@ -1314,10 +1326,13 @@ function boardMarkdown(name) {
 function buildPrompt(name) {
   const b = state.boards[name];
   const profile = b.profile || SPLICED.default_profile;
+  const style = b.style || "", asIs = window.Profiles.resolve(style) === window.Profiles.NONE;
   return [
-    `/make-film Build a ${SPLICED.brand ? SPLICED.brand + " " : ""}video from the board "${name}" below, in remotion/.`,
-    `Motion profile: \`${profile}\` (${PROFILES[profile]}). All motion goes through motion('${profile}') from remotion/src/lib/motion (remotion/docs/MOTION-SYSTEMS.md); run npm run check:motion before review.`,
-    `The board is the script: use each beat's copy and length as written (lengths may be rounded to the beat grid). Keep one house style (${SPLICED.brand ? SPLICED.brand + "'s" : "the"} brand, one world, palette, type and motion language) and recreate each referenced scene's choreography inside it: borrow the move, not the brand. Scenes from system-moves are our own kit's moves: use the code in their Recreate field. Use ${SPLICED.brand ? "real " + SPLICED.brand : "the real"} UI rebuilt in code. Where a scene needs footage or photos, look for real footage first (${SP.cmd("stock")} search), then propose a generated clip or still for what real footage can't give.`,
+    `/make-film Build a video from the board "${name}" below, in remotion/.`,
+    window.Profiles.line(style, { many: true }),
+    asIs ? `Motion: each beat moves as its scene does. Write a motion profile for this film in remotion/src/profiles.ts that matches them (the board's \`${profile}\` is only where to start), and build through it; run npm run check:motion before review.`
+      : `Motion profile: \`${profile}\` (${PROFILES[profile]}). All motion goes through motion('${profile}') from remotion/src/lib/motion (remotion/docs/MOTION-SYSTEMS.md); run npm run check:motion before review.`,
+    `The board is the script: use each beat's copy and length as written (lengths may be rounded to the beat grid). Scenes from system-moves are our own kit's moves: use the code in their Recreate field. Where a scene needs footage or photos, look for real footage first (${SP.cmd("stock")} search), then propose a generated clip or still for what real footage can't give.`,
     `The board lives in Spliced; read or edit it with: ${SP.cmd("board")} show "${name}"`,
     `Start the film with \`${SP.cmd("film")} new <slug> --board "${name}"\` unless it's already started (the Boards view's "start film" does the same): it writes remotion/src/films/<slug>/storyboard.json, the beat-by-beat plan that Spliced's Build view pairs with every render, and a cues.json seeded from these scenes. Keep each beat's status and notes there as you build (\`${SP.cmd("film")} mark\`).`,
     "Read each scene's section in its breakdown before building that beat. Where a beat names a moment (`film/sNN @ 0:42.51`), that exact frame is what the person means: look at it first.", "", boardMarkdown(name),
@@ -1326,13 +1341,19 @@ function buildPrompt(name) {
 /* A whole reference film as one prompt: recreate it as closely as possible, scene by scene, in its own look rather
    the project's (the make-film skill's "A study of one film"). The board and film it asks for pair every beat with
    its scene in Build. */
-function filmBrief(slug) {
-  const f = FILMS[slug], sig = f.style_signature || {}, board = `Study: ${f.title}`, film = `${slug}-study`;
+function filmBrief(slug, choice = window.Profiles.NONE) {
+  const P = window.Profiles, v = P.resolve(choice), asIs = v === P.NONE, prof = asIs ? null : P.get(v);
+  const f = FILMS[slug], sig = f.style_signature || {}, board = asIs ? `Study: ${f.title}` : `${f.title}, in ${prof.name}`, film = `${slug}-${asIs ? "study" : v}`.slice(0, 48);
   const tempo = f.tempo ? [[f.tempo.bpm && `${Math.round(f.tempo.bpm)} bpm`, f.tempo.avg_shot_s && `a cut every ${f.tempo.avg_shot_s}s on average`].filter(Boolean).join(", "), f.tempo.notes].filter(Boolean).join(". ") : "";
   return [
-    `/make-film Recreate the reference film "${f.title}" (${f.brand}) as closely as you can, in remotion/.`,
-    `Match it scene by scene: the same scenes in the same order, each the same length, with the same framing, layout, type, palette, copy, motion, cuts and pacing. This is a study of the film: don't move it into the project's house style, brand or motion profile, and don't add what it doesn't have. Follow "A study of one film" in the make-film skill.`,
-    `Set it up so Spliced pairs every beat with its scene: ${SP.cmd("board")} new "${board}" --from-film ${slug}, then ${SP.cmd("film")} new ${film} --board "${board}" (skip whichever already exists). Build then plays each beat beside the scene it recreates; compare them with ${SP.cmd("film")} sheet ${film} --beat <id> and fix what differs before marking a beat review.`,
+    ...(asIs ? [
+      `/make-film Recreate the reference film "${f.title}" (${f.brand}) as closely as you can, in remotion/.`,
+      `Match it scene by scene: the same scenes in the same order, each the same length, with the same framing, layout, type, palette, copy, motion, cuts and pacing. This is a study of the film: don't move it into a profile, house style or motion profile of the project's, and don't add what it doesn't have. Follow "A study of one film" in the make-film skill.`,
+    ] : [
+      `/make-film Rebuild the reference film "${f.title}" (${f.brand}) scene by scene in the profile ${prof.name}, in remotion/.`,
+      `Keep its structure: the same scenes in the same order, each the same length, with the same choreography, cuts and pacing. Change its look to the profile's: read \`${SP.cmd("profile", "show", v)}\` first; its palette, type, stage, rules and motion (built on \`${prof.motion.base}\`) replace the film's.`,
+    ]),
+    `Set it up so Spliced pairs every beat with its scene: ${SP.cmd("board")} new "${board}" --from-film ${slug}${asIs ? "" : ` --style ${v} --motion ${prof.motion.base}`}, then ${SP.cmd("film")} new ${film} --board "${board}" (skip whichever already exists). Build then plays each beat beside the scene it ${asIs ? "recreates" : "rebuilds"}; compare them with ${SP.cmd("film")} sheet ${film} --beat <id> and fix what differs before marking a beat review.`,
     `The reference: ${f.file}, ${ts(f.duration)}, ${f.format || ""}${f.fps ? `, ${f.fps} fps` : ""}. Its breakdown: library/references/${slug}/breakdown.md. Each scene's frames: library/references/${slug}/scenes/<id>.jpg. Look at a scene's frames before building it.`,
     "", `# Film: ${f.title}`, "",
     f.summary || "",
@@ -1350,7 +1371,7 @@ async function startFilm(name) {
   const slug = prompt("Film slug: its folder in remotion/src/films/ (feature-what, e.g. search-launch)", name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""));
   if (!slug) return;
   try {
-    const r = await fetch("/api/productions", { method: "POST", body: JSON.stringify({ slug, board: name, items: b.items, profile: b.profile || SPLICED.default_profile }) });
+    const r = await fetch("/api/productions", { method: "POST", body: JSON.stringify({ slug, board: name, items: b.items, profile: b.profile || SPLICED.default_profile, style: b.style || "" }) });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error);
     toast(`Started ${j.dir}`); location.hash = `#/build/${j.slug}`;
@@ -1572,7 +1593,7 @@ function renderBoards(name) {
   const bp = h(`<div class="brief-sum ${open ? "open" : ""}">
     <p class="news ${br.news ? "" : "dim"}">${esc(br.news || "No brief yet: what's the news, in one sentence?")}</p>
     ${br.audience ? `<p class="aud" title="Audience">${esc(br.audience)}</p>` : ""}
-    <div class="facts">${[br.aspect && esc(br.aspect), target && `${target}s`, `profile <b>${esc(prof)}</b>`].filter(Boolean).map((x) => `<span>${x}</span>`).join("")}
+    <div class="facts"><button class="pf-style" data-a="style"></button>${[br.aspect && esc(br.aspect), target && `${target}s`, `motion <b>${esc(prof)}</b>`].filter(Boolean).map((x) => `<span>${x}</span>`).join("")}
       ${target ? `<span class="lenbar" title="${total.toFixed(1)}s scripted of ${target}s"><i style="width:${Math.min(100, (total / target) * 100)}%" class="${total > target * 1.05 ? "over" : ""}"></i></span>` : ""}
       <button class="icon-btn sm ghost" data-a="edit">${icon(open ? "chevron-down" : "pencil")}${open ? "Done" : "Edit brief"}</button></div>
     <div class="brief">
@@ -1582,6 +1603,19 @@ function renderBoards(name) {
         <span class="meta">${esc(PROFILES[prof])}. Compare in <a href="#/film/system-moves">Systems</a> and remotion/docs/media/motion-profiles.mp4</span>
       </div></div></div>`);
   $('[data-a="edit"]', bp).onclick = () => { ui.briefOpen = !open; renderBoards(); };
+  // the profile it is built in: a choice of the project's profiles, or none (each beat recreated as its scene is)
+  const sty = $('[data-a="style"]', bp), paintStyle = () => {
+    const P = window.Profiles, own = b.style || "";
+    const r = P.resolve(own), pal = r === P.NONE ? [] : P.get(r).palette;
+    sty.innerHTML = `<span class="pf-dots">${pal.length ? pal.slice(0, 3).map((c) => `<i style="background:${esc(c.hex)}"></i>`).join("") : `<i class="none"></i>`}</span><span>Profile</span><b>${esc(P.name(own))}</b>${own ? "" : `<small>${P.default() ? "default" : "copy as it is"}</small>`}${icon("chevron-down")}`;
+    sty.title = `The profile this board is built in: ${P.name(own)}${own ? "" : " (the project's default)"}. Choose another, or No profile to recreate each scene as it is`;
+  };
+  paintStyle(); window.Profiles.ready.then(paintStyle);
+  sty.onclick = () => window.Profiles.pick(sty, b.style || "", (v) => {
+    const p = window.Profiles.get(v), op = { op: "board.set", name: current, style: v };
+    if (p && p.motion.base in PROFILES) op.profile = b.profile = p.motion.base;   // a profile brings its motion with it; the brief can still change it
+    b.style = v; send([op]); renderBoards();
+  });
   bp.querySelectorAll("[data-k]").forEach((el) => (el.oninput = () => {
     const k = el.dataset.k, v = k === "length" ? (el.value === "" ? "" : +el.value) : el.value;
     br[k] = v; b.brief = br;
@@ -1745,7 +1779,8 @@ function renderFilm(slug) {
     <div class="view-head"><h1><a class="crumb" href="#/films">Films</a><span class="sep">/</span><span class="nm">${esc(f.title)}</span></h1><span class="meta">${esc(f.brand)} · ${ts(f.duration)} · ${f.scenes.length} scenes</span><span class="spacer"></span>
       <button class="icon-btn sm sq ghost" data-a="moment" title="Save the frame the film is on as a moment (K)">${icon("bookmark-plus")}</button>
       <button class="icon-btn sm ghost" data-a="filter">${icon("library-big")}Its scenes in Library</button>
-      <button class="icon-btn sm primary" data-a="film-brief" title="Copy a prompt for ${esc(SP.ai)} to recreate this whole film as closely as it can, scene by scene">${icon("copy")}Copy build brief</button></div>
+      <button class="icon-btn sm ghost" data-a="new-profile" title="Start a profile from this film: its palette, type and moves become a look to explore in your own films">${icon("palette")}Start a profile</button>
+      <span class="brief-slot"></span></div>
     <div class="hero"><video controls preload="metadata" src="${fileUrl(f.file)}"></video>
       <div><p class="summary">${esc(f.summary)}</p>
       ${sig.palette ? `<div class="swatches">${sig.palette.map((p) => `<span class="sw" data-c="${esc(p.hex)}" title="Copy ${esc(p.hex)}"><i style="background:${esc(p.hex)}"></i>${esc(p.name || p.hex)}</span>`).join("")}</div>` : ""}
@@ -1755,7 +1790,10 @@ function renderFilm(slug) {
     <div class="bigbar"></div><div class="grid"></div></div>`);
   main.append(page);
   page.querySelectorAll(".sw").forEach((sw) => (sw.onclick = () => copy(sw.dataset.c, `Copied ${sw.dataset.c}`)));
-  $('[data-a="film-brief"]', page).onclick = () => copy(filmBrief(slug), `Copied: paste it to ${SP.ai} to recreate ${f.title}`);
+  $(".brief-slot", page).replaceWith(window.Profiles.splitCopy({ ctx: "film", fallback: window.Profiles.NONE, text: "Copy build brief",
+    title: `Copy a prompt for ${SP.ai} to rebuild this whole film, scene by scene: as it is, or in one of your profiles`,
+    make: (v) => filmBrief(slug, v), msg: `Copied: paste it to ${SP.ai} to rebuild ${f.title}` }));
+  $('[data-a="new-profile"]', page).onclick = () => window.Profiles.create(f);
   $('[data-a="filter"]', page).onclick = () => { ui.filters = { film: new Set([slug]) }; ui.q = ""; ui.sort = "film"; location.hash = "#/scenes?" + filtersToQuery(); };
   const bar = $(".bigbar", page), hero = $(".hero video", page);
   for (const s of f.scenes) bar.append(h(`<div class="seg-s" style="left:${(s.start / f.duration) * 100}%;width:${((s.end - s.start) / f.duration) * 100}%;background:${ROLE_COL[s.role] || "#777"}">${s.end - s.start > f.duration / 30 ? s.id : ""}</div>`));
@@ -2054,7 +2092,7 @@ document.addEventListener("keydown", (e) => {
   else if (KB.is(e, "prev")) { e.preventDefault(); goScene(neighbour(s.key, -1)); }
   else if (KB.is(e, "fav")) setRev(s.key, { fav: !rev(s.key).fav });
   else if (KB.is(e, "board")) addToBoard(s.key);
-  else if (KB.is(e, "brief")) copy(brief(s), `Brief copied: paste it into ${SP.ai}`);
+  else if (KB.is(e, "brief")) copy(window.Profiles.briefFor("scene", "", (v) => sceneBrief(s, v)), `Brief copied: paste it into ${SP.ai}`);
   else if (KB.is(e, "sceneNote")) { e.preventDefault(); focusNote(); }
   else if (s.upload) { if (KB.is(e, "play")) { const v = $("#detail video"); if (v) { e.preventDefault(); v.paused ? v.play() : v.pause(); } } }
   else if (KB.is(e, "play")) { e.preventDefault(); video && (video.paused ? video.play() : video.pause()); }
@@ -2081,7 +2119,7 @@ const build = window.BuildView({ h, esc, $, ts, tsf, toast, copy: (t, m) => copy
 function paintNavCounts() { const n = $("#nav-moments"); if (n) n.textContent = state.moments.length || ""; }
 const view = () => route().view;
 const inDetail = () => !!detailKey;
-const GO = [["scenes", "Library", "#/scenes"], ["films", "Films", "#/films"], ["moves", "Moves", "#/moves"], ["systems", "Systems", "#/film/system-moves"], ["styles", "Styles", "#/styles"], ["moments", "Moments", "#/moments"], ["boards", "Boards", "#/boards"], ["setup", "Setup", "#/setup"], ["build", "Build", "#/build"], ["assets", "Assets", "#/assets"]];
+const GO = [["scenes", "Library", "#/scenes"], ["films", "Films", "#/films"], ["moves", "Moves", "#/moves"], ["systems", "Systems", "#/film/system-moves"], ["styles", "Styles", "#/styles"], ["moments", "Moments", "#/moments"], ["boards", "Boards", "#/boards"], ["setup", "Setup", "#/setup"], ["build", "Build", "#/build"], ["assets", "Assets", "#/assets"], ["profiles", "Profiles", "#/profiles"]];
 for (const [id, title, hash] of GO) CR.command({ id: `lib.go.${id}`, title: `Go to ${title}`, group: "Go to", run: () => (location.hash = hash) });
 const scenesOnly = () => view() === "scenes";
 for (const c of [
@@ -2146,13 +2184,14 @@ let tabs = (() => { try { const t = JSON.parse(localStorage.getItem(TABS_KEY)); 
 let tabSwitching = false, prodTitles = {};
 const saveTabs = () => localStorage.setItem(TABS_KEY, JSON.stringify(tabs));
 const curTab = () => tabs.list.find((t) => t.id === tabs.active) || tabs.list[0];
-const VIEW_TAB = { setup: ["Setup", "check"], scenes: ["Library", "library-big"], films: ["Films", "film"], moves: ["Moves", "sparkles"], styles: ["Styles", "swatch-book"], moments: ["Moments", "bookmark"], boards: ["Boards", "layout-list"], build: ["Build", "list-video"], assets: ["Assets", "image"], settings: ["Settings", "settings"] };
+const VIEW_TAB = { setup: ["Setup", "check"], scenes: ["Library", "library-big"], films: ["Films", "film"], moves: ["Moves", "sparkles"], styles: ["Styles", "swatch-book"], moments: ["Moments", "bookmark"], boards: ["Boards", "layout-list"], build: ["Build", "list-video"], assets: ["Assets", "image"], profiles: ["Profiles", "palette"], settings: ["Settings", "settings"] };
 function tabInfo(hash) {
   const [path] = (hash || "#/scenes").replace(/^#\/?/, "").split("?");
   const p = path.split("/").filter(Boolean).map(decodeURIComponent), v = p[0] || "scenes";
   if (v === "scene") { const x = BY_KEY[`${p[1]}/${p[2]}`]; return [x ? x.title : `${p[1]}/${p[2]}`, x?.upload ? "image" : "film"]; }
   if (v === "film") return p[1] === "system-moves" ? ["Systems", "cpu"] : [FILMS[p[1]]?.title || p[1], "film"];
   if (v === "boards" && p[1]) return [p[1], "layout-list"];
+  if (v === "profiles" && p[1]) return [window.Profiles.get(p[1])?.name || p[1], "palette"];
   if (v === "build" && p[1]) return [prodTitles[p[1]] || p[1], "list-video"];
   if (v === "scenes" && hash.includes("?")) { const q = new URLSearchParams(hash.split("?")[1]); const bits = [q.get("q"), ...[...q.keys()].filter((k) => !["q", "sort"].includes(k)).map((k) => q.get(k))].filter(Boolean); if (bits.length) return [`Library: ${bits.join(", ")}`.slice(0, 60), "library-big"]; }
   return VIEW_TAB[v] || ["Spliced", "library-big"];
@@ -2297,6 +2336,7 @@ function recentKind(hash) {
   if (v === "scene") return p[1] === "uploads" ? "Upload" : "Scene";
   if (v === "film") return p[1] === "system-moves" ? "View" : "Film";
   if (v === "boards" && p[1]) return "Board";
+  if (v === "profiles" && p[1]) return "Profile";
   if (v === "build" && p[1]) return "In production";
   if (v === "scenes" && hash.includes("?")) return "Search";
   return "View";

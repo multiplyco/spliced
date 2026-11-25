@@ -1,8 +1,8 @@
 # Craft: how a film should look, read and sound
 
 Defaults learned from making product films with this kit, mostly from notes left on renders. The brief or the person
-can overrule any of them, and a project can add its own house rules beside this file (for example
-`docs/HOUSE.md`: its typefaces, its stage, its product's code). Motion values live in the film's motion profile
+can overrule any of them, and so can the profile a film is made in (`spliced profile show <profile>`: its typefaces,
+its stage, its product's code, the rules learned on earlier films). Motion values live in the film's motion profile
 (`MOTION-SYSTEMS.md`), sound in `SOUND.md`; this file is everything around them.
 
 This file is Spliced's (`spliced kit update` replaces it). Put your own rules in your own file.

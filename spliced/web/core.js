@@ -32,8 +32,6 @@ window.SP = {
   Ai: AI || "Your AI",
   /** Who made a change, as shown beside it: a change is signed "claude", "agent" (over MCP), "browser" or a name. */
   who: (by) => (by === "claude" ? "Claude" : by === "agent" ? AI || "Your AI" : by),
-  /** " for Acme" when the project names its brand, "" when it doesn't: for copy that reads fine either way. */
-  forBrand: () => (SPLICED.brand ? ` for ${SPLICED.brand}` : ""),
   /** A Spliced command as the person or their AI would type it: SP.cmd("film", "status", slug) -> "spliced film status <slug>".
       Every command the app shows or copies goes through here, so the day the tool is installed on its own they all change at once. */
   cmd: (...a) => [SPLICED.cli, ...a].join(" "),

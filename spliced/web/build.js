@@ -690,7 +690,7 @@ async function reveal(path, how = "reveal") {
 }
 function filmMenu(anchor) {
   const items = [
-    { value: "", html: `<span class="lbl dim">${esc([P.engine, P.dir, P.duration ? tsf(P.duration) : "", `${P.beats.length} beats`, P.profile ? `profile ${P.profile}` : ""].filter(Boolean).join(" · "))}</span>` },
+    { value: "", html: `<span class="lbl dim">${esc([P.engine, P.dir, P.duration ? tsf(P.duration) : "", `${P.beats.length} beats`, P.style ? (P.style === "none" ? "no profile" : `profile ${window.Profiles?.get(P.style)?.name || P.style}`) : "", P.profile ? `motion ${P.profile}` : ""].filter(Boolean).join(" · "))}</span>` },
     { value: "folder", html: `${icon("folder")}<span class="lbl">Move to folder…</span><span class="c">${esc(window.Folders ? Folders.name(P.folder) : "")}</span>` },
     { value: "reload", html: `${icon("rotate-cw")}<span class="lbl">Reload the plan and renders</span><kbd>R</kbd>` },
     { value: "script", html: `${icon("copy")}<span class="lbl">Copy the script as a table</span>` },
@@ -1500,6 +1500,12 @@ function loopLine(b, fixing) {
     ? `Work loop: \`${SP.cmd("film")} mark ${P.slug} ${b.id} wip\`, build it, \`${SP.cmd("film")} render ${P.slug} --beat ${b.id}\`, then \`${SP.cmd("film")} sheet ${P.slug} --beat ${b.id}\` and look at the sheet (storyboard, reference and render side by side). When the beat matches its plan: \`${mark}\`.`
     : `Render as the project's AGENTS.md says, check it with \`${SP.cmd("film")} sheet ${P.slug} --beat ${b.id}\` (storyboard and render side by side), then \`${mark}\`.`;
 }
+/* The profile the film is made in (storyboard.json "style"), as its prompts say it: read it first, and keep what lasts. */
+function styleLine() {
+  if (!P.style) return "";
+  if (P.style === "none") return "Made in no profile: each beat recreates its reference as it is (the make-film skill's \"A study of one film\").";
+  return `Made in the profile ${window.Profiles?.get(P.style)?.name || P.style}: read \`${SP.cmd("profile", "show", P.style)}\` first. If a note states a lasting preference rather than a fix for one frame, offer to keep it: \`${SP.cmd("profile", "learn", P.style, `"<the rule>"`)} --from "${P.slug} note <id>"\`.`;
+}
 function beatPrompt(b) {
   const prev = P.beats[b.n - 2], next = P.beats[b.n];
   const when = b.start == null ? "" : `, film time ${tsf(b.start)} to ${tsf(b.end)}`;
@@ -1507,6 +1513,7 @@ function beatPrompt(b) {
     b.review || pinsOf(b).length
       ? `/make-film Notes on beat ${b.n} of ${P.beats.length}, "${b.title}", in ${where(b)}${when}${R ? `, seen in ${R.name}` : ""}:\n\n${b.review || "(the notes pinned to its frames, below)"}`
       : `/make-film Build beat ${b.n} of ${P.beats.length}, "${b.title}", in ${where(b)}${when}.`,
+    styleLine(),
     `Read the whole plan first (${P.storyboard}) so this beat picks up from ${prev ? `beat ${prev.n} "${prev.title}"` : "the opening frame"} and hands off into ${next ? `beat ${next.n} "${next.title}"` : "the end"}. Leave the other beats as they are.`,
     b.on_screen && `On screen: ${b.on_screen}`,
     b.copy && `Copy: ${b.copy}`,
@@ -1540,6 +1547,7 @@ function notesPrompt() {
     ...open.map((b) => `${b.n}. \`${b.id}\` "${b.title}"${b.start == null ? "" : ` (${tsf(b.start)} to ${tsf(b.end)})`}: ${b.review}`),
     ...(so.length ? [...(open.length ? [""] : []), "Sound:", ...soundLines(so), "", soundHow()] : []), "",
     `The plan is ${P.storyboard}; \`${SP.cmd("film")} status ${P.slug}\` prints it beat by beat with the open notes.`,
+    ...(styleLine() ? [styleLine()] : []),
     P.engine === "remotion"
       ? `For each beat: fix it, \`${SP.cmd("film")} render ${P.slug} --beat <id>\`, check \`${SP.cmd("film")} sheet ${P.slug} --beat <id>\`, then \`${SP.cmd("film")} mark ${P.slug} <id> review --done "<what you changed>"\`. Finish with a full render: \`${SP.cmd("film")} render ${P.slug}\`.`
       : `For each beat: fix it, re-render the film as the project's AGENTS.md says, check \`${SP.cmd("film")} sheet ${P.slug}\`, then \`${SP.cmd("film")} mark ${P.slug} <id> review --done "<what you changed>"\`.`,

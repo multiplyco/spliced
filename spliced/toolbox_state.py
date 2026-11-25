@@ -25,10 +25,12 @@ A moment is one exact frame the person pointed at: a scene key and a time in tha
 
 Operations (a list of dicts, applied in order, all or nothing):
   review.set   {key, patch: {fav, verdict, note}}           empty / false / null values clear a field
-  board.create {name, profile?, folder?, brief?, items?}     folder: one of the project's folders (default: none)
+  board.create {name, profile?, style?, folder?, brief?, items?}   folder: one of the project's folders (default: none)
+               profile: its motion profile. style: the profile (profiles/<slug>) it is built in, "none" to recreate
+               the references as they are; absent, the project's default profile
   board.rename {name, to}
   board.delete {name}
-  board.set    {name, profile?, folder?, brief?: {...merged}}   folder "" takes it out of its folder
+  board.set    {name, profile?, style?, folder?, brief?: {...merged}}   folder "" takes it out of its folder, style "" back to the default
   item.add     {board, id, uid?, t?, beat?, copy?, vo?, seconds?, note?, at?}   at: 1-based position, default end
   item.update  {board, uid | n, patch: {id?, t?, beat?, copy?, vo?, seconds?, note?}}   "" clears t or seconds
   item.remove  {board, uid | n}
@@ -39,7 +41,7 @@ Operations (a list of dicts, applied in order, all or nothing):
 Unknown fields on items, briefs and moments are refused (an OpError), never silently dropped.
 Items are addressed by their stable uid, or by n (1-based position at the time the op runs).
 """
-import copy, datetime, json, os, secrets
+import copy, datetime, json, os, re, secrets
 
 import paths
 
@@ -170,6 +172,17 @@ def _clean_item(patch, known=None):
     return out
 
 
+STYLE = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
+
+
+def _style(op):
+    """A board's profile: a profile's slug, "none" (as the reference) or "" (the project's default)."""
+    v = str(op.get("style") or "").strip()
+    if v and not STYLE.match(v):
+        raise OpError(f"style is a profile's name, or none, not {v!r}")
+    return v
+
+
 def apply(state, ops, by="someone", known=None):
     """Apply ops to a copy of state; return (new_state, results, summary). Raises OpError, leaving state untouched."""
     s = normalise(copy.deepcopy(state))
@@ -209,6 +222,8 @@ def apply(state, ops, by="someone", known=None):
                  "created": now()[:10], "updated": now()}
             if _folder(op):
                 b["folder"] = _folder(op)
+            if _style(op):
+                b["style"] = _style(op)
             for it in op.get("items") or []:
                 _only(it, ["uid"] + ITEM_FIELDS, "items")
                 b["items"].append({"uid": it.get("uid") or uid(), "beat": "", "copy": "", "vo": "", "note": "", **_clean_item(it, known)})
@@ -232,6 +247,11 @@ def apply(state, ops, by="someone", known=None):
                 if op["profile"] not in PROFILES:
                     raise OpError(f"profile must be one of {PROFILES}")
                 b["profile"] = op["profile"]
+            if "style" in op:
+                if _style(op):
+                    b["style"] = _style(op)
+                else:
+                    b.pop("style", None)
             if "folder" in op:
                 f = _folder(op)
                 if f:

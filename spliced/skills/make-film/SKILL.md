@@ -9,9 +9,10 @@ The pipeline: **references and system moves** (the library) → **a board** (ord
 profile** → **storyboard** → **build in Remotion, beat by beat** → **sound** → **checks** → **render**. Read only what
 each step names; don't preload the docs.
 
-**Before anything, know which profile the film is made in.** A profile is a look the project keeps: a house look (its
-brand, type, stage, product and sound direction) or a look to explore, with its motion profile and the rules learned
-on earlier films. The prompt names it, or `spliced film status <slug>` does once the film is started; with neither,
+**Before anything, know which profile the film is made in.** A profile is a look the project keeps (its brand, or a
+look to try): palette, typeface, its own words on stage and sound, its motion (a base motion profile and what it
+changes: pace, bounce, stagger, scene changes, how words arrive), the scenes that show it and the rules learned on
+earlier films. The prompt names it, or `spliced film status <slug>` does once the film is started; with neither,
 it is the project's default (`spliced profile` marks it). Read it with `spliced profile show <profile>`: it wins over
 the kit's defaults in `remotion/docs/CRAFT.md`. **No profile** ("none", or "as the reference") means recreate what the
 references show, in their own look: see "A study of one film". A project with no profiles but a
@@ -86,7 +87,7 @@ Assets view shows it.
 - **A film brief from Spliced** (a reference film's "Copy build brief", or "recreate this film"): a study, not a new
   film. Make the board and the film from the reference (`spliced board new "Study: <title>" --from-film <ref>`, then
   `spliced film new <slug> --board "Study: <title>"`), so each beat is one of its scenes and the Build view plays it
-  beside that scene. Then the goal is the reference, not the house: see "A study of one film" below.
+  beside that scene. Then the goal is the reference, not a profile: see "A study of one film" below.
 - **A beat prompt or notes prompt from the Build view:** the film exists. Run `spliced film status <slug>`, then do
   just that beat or those notes (step 4's loop).
 - **Only a brief or an idea:** ask for what's missing in one message: the feature or message, who it's for, where it
@@ -116,7 +117,9 @@ suit the project:
 The board is the script (read it with `spliced board show "<name>" --md`). Create
 `remotion/src/films/<slug>/BRIEF.md` (slug: `feature-what`, e.g. `search-launch`) from it, with:
 - the news in one sentence, audience, destination, aspect, length;
-- **the motion profile** (from the board, else the project's default in `spliced.json`). Compare profiles in the
+- **the motion profile**: the profile's motion when the film is made in one (`spliced profile show` says its base and what
+  it changes; build that as a motion profile named after it in `remotion/src/profiles.ts`), else the board's, else the
+  project's default in `spliced.json`. Compare profiles in the
   composition `Specimen-Profiles` (`npm run dev`);
 - the beats: for each, the reference scene IDs (`film/sNN`) and system moves (`system-moves/sNN`) it borrows.
 

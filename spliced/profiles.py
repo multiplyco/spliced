@@ -1,22 +1,31 @@
 """A project's profiles: the looks its films are made in, each one built up over time.
 
 A profile is a folder in the project, profiles/<slug>/:
-  profile.json   its name, kind (house: a real company's own; exploration: a look to try), the motion profile its
-                 films move by, palette, type, the scenes that define it, and the rules learned while making films
+  profile.json   its name, palette, typeface, motion, the scenes that show the look, the rules learned while making films
   PROFILE.md     the profile in prose: voice, stage, type, what to do and never do. The person's to write, and the
                  first thing an agent reads before building in it.
 
-One profile may be the default: a board or a scene brief that names none is built in it. Every build can also choose
-another profile, or none at all ("as the reference": recreate what the reference shows, in its own look).
+One profile may be the default: a brief starts in it. Every brief can choose another, or none ("as the reference":
+recreate what the reference shows, in its own look).
+
+Motion is a base (one of the project's motion profiles: the kit's soft, material, apple, splice, or its own) and
+what this look changes about it: pace (how long every move takes, against the base), bounce, stagger, how scenes
+change, how words arrive, and whether things float while held. Each is optional: unset follows the base. They are
+the fields of the film kit's Profile (remotion/src/lib/motion/spec.ts), so an agent builds the film's motion profile
+from them in remotion/src/profiles.ts.
+
 A project from before profiles had one brand (spliced.json) and remotion/docs/HOUSE.md: `spliced setup` makes them
 its first profile, once, and leaves both files where they were.
 
   spliced profile                                   the profiles, the default marked
-  spliced profile show <profile>                    everything an agent needs to build in it (PROFILE.md, rules, scenes)
-  spliced profile new "<name>" [--kind house|exploration] [--motion soft] [--about ".."] [--from-film <slug>] [--default]
+  spliced profile show <profile>                    everything an agent needs to build in it (words, motion, rules, scenes)
+  spliced profile new "<name>" [--motion soft] [--about ".."] [--from-film <slug>] [--default]
                                                     --from-film starts it from a reference film's palette, type and moves
-  spliced profile set <profile> [--name ..] [--kind ..] [--motion ..] [--about ..] [--type ..] [--palette "#hex name, #hex name"]
-  spliced profile default <profile | none>          what a build uses when it names no profile
+  spliced profile set <profile> [--name ..] [--about ..] [--font ..] [--type ..] [--palette "#hex name, #hex name"]
+  spliced profile motion <profile> [--base soft] [--pace 1.2] [--bounce 0.15] [--stagger 0.08]
+                         [--transition cut|blurThrough|fadeThrough|sharedAxisX|sharedAxisZ] [--text sharpen|greyToInk] [--idle 0.4]
+                                                    "base" for any of them goes back to the base's own
+  spliced profile default <profile | none>          the profile a brief starts in
   spliced profile learn <profile> "never bounce the logo" [--from "launch-film note 3"]
   spliced profile forget <profile> <n>              take rule n out
   spliced profile pin <profile> <film/sNN>          a scene that shows the look; unpin takes it out
@@ -28,11 +37,33 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import paths
 
 DIR = paths.PROFILE_DIR
-KINDS = ("house", "exploration")
 NONE = "none"   # a build in no profile: as the reference
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
 MD_INTRO = ("<!-- This profile in your own words: the voice, the stage, the type, what its films always do and never do. "
             "Your AI reads it before building a film in this profile. -->\n")
+
+# What a look may change about its base motion profile: (allowed values or a number range, what it means).
+# Numbers: pace multiplies every move's length (1 = the base's); bounce is a spring's overshoot (0 = none);
+# stagger is the seconds between grouped items; idle is how much held things float (0 = still).
+MOTION = {
+    "pace": ((0.5, 2.0), "how long every move takes, against the base (1 = the base's, 1.3 = slower, 0.8 = brisker)"),
+    "bounce": ((0.0, 0.5), "overshoot on UI and emphasis (0 = none, 0.15 = a little, 0.3 = playful)"),
+    "stagger": ((0.0, 0.3), "seconds between grouped items: words, cards, rows"),
+    "transition": (("cut", "blurThrough", "fadeThrough", "sharedAxisX", "sharedAxisZ"), "how one scene becomes the next"),
+    "text": (("sharpen", "greyToInk"), "how words arrive: sharpen from a blur, or land grey and darken"),
+    "idle": ((0.0, 1.0), "how much held things float (0 = still)"),
+}
+# The kit's own motion profiles as the app shows them (remotion/src/lib/motion/profile.tsx): the base values a
+# look changes, and the curve and length of an entrance, for the app's preview. A project's own profiles have no row
+# here; they are previewed with the soft row's values.
+KIT_MOTION = {
+    "soft": {"pace": 1, "bounce": 0, "stagger": 0.1, "transition": "cut", "text": "sharpen", "idle": 1, "curve": [0.2, 0.8, 0.2, 1], "enter": 0.6},
+    "material": {"pace": 1, "bounce": 0.1, "stagger": 0.05, "transition": "sharedAxisZ", "text": "sharpen", "idle": 0, "curve": [0.05, 0.7, 0.1, 1], "enter": 0.8},
+    "apple": {"pace": 1, "bounce": 0.15, "stagger": 0.06, "transition": "sharedAxisX", "text": "sharpen", "idle": 0.6, "curve": [0.25, 0.9, 0.3, 1], "enter": 0.6},
+    "splice": {"pace": 1, "bounce": 0, "stagger": 0.07, "transition": "blurThrough", "text": "sharpen", "idle": 0.3, "curve": [0.16, 1, 0.3, 1], "enter": 0.75},
+}
+WORDS = {"cut": "a straight cut", "blurThrough": "blur through", "fadeThrough": "fade through", "sharedAxisX": "slide along the x axis",
+         "sharedAxisZ": "push along the z axis (scale and fade)", "sharpen": "sharpen in from a blur", "greyToInk": "land grey, then darken"}
 
 
 def now():
@@ -57,9 +88,29 @@ def _write(path, text):
     os.replace(tmp, path)
 
 
+def _motion(v):
+    """A stored motion as {base, and only the fields it changes}. An old profile's motion was just a base's name."""
+    v = {"base": v} if isinstance(v, str) else v if isinstance(v, dict) else {}
+    out = {"base": v.get("base") if v.get("base") in paths.PROFILES else paths.DEFAULT_PROFILE}
+    for k, (allowed, _) in MOTION.items():
+        x = v.get(k)
+        if x is None:
+            continue
+        if isinstance(allowed[0], str):
+            if x in allowed:
+                out[k] = x
+        else:
+            try:
+                out[k] = round(min(allowed[1], max(allowed[0], float(x))), 3)
+            except (TypeError, ValueError):
+                pass
+    return out
+
+
 def _save(slug, p):
-    keep = {k: p[k] for k in ("name", "kind", "default", "motion", "about", "palette", "type", "scenes", "rules", "from_film", "created", "updated") if k in p}
+    keep = {k: p[k] for k in ("name", "about", "palette", "font", "type", "motion", "scenes", "rules", "from_film", "created", "updated") if k in p}
     keep["default"] = bool(p.get("default"))
+    keep["motion"] = _motion(p.get("motion"))
     _write(os.path.join(_dir(slug), "profile.json"), json.dumps(keep, indent=1, ensure_ascii=False) + "\n")
 
 
@@ -76,10 +127,9 @@ def _read(slug):
             md = f.read()
     except OSError:
         md = ""
-    return {"slug": slug, "name": str(p.get("name") or slug), "kind": p.get("kind") if p.get("kind") in KINDS else "exploration",
-            "default": bool(p.get("default")), "motion": p.get("motion") if p.get("motion") in paths.PROFILES else paths.DEFAULT_PROFILE,
-            "about": str(p.get("about") or ""), "palette": [c for c in (p.get("palette") or []) if isinstance(c, dict) and c.get("hex")],
-            "type": str(p.get("type") or ""), "scenes": [str(x) for x in (p.get("scenes") or [])],
+    return {"slug": slug, "name": str(p.get("name") or slug), "default": bool(p.get("default")), "about": str(p.get("about") or ""),
+            "palette": _palette(p.get("palette") or []), "font": str(p.get("font") or ""), "type": str(p.get("type") or ""),
+            "motion": _motion(p.get("motion")), "scenes": [str(x) for x in (p.get("scenes") or [])],
             "rules": [r for r in (p.get("rules") or []) if isinstance(r, dict) and r.get("text")], "from_film": p.get("from_film") or "",
             "created": p.get("created") or "", "updated": p.get("updated") or "", "md": md.replace(MD_INTRO, "", 1)}
 
@@ -107,7 +157,8 @@ def default():
 def _palette(v):
     """[{hex, name}] from a list of them, or from text like "#0E3B43 deep teal, #FFB703 amber"."""
     if isinstance(v, list):
-        return [{"hex": str(c["hex"]), **({"name": str(c["name"])} if c.get("name") else {})} for c in v if isinstance(c, dict) and c.get("hex")]
+        return [{"hex": str(c["hex"]).upper(), **({"name": str(c["name"])} if c.get("name") else {})} for c in v
+                if isinstance(c, dict) and re.fullmatch(r"#[0-9a-fA-F]{3,8}", str(c.get("hex", "")))]
     out = []
     for part in str(v or "").split(","):
         m = re.match(r"\s*(#[0-9a-fA-F]{3,8})\s*(.*)", part)
@@ -124,7 +175,7 @@ def _film(slug):
         raise KeyError(f"no film called {slug!r} in the library")
 
 
-def create(name, kind="exploration", motion=None, about="", from_film=None, md=None, is_default=False):
+def create(name, motion=None, about="", from_film=None, md=None, is_default=False):
     name = str(name or "").strip()
     if not name:
         raise ValueError("a profile needs a name")
@@ -133,11 +184,9 @@ def create(name, kind="exploration", motion=None, about="", from_film=None, md=N
         raise ValueError(f"{name!r} can't be a profile's name")
     if os.path.exists(_dir(slug)):
         raise ValueError(f"there is already a profile called {slug!r}")
-    if kind not in KINDS:
-        raise ValueError(f"kind is {' or '.join(KINDS)}")
     if motion and motion not in paths.PROFILES:
         raise ValueError(f"motion is one of {', '.join(paths.PROFILES)}")
-    p = {"name": name, "kind": kind, "motion": motion or paths.DEFAULT_PROFILE, "about": str(about or ""), "palette": [], "type": "",
+    p = {"name": name, "motion": {"base": motion or paths.DEFAULT_PROFILE}, "about": str(about or ""), "palette": [], "font": "", "type": "",
          "scenes": [], "rules": [], "created": now(), "updated": now()}
     body = md or ""
     if from_film:
@@ -146,6 +195,8 @@ def create(name, kind="exploration", motion=None, about="", from_film=None, md=N
         p.update(from_film=from_film, palette=_palette(sig.get("palette") or []), type=str(sig.get("type") or ""),
                  about=p["about"] or f"Started from {b.get('title', from_film)}{(' (' + b['brand'] + ')') if b.get('brand') else ''}.",
                  scenes=list(dict.fromkeys(f"{from_film}/{sid}" for m in b.get("signature_moves") or [] for sid in m.get("scenes") or []))[:12])
+        if (b.get("tempo") or {}).get("avg_shot_s"):
+            p["motion"]["pace"] = 1.3 if b["tempo"]["avg_shot_s"] > 3.5 else 0.8 if b["tempo"]["avg_shot_s"] < 1.5 else 1
         if not md:
             moves = "".join(f"- **{m.get('name')}**: {m.get('description', '')}\n" for m in b.get("signature_moves") or [])
             body = (f"Started from the reference film {b.get('title', from_film)} (`{from_film}`): its look, to explore in our own films.\n\n"
@@ -159,24 +210,55 @@ def create(name, kind="exploration", motion=None, about="", from_film=None, md=N
 
 def update(slug, patch):
     p = get(slug)
-    for k in ("name", "about", "type"):
+    for k in ("name", "about", "font", "type"):
         if k in patch and patch[k] is not None:
             p[k] = str(patch[k]).strip() or (p[k] if k == "name" else "")
-    if patch.get("kind") is not None:
-        if patch["kind"] not in KINDS:
-            raise ValueError(f"kind is {' or '.join(KINDS)}")
-        p["kind"] = patch["kind"]
-    if patch.get("motion") is not None:
-        if patch["motion"] not in paths.PROFILES:
-            raise ValueError(f"motion is one of {', '.join(paths.PROFILES)}")
-        p["motion"] = patch["motion"]
     if patch.get("palette") is not None:
         p["palette"] = _palette(patch["palette"])
     if patch.get("md") is not None:
         _write(os.path.join(_dir(slug), "PROFILE.md"), MD_INTRO + str(patch["md"]))
+    if isinstance(patch.get("motion"), dict):
+        set_motion(slug, patch["motion"], p)
     p["updated"] = now()
     _save(slug, p)
     return get(slug)
+
+
+def set_motion(slug, changes, p=None):
+    """Change a profile's motion: {base?, pace?, bounce?, ...}; a value of None or "base" goes back to the base's own."""
+    own = p is not None
+    p = p or get(slug)
+    m = dict(p["motion"])
+    for k, v in changes.items():
+        if k == "base":
+            if v not in paths.PROFILES:
+                raise ValueError(f"the base is one of {', '.join(paths.PROFILES)}")
+            m["base"] = v
+        elif k in MOTION:
+            if v is None or v == "base" or v == "":
+                m.pop(k, None)
+                continue
+            allowed = MOTION[k][0]
+            if isinstance(allowed[0], str):
+                if v not in allowed:
+                    raise ValueError(f"{k} is one of {', '.join(allowed)}")
+                m[k] = v
+            else:
+                try:
+                    x = float(v)
+                except (TypeError, ValueError):
+                    raise ValueError(f"{k} is a number from {allowed[0]} to {allowed[1]}")
+                if not allowed[0] <= x <= allowed[1]:
+                    raise ValueError(f"{k} is a number from {allowed[0]} to {allowed[1]}")
+                m[k] = x
+        else:
+            raise ValueError(f"motion has base, {', '.join(MOTION)}; not {k!r}")
+    p["motion"] = m
+    if not own:
+        p["updated"] = now()
+        _save(slug, p)
+        return get(slug)
+    return p
 
 
 def set_default(slug):
@@ -254,29 +336,43 @@ def take_in_house():
     if not paths.BRAND and not house.strip():
         return None
     name = paths.BRAND or paths.NAME
-    return create(name, kind="house", about=f"{name}'s own look: its brand, type and product.",
-                  md=(house if house.strip() else "") + ("" if house.strip() else f"How {name}'s films look and sound.\n"), is_default=True)
+    return create(name, about=f"{name}'s own look: its brand, type and product.",
+                  md=house if house.strip() else f"How {name}'s films look and sound.\n", is_default=True)
+
+
+def motion_lines(m):
+    """A profile's motion as an agent builds it: the base, then each thing the look changes."""
+    base = m["base"]
+    out = [f"Base: `{base}` ({paths.PROFILES.get(base, '')})."]
+    changed = [k for k in MOTION if k in m]
+    if not changed:
+        return out + ["Nothing changed from the base: build with motion('" + base + "')."]
+    for k in changed:
+        v = m[k]
+        out.append(f"- {k}: {WORDS.get(v, v)} ({MOTION[k][1]})")
+    out.append(f"Build it as a motion profile named after this profile in remotion/src/profiles.ts: start from `{base}`'s roles, "
+               "scale every role's seconds by pace, give UI and emphasis springs the bounce, and set stagger, viewChange.kind "
+               "(transition), text.style and idle as above. Then use it with motion('<that name>').")
+    return out
 
 
 def brief(slug):
     """A profile as an agent reads it before building in it: what `spliced profile show` prints."""
     p = get(slug)
-    lines = [f"# Profile: {p['name']}", "", f"{'House' if p['kind'] == 'house' else 'Exploration'}{' · the default' if p['default'] else ''} · "
-             f"motion profile `{p['motion']}` ({paths.PROFILES.get(p['motion'], '')}) · profiles/{slug}/", ""]
+    lines = [f"# Profile: {p['name']}", "", f"profiles/{slug}/{' · the default' if p['default'] else ''}", ""]
     if p["about"]:
         lines += [p["about"], ""]
     if p["palette"]:
         lines += ["**Palette:** " + ", ".join(f"{c['hex']}{(' (' + c['name'] + ')') if c.get('name') else ''}" for c in p["palette"]), ""]
-    if p["type"]:
-        lines += [f"**Type:** {p['type']}", ""]
+    if p["font"] or p["type"]:
+        lines += [f"**Type:** {p['font'] + ('. ' if p['font'] and p['type'] else '') if p['font'] else ''}{p['type']}", ""]
+    lines += ["## Motion", "", *motion_lines(p["motion"]), ""]
     if p["md"].strip():
         lines += [p["md"].strip(), ""]
     if p["rules"]:
         lines += ["## Rules learned while making films", ""] + [f"{i}. {r['text']}{(' (from ' + r['from'] + ')') if r.get('from') else ''}" for i, r in enumerate(p["rules"], 1)] + [""]
     if p["scenes"]:
         lines += ["## Scenes that show the look", "", "Read each with `" + paths.CLI + " board scene <id>`: " + ", ".join(f"`{k}`" for k in p["scenes"]), ""]
-    if p["kind"] == "house":
-        lines += [f"A house profile: real logo and UI, rebuilt from the product's own source (spliced.json \"app\"), facts from its sources.", ""]
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -285,10 +381,13 @@ def main():
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("list")
     x = sub.add_parser("show"); x.add_argument("profile")
-    x = sub.add_parser("new"); x.add_argument("name"); x.add_argument("--kind", default="exploration", choices=KINDS); x.add_argument("--motion")
+    x = sub.add_parser("new"); x.add_argument("name"); x.add_argument("--motion")
     x.add_argument("--about", default=""); x.add_argument("--from-film"); x.add_argument("--default", action="store_true")
     x = sub.add_parser("set"); x.add_argument("profile")
-    for f in ("name", "kind", "motion", "about", "type", "palette"):
+    for f in ("name", "about", "font", "type", "palette"):
+        x.add_argument(f"--{f}")
+    x = sub.add_parser("motion"); x.add_argument("profile"); x.add_argument("--base")
+    for f in MOTION:
         x.add_argument(f"--{f}")
     x = sub.add_parser("default"); x.add_argument("profile")
     x = sub.add_parser("learn"); x.add_argument("profile"); x.add_argument("rule"); x.add_argument("--from", dest="source", default="")
@@ -302,22 +401,26 @@ def main():
         if a.cmd in (None, "list"):
             ps = every()
             if not ps:
-                print(f"No profiles yet. Make one: {paths.CLI} profile new \"<name>\" [--kind house] (or in the app: Profiles)")
+                print(f"No profiles yet. Make one: {paths.CLI} profile new \"<name>\" (or in the app: Profiles)")
                 return
             for p in ps:
-                print(f"{'*' if p['default'] else ' '} {p['slug']:24} {p['name']:28} {p['kind']:12} motion {p['motion']:9} {len(p['rules'])} rules")
-            print(f"\n* the default: a build that names no profile is made in it. `{paths.CLI} profile show <profile>` before building in one.")
+                print(f"{'*' if p['default'] else ' '} {p['slug']:24} {p['name']:28} motion {p['motion']['base']:9} {len(p['rules'])} rules  {len(p['scenes'])} scenes")
+            print(f"\n* the default: a brief starts in it. `{paths.CLI} profile show <profile>` before building in one.")
         elif a.cmd == "show":
             print(brief(a.profile), end="")
         elif a.cmd == "new":
-            p = create(a.name, a.kind, a.motion, a.about, a.from_film, is_default=a.default)
-            print(f"Made the profile {p['slug']} ({p['kind']}){', the default' if p['default'] else ''}: profiles/{p['slug']}/PROFILE.md is its text.")
+            p = create(a.name, a.motion, a.about, a.from_film, is_default=a.default)
+            print(f"Made the profile {p['slug']}{', the default' if p['default'] else ''}: profiles/{p['slug']}/PROFILE.md is its text.")
         elif a.cmd == "set":
-            p = update(a.profile, {k: getattr(a, k) for k in ("name", "kind", "motion", "about", "type", "palette")})
+            p = update(a.profile, {k: getattr(a, k) for k in ("name", "about", "font", "type", "palette")})
             print(f"{p['slug']}: saved")
+        elif a.cmd == "motion":
+            ch = {k: getattr(a, k) for k in ("base", *MOTION) if getattr(a, k) is not None}
+            p = set_motion(a.profile, ch) if ch else get(a.profile)
+            print("\n".join(motion_lines(p["motion"])))
         elif a.cmd == "default":
             d = set_default("" if a.profile == NONE else a.profile)
-            print(f"The default profile is {d}" if d else "No default profile: a build that names none recreates the reference as it is")
+            print(f"The default profile is {d}" if d else "No default profile: a brief starts with no profile, recreating its reference as it is")
         elif a.cmd == "learn":
             p = learn(a.profile, a.rule, a.source)
             print(f"{p['slug']}: {len(p['rules'])} rules")
@@ -327,12 +430,12 @@ def main():
         elif a.cmd in ("pin", "unpin"):
             p = pin(a.profile, a.scene, a.cmd == "pin")
             print(f"{p['slug']}: {len(p['scenes'])} scenes")
+        elif a.cmd == "remove":
+            print(f"Removed; kept in {os.path.relpath(remove(a.profile), paths.ROOT)}")
         elif a.cmd == "setup":
             p = take_in_house()
             print(f"Your house rules are now the profile {p['name']} (profiles/{p['slug']}/), the default. Profiles holds it, and any other looks you make."
-                  if p else f"{len(every())} profile{'' if len(every()) == 1 else 's'}" if every() else "No profiles yet: make one in the app (Profiles) when you want a house look.")
-        elif a.cmd == "remove":
-            print(f"Removed; kept in {os.path.relpath(remove(a.profile), paths.ROOT)}")
+                  if p else f"{len(every())} profile{'' if len(every()) == 1 else 's'}" if every() else "No profiles yet: make one in the app (Profiles) when you want one.")
     except (KeyError, ValueError) as e:
         sys.exit(str(e.args[0]) if e.args else str(e))
 

@@ -26,7 +26,7 @@ class Profiles(unittest.TestCase):
         code, out = self.cli("profile", "setup")
         self.assertEqual(code, 0, out)
         p = self.profile("fixture")
-        self.assertEqual((p["name"], p["kind"], p["default"]), ("Fixture", "house", True), "the brand in spliced.json names it")
+        self.assertEqual((p["name"], p["default"], p["motion"]), ("Fixture", True, {"base": "soft"}), "the brand in spliced.json names it")
         with open(os.path.join(self.root, "profiles", "fixture", "PROFILE.md")) as f:
             self.assertIn("Always dark. Never bounce.", f.read(), "the house rules are its words")
         self.assertTrue(os.path.isfile(house), "HOUSE.md stays where it was")
@@ -43,36 +43,54 @@ class Profiles(unittest.TestCase):
         self.assertFalse(os.path.exists(os.path.join(self.root, "profiles")))
 
     def test_profiles_are_made_kept_and_chosen(self):
-        self.assertEqual(self.cli("profile", "new", "Acme house", "--kind", "house")[0], 0)
+        self.assertEqual(self.cli("profile", "new", "Acme house")[0], 0)
         self.assertTrue(self.profile("acme-house")["default"], "the first profile is the default")
         code, out = self.cli("profile", "new", "Soft glass", "--from-film", "demo-one", "--motion", "apple")
         self.assertEqual(code, 0, out)
         g = self.profile("soft-glass")
-        self.assertEqual((g["kind"], g["motion"], g["from_film"], g["default"]), ("exploration", "apple", "demo-one", False))
+        self.assertEqual((g["motion"]["base"], g["from_film"], g["default"]), ("apple", "demo-one", False))
         self.assertEqual(g["palette"], [{"hex": "#FFFFFF", "name": "white stage"}], "a film's palette comes with it")
         self.assertEqual(g["scenes"], ["demo-one/s01"], "and the scenes of its signature moves")
         self.cli("profile", "learn", "soft-glass", "Hold the end card two seconds", "--from", "demo note 1")
         self.cli("profile", "learn", "soft-glass", "hold the end card two seconds")
         self.assertEqual([r["text"] for r in self.profile("soft-glass")["rules"]], ["Hold the end card two seconds"], "a rule is kept once")
         code, out = self.cli("profile", "show", "soft-glass")
-        for bit in ("# Profile: Soft glass", "motion profile `apple`", "1. Hold the end card two seconds (from demo note 1)", "`demo-one/s01`"):
+        for bit in ("# Profile: Soft glass", "Base: `apple`", "1. Hold the end card two seconds (from demo note 1)", "`demo-one/s01`"):
             self.assertIn(bit, out)
         self.cli("profile", "default", "soft-glass")
         self.assertEqual((self.profile("soft-glass")["default"], self.profile("acme-house")["default"]), (True, False), "one default at a time")
         self.cli("profile", "default", "none")
         self.assertFalse(self.profile("soft-glass")["default"])
         self.assertNotEqual(self.cli("profile", "new", "soft glass")[0], 0, "never two of one name")
-        code, out = self.cli("profile", "set", "soft-glass", "--motion", "wobbly")
+        code, out = self.cli("profile", "motion", "soft-glass", "--base", "wobbly")
         self.assertNotEqual(code, 0)
-        self.assertIn("motion is one of", out)
+        self.assertIn("the base is one of", out)
         code, out = self.cli("profile", "remove", "soft-glass")
         self.assertEqual(code, 0, out)
         self.assertFalse(os.path.exists(os.path.join(self.root, "profiles", "soft-glass")))
         kept = os.path.join(self.root, ".cache", "profiles-removed")
         self.assertTrue(any(os.path.isdir(os.path.join(kept, d, "soft-glass")) for d in os.listdir(kept)), "a removed profile is kept first")
 
+    def test_a_profile_changes_what_it_wants_of_its_base_motion(self):
+        self.cli("profile", "new", "Calm")
+        code, out = self.cli("profile", "motion", "calm", "--pace", "1.3", "--bounce", "0", "--transition", "blurThrough", "--text", "greyToInk")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.profile("calm")["motion"], {"base": "soft", "pace": 1.3, "bounce": 0.0, "transition": "blurThrough", "text": "greyToInk"})
+        code, out = self.cli("profile", "show", "calm")
+        for bit in ("Base: `soft`", "- pace: 1.3", "- transition: blur through", "- text: land grey, then darken", "remotion/src/profiles.ts"):
+            self.assertIn(bit, out)
+        self.cli("profile", "motion", "calm", "--bounce", "base", "--base", "apple")
+        self.assertEqual(self.profile("calm")["motion"], {"base": "apple", "pace": 1.3, "transition": "blurThrough", "text": "greyToInk"}, "base resets one, the rest stay")
+        for bad in (("--pace", "9"), ("--transition", "wipe"), ("--stagger", "fast")):
+            code, out = self.cli("profile", "motion", "calm", *bad)
+            self.assertNotEqual(code, 0, bad)
+        with open(os.path.join(self.root, "profiles", "calm", "profile.json"), "w") as f:
+            json.dump({"name": "Calm", "motion": "material", "kind": "house"}, f)
+        code, out = self.cli("profile", "show", "calm")
+        self.assertIn("Base: `material`", out, "a profile written before motion had knobs still reads")
+
     def test_a_board_and_its_film_are_made_in_a_profile(self):
-        self.cli("profile", "new", "Acme house", "--kind", "house")
+        self.cli("profile", "new", "Acme house")
         code, out = self.cli("board", "show", "Fixture board")
         self.assertIn("Profile: Acme house (acme-house), the default · motion soft", out)
         self.cli("board", "brief", "Fixture board", "--style", "none", "--motion", "apple")
@@ -123,8 +141,15 @@ class ProfilesOverTheServer(unittest.TestCase):
         self.assertEqual((code, j["profile"], j["default"]), (200, "fixture", "fixture"))
         code, j = req("POST", "/api/profiles", {"op": "learn", "profile": "fixture", "text": "Never bounce the logo", "from": "the person"})
         self.assertEqual(j["profiles"][0]["rules"][0]["text"], "Never bounce the logo")
-        code, j = req("POST", "/api/profiles", {"op": "set", "profile": "fixture", "md": "Dark stage, one headline at a time."})
-        self.assertEqual(j["profiles"][0]["md"], "Dark stage, one headline at a time.")
+        code, j = req("POST", "/api/profiles", {"op": "set", "profile": "fixture", "md": "Dark stage, one headline at a time.", "font": "Inter",
+                                                "palette": [{"hex": "#111111", "name": "ink"}, {"hex": "javascript:x"}], "motion": {"pace": 1.2, "transition": "fadeThrough"}})
+        f = j["profiles"][0]
+        self.assertEqual((f["md"], f["font"], f["palette"], f["motion"]), ("Dark stage, one headline at a time.", "Inter", [{"hex": "#111111", "name": "ink"}],
+                                                                          {"base": "soft", "pace": 1.2, "transition": "fadeThrough"}), "a colour that isn't one is dropped")
+        self.assertEqual(req("POST", "/api/profiles", {"op": "set", "profile": "fixture", "motion": {"pace": 40}})[0], 400)
+        g = req("GET", "/api/profiles")[1]
+        self.assertIn("soft", g["kit"])
+        self.assertEqual(g["knobs"]["transition"]["allowed"], ["cut", "blurThrough", "fadeThrough", "sharedAxisX", "sharedAxisZ"])
         self.assertEqual(req("POST", "/api/profiles", {"op": "pin", "profile": "fixture", "scene": "../../etc"})[0], 400)
         self.assertEqual(req("POST", "/api/profiles", {"op": "set", "profile": "../x", "about": "x"})[0], 400, "a profile is a name, never a path")
         self.assertEqual(req("POST", "/api/profiles", {"op": "learn", "profile": "fixture", "text": "x"}, headers={"Origin": "http://evil.test"})[0], 403)

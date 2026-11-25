@@ -23,7 +23,7 @@ const TERMS = {
   board: ["Board", "Your film's script: the scenes you borrow, in order, each with its words and its length."],
   beat: ["Beat", "One step of your film, and one line on a board. It borrows a scene, says what is on screen, and lasts a few seconds."],
   "motion profile": ["Motion profile", "How everything in one film moves: how fast things arrive, whether they bounce. One per film, so it feels made by one hand."],
-  profile: ["Profile", "A look your films are made in: your company's own, or one to explore. Its palette, type, motion and rules, which your AI reads before building."],
+  profile: ["Profile", "A look your films are made in: your company's own, or one to try. Its palette, typeface, motion and rules, which your AI reads before building."],
   storyboard: ["Storyboard", "A film's plan, beat by beat, once you start building it from a board."],
   render: ["Render", "A video file made from the film as it stands. Each new one gets a version number, so you can compare."],
   cue: ["Cue", "A time in the film where something happens, written down once so picture and sound agree."],

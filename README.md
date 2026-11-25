@@ -144,12 +144,13 @@ individuals and small teams and needs a paid licence above that.
 
 ### Profiles
 
-A profile is a look your films are made in: your company's own (its brand, type, sound direction, where its product's
-code is) or a look you want to explore. Each one is a folder in the project, `profiles/<name>/`: its motion profile,
-palette and type, its own words in `PROFILE.md`, the scenes that show the look, and the rules your AI learns while
-making films ("never bounce the logo"). Your AI reads it before the kit's defaults.
+A profile is a look your films are made in: your company's own (its brand, type, sound direction) or a look you want
+to try. Each one is a folder in the project, `profiles/<name>/`: its palette and typeface, its motion (a base motion
+profile and what it changes: pace, bounce, stagger, scene changes, how words arrive), its own words in `PROFILE.md`,
+the scenes that show the look, and the rules your AI learns while making films ("never bounce the logo"). Your AI
+reads it before the kit's defaults.
 
-One profile can be the default. Every brief you copy (a board's build prompt, a scene, a whole reference film) can
+Briefs start in the default profile. Every brief you copy (a board's build prompt, a scene, a whole reference film) can
 choose another, or **No profile**: then the film recreates its references as they are, in their own look. In the app:
 Profiles, under Make. A project from before profiles keeps its brand and `remotion/docs/HOUSE.md`; `spliced setup`
 makes them its first profile.

@@ -268,7 +268,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if url.path == "/api/folders":
             return self._json(200, {"folders": paths.reload_folders()})
         if url.path == "/api/profiles":  # the looks the project's films are made in (profiles.py; spliced profile)
-            return self._json(200, {"profiles": profiles.every(), "default": profiles.default(), "motion": paths.PROFILES})
+            return self._json(200, {"profiles": profiles.every(), "default": profiles.default(), "motion": paths.PROFILES,
+                                    "knobs": {k: {"allowed": list(v[0]), "about": v[1]} for k, v in profiles.MOTION.items()}, "kit": profiles.KIT_MOTION})
         if url.path == "/api/productions":
             paths.reload_folders()   # (a command may have added one since)
             return self._json(200, film.summaries())
@@ -594,14 +595,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             try:
                 with LOCK:
                     if op == "new":
-                        p = profiles.create(body.get("name", ""), body.get("kind") or "exploration", body.get("motion"), body.get("about", ""),
-                                            body.get("from_film"), is_default=bool(body.get("default")))
+                        p = profiles.create(body.get("name", ""), body.get("motion"), body.get("about", ""), body.get("from_film"), is_default=bool(body.get("default")))
                         slug = p["slug"]
                     elif op == "house":
                         p = profiles.take_in_house()
                         slug = p["slug"] if p else slug
                     elif op == "set":
-                        profiles.update(slug, {k: body.get(k) for k in ("name", "kind", "motion", "about", "type", "palette", "md")})
+                        profiles.update(slug, {k: body.get(k) for k in ("name", "about", "font", "type", "palette", "md", "motion")})
                     elif op == "default":
                         profiles.set_default("" if slug == profiles.NONE else slug)
                     elif op == "learn":

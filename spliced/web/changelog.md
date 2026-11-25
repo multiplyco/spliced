@@ -5,16 +5,19 @@ it in a sentence, then a paragraph or two, and a picture if it helps (`![what it
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
 ## Profiles: the looks your films are made in
-2026-11-24
-*Keep your house look and any looks you want to explore, and choose one, or none, each time you copy a brief.*
+2026-11-25
+*Keep the looks your films are made in, and choose one, or none, each time you copy a brief.*
 
-Profiles, under Make, holds the looks your films are made in. A house profile is your company's own; an exploration is
-a look to try, and a reference film's page can start one from its palette, type and moves. Each keeps a motion
-profile, its own words, the scenes that show it, and the rules your AI learns while making films, so it gets more
-like you over time. One can be the default. A board, a scene's brief and a whole film's brief each have a profile
-beside the copy button: pick another, or No profile to recreate the reference as it is, in its own look. A project
-that had one brand and house rules now has them as its first profile; the scene page says Recreate instead of
-Recreate for your brand.
+Profiles, under Make, holds the looks your films are made in: your company's own, or one you want to try. Each one
+plays itself at the top of its page, in its palette and typeface, with its motion. Change the motion beside it: start
+from a motion profile, then set the pace, the bounce, the stagger, how scenes change and how words arrive, and watch
+the preview follow. Add the scenes that show the look from a picker that puts the closest palettes first, and take
+the palette from them in one click. Your AI keeps the rules it learns on every film in the profile.
+
+Briefs start in the default profile (the switch at the top of a profile's page). A board, a scene's brief and a whole
+film's brief each have a profile beside the copy button: pick another, or No profile to copy the reference as it is.
+A reference film's page can start a profile from its look. A project that had one brand and house rules now has them
+as its first profile, and the scene page says Recreate instead of Recreate for your brand.
 
 ## Recreate a whole film
 2026-11-24

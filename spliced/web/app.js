@@ -333,7 +333,7 @@ function toast(msg, ms = 1600, actions = null) {
 }
 window.crToast = (msg, ms, actions) => toast(msg, ms, actions);  // for imports.js, assets.js, styles.js (window.toast is the #toast element)
 // for profiles.js: the app's menus, copying, and a scene by its key with its thumbnail
-Object.assign(window.CR, { menu: (...a) => menu(...a), copy: (...a) => copy(...a), scene: (k) => BY_KEY[k], sceneThumb: (x) => sceneThumb(x) });
+Object.assign(window.CR, { menu: (...a) => menu(...a), copy: (...a) => copy(...a), scene: (k) => BY_KEY[k], scenes: () => SCENES, sceneThumb: (x) => sceneThumb(x) });
 
 /* ---------- overflow menus and popovers ----------
    menu(anchor, items, onPick): items = [{value, html, on?, sep?, danger?, hint?}] (sep draws a line before the item) */
@@ -1348,9 +1348,9 @@ function filmBrief(slug, choice = window.Profiles.NONE) {
       `Match it scene by scene: the same scenes in the same order, each the same length, with the same framing, layout, type, palette, copy, motion, cuts and pacing. This is a study of the film: don't move it into a profile, house style or motion profile of the project's, and don't add what it doesn't have. Follow "A study of one film" in the make-film skill.`,
     ] : [
       `/make-film Rebuild the reference film "${f.title}" (${f.brand}) scene by scene in the profile ${prof.name}, in remotion/.`,
-      `Keep its structure: the same scenes in the same order, each the same length, with the same choreography, cuts and pacing. Change its look to the profile's: read \`${SP.cmd("profile", "show", v)}\` first; its palette, type, stage, rules and motion profile (\`${prof.motion}\`) replace the film's${prof.kind === "house" ? ", and its own product, logo and words replace the film's" : ""}.`,
+      `Keep its structure: the same scenes in the same order, each the same length, with the same choreography, cuts and pacing. Change its look to the profile's: read \`${SP.cmd("profile", "show", v)}\` first; its palette, type, stage, rules and motion (built on \`${prof.motion.base}\`) replace the film's.`,
     ]),
-    `Set it up so Spliced pairs every beat with its scene: ${SP.cmd("board")} new "${board}" --from-film ${slug}${asIs ? "" : ` --style ${v} --motion ${prof.motion}`}, then ${SP.cmd("film")} new ${film} --board "${board}" (skip whichever already exists). Build then plays each beat beside the scene it ${asIs ? "recreates" : "rebuilds"}; compare them with ${SP.cmd("film")} sheet ${film} --beat <id> and fix what differs before marking a beat review.`,
+    `Set it up so Spliced pairs every beat with its scene: ${SP.cmd("board")} new "${board}" --from-film ${slug}${asIs ? "" : ` --style ${v} --motion ${prof.motion.base}`}, then ${SP.cmd("film")} new ${film} --board "${board}" (skip whichever already exists). Build then plays each beat beside the scene it ${asIs ? "recreates" : "rebuilds"}; compare them with ${SP.cmd("film")} sheet ${film} --beat <id> and fix what differs before marking a beat review.`,
     `The reference: ${f.file}, ${ts(f.duration)}, ${f.format || ""}${f.fps ? `, ${f.fps} fps` : ""}. Its breakdown: library/references/${slug}/breakdown.md. Each scene's frames: library/references/${slug}/scenes/<id>.jpg. Look at a scene's frames before building it.`,
     "", `# Film: ${f.title}`, "",
     f.summary || "",
@@ -1590,7 +1590,7 @@ function renderBoards(name) {
   const bp = h(`<div class="brief-sum ${open ? "open" : ""}">
     <p class="news ${br.news ? "" : "dim"}">${esc(br.news || "No brief yet: what's the news, in one sentence?")}</p>
     ${br.audience ? `<p class="aud" title="Audience">${esc(br.audience)}</p>` : ""}
-    <div class="facts"><button class="pf-pick" data-a="style"></button>${[br.aspect && esc(br.aspect), target && `${target}s`, `motion <b>${esc(prof)}</b>`].filter(Boolean).map((x) => `<span>${x}</span>`).join("")}
+    <div class="facts"><button class="pf-style" data-a="style"></button>${[br.aspect && esc(br.aspect), target && `${target}s`, `motion <b>${esc(prof)}</b>`].filter(Boolean).map((x) => `<span>${x}</span>`).join("")}
       ${target ? `<span class="lenbar" title="${total.toFixed(1)}s scripted of ${target}s"><i style="width:${Math.min(100, (total / target) * 100)}%" class="${total > target * 1.05 ? "over" : ""}"></i></span>` : ""}
       <button class="icon-btn sm ghost" data-a="edit">${icon(open ? "chevron-down" : "pencil")}${open ? "Done" : "Edit brief"}</button></div>
     <div class="brief">
@@ -1603,13 +1603,14 @@ function renderBoards(name) {
   // the profile it is built in: a choice of the project's profiles, or none (each beat recreated as its scene is)
   const sty = $('[data-a="style"]', bp), paintStyle = () => {
     const P = window.Profiles, own = b.style || "";
-    sty.innerHTML = `${icon("palette")}<span>Profile</span><b>${esc(P.name(own))}</b>${own ? "" : `<small>${P.default() ? "default" : "as the reference"}</small>`}${icon("chevron-down")}`;
+    const r = P.resolve(own), pal = r === P.NONE ? [] : P.get(r).palette;
+    sty.innerHTML = `<span class="pf-dots">${pal.length ? pal.slice(0, 3).map((c) => `<i style="background:${esc(c.hex)}"></i>`).join("") : `<i class="none"></i>`}</span><span>Profile</span><b>${esc(P.name(own))}</b>${own ? "" : `<small>${P.default() ? "default" : "copy as it is"}</small>`}${icon("chevron-down")}`;
     sty.title = `The profile this board is built in: ${P.name(own)}${own ? "" : " (the project's default)"}. Choose another, or No profile to recreate each scene as it is`;
   };
   paintStyle(); window.Profiles.ready.then(paintStyle);
   sty.onclick = () => window.Profiles.pick(sty, b.style || "", (v) => {
     const p = window.Profiles.get(v), op = { op: "board.set", name: current, style: v };
-    if (p && p.motion in PROFILES) op.profile = b.profile = p.motion;   // a profile brings its motion with it; the brief can still change it
+    if (p && p.motion.base in PROFILES) op.profile = b.profile = p.motion.base;   // a profile brings its motion with it; the brief can still change it
     b.style = v; send([op]); renderBoards();
   });
   bp.querySelectorAll("[data-k]").forEach((el) => (el.oninput = () => {

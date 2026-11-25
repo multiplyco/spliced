@@ -1362,7 +1362,7 @@ def cmd_status(a):
     print(f"# {p['title']}  ({p['engine']}, {p['dir']})")
     if p["message"]:
         print(f"News: {p['message']}")
-    print(f"Plan: {p['storyboard']}   {fmt_t(p['duration'])}   made in {('the profile ' + p['style']) if p.get('style') and p['style'] != 'none' else 'no profile (as the reference)' if p.get('style') else 'the house look'}   motion {p['profile'] or '-'}   board {p['board'] or '-'}")
+    print(f"Plan: {p['storyboard']}   {fmt_t(p['duration'])}   made in {('the profile ' + p['style']) if p.get('style') and p['style'] != 'none' else 'no profile (as the reference)' if p.get('style') else 'the project default'}   motion {p['profile'] or '-'}   board {p['board'] or '-'}")
     if p.get("style") and p["style"] != "none":
         print(f"  Read the profile before building: {paths.CLI} profile show {p['style']}")
     for w in p["warnings"]:

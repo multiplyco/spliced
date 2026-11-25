@@ -41,8 +41,8 @@ const VIEWS = {
     `Every still, clip and sound across your films, with what made each one and whether it is used.`,
     `The search also looks in free footage libraries. <b>Add</b> pulls a clip or photo into a film and writes down its author and licence.`]],
   profiles: ["The looks your films are made in", () => [
-    `A ${T("profile")} is a look: your company's own, or one you want to explore. It keeps a palette, type, a ${T("motion profile")} and your own words, and ${esc(SP.ai)} adds the rules it learns on every film.`,
-    `One can be the default. Each brief you copy can choose another, or <b>No profile</b> to recreate the reference as it is.`,
+    `A ${T("profile")} is a look: your company's own, or one you want to try. It keeps a palette, a typeface, its motion, the scenes that show it and your own words, and ${esc(SP.ai)} adds the rules it learns on every film.`,
+    `Briefs start in the default profile. Each brief you copy can choose another, or <b>No profile</b> to copy the reference as it is.`,
     `Start one with <b>New profile</b>, or from a film you like: its page has <b>Start a profile</b>.`]],
   sound: ["The film's sound, taken apart", () => [
     `Music, voice and effects, each on its own line, laid over the music's own pulse so you can see what lands on it.`,

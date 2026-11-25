@@ -4,6 +4,8 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+<!-- release 1.3.0 2026-11-25 -->
+
 ## Your own films in the Library
 2026-11-25
 *The films you made in Build have their own place in the Library, beat by beat, and the search box finds them.*

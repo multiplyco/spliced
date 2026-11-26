@@ -4,6 +4,16 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+## One set of profiles in every workspace
+2026-11-26
+*A profile drafted in one git worktree is the one every other worktree, and the app, sees.*
+
+In a git worktree (a Conductor workspace, say), Spliced now reads and writes the main checkout's profiles, the way
+renders already go there. Draft a profile in one workspace and build a film in it from another, with no copying;
+edits made from a worktree land in the main checkout, ready to commit there. A profile a worktree made in its own
+folder before this is still listed, marked Local, and left as it is: `spliced profile move-home <profile>` moves it
+to the main checkout. To keep profiles with each branch instead, set `"worktree_profiles": "worktree"` in spliced.json.
+
 <!-- release 1.4.0 2026-11-26 -->
 
 ## A profile from your website

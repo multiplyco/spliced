@@ -216,7 +216,8 @@ OUT = os.path.join(REMOTION, "out")                 # a Remotion film's renders 
 HOUSE_MD = os.path.join(REMOTION, "docs", "HOUSE.md")   # house rules from before profiles (profiles.py takes them in)
 
 # the project's profiles: how its films look and move, one folder each (profiles.py). Not the motion profiles above:
-# a profile names the motion profile its films use, beside its palette, type and rules.
+# a profile names the motion profile its films use, beside its palette, type and rules. This is this folder's own
+# profiles/; in a git worktree the profiles are read from and written to the main checkout's (profile_dir()).
 PROFILE_DIR = _p(LAYOUT["profiles"])
 
 
@@ -310,6 +311,27 @@ def render_home():
     there (WORKTREE_RENDERS), else this project."""
     m = main_checkout() if WORKTREE_RENDERS == "main" else None
     return m if m and os.path.isfile(os.path.join(m, MARKER)) else ROOT
+
+
+# Profiles in a git worktree, spliced.json "worktree_profiles":
+#   "main"      (the default) every worktree reads and writes the main checkout's profiles/: one store, so a profile
+#               drafted in one workspace is the one a film is built in in another, and the app opened anywhere sees it.
+#               An edit made from a worktree lands in the main checkout (commit it there).
+#   "worktree"  each worktree keeps its own profiles/, carried by the branch like code
+WORKTREE_PROFILES = CONFIG.get("worktree_profiles") if CONFIG.get("worktree_profiles") in ("main", "worktree") else "main"
+
+
+def profile_home():
+    """The project folder whose profiles/ is the store: the main checkout when this is a worktree of one and profiles
+    live there (WORKTREE_PROFILES), else this project."""
+    m = main_checkout() if WORKTREE_PROFILES == "main" else None
+    return m if m and os.path.isfile(os.path.join(m, MARKER)) else ROOT
+
+
+def profile_dir():
+    """Where the profiles are read from and written to (profile_home's profiles/)."""
+    home = profile_home()
+    return PROFILE_DIR if home == ROOT else os.path.join(home, LAYOUT["profiles"])
 
 
 def _main_checkout():

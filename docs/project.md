@@ -47,7 +47,8 @@ Breakdowns, boards and notes are JSON and Markdown, readable without Spliced.
   "agent": { "runner": "claude", "permissions": "ask", "name": "Robin" },
   "app": { "code": "~/code/your-app" },
   "folders": [{ "folder": "branding-videos", "name": "Branding videos" }],
-  "worktree_renders": "main"
+  "worktree_renders": "main",
+  "worktree_profiles": "main"
 }
 ```
 
@@ -62,6 +63,7 @@ Breakdowns, boards and notes are JSON and Markdown, readable without Spliced.
 | `app.code` | Where your product's real code is: a folder or a GitHub address, or a list of them |
 | `folders` | The project's folders. `spliced folders add` writes them |
 | `worktree_renders` | Where a render made in a git worktree goes: `main` (the default) or `worktree` |
+| `worktree_profiles` | Where a git worktree reads and writes profiles: the main checkout's (`main`, the default) or its own (`worktree`). See [Profiles](profiles.md#git-worktrees) |
 
 ## In git
 

@@ -66,4 +66,20 @@ spliced profile learn acme "never bounce the logo"
 spliced profile default none                     # briefs start in no profile
 ```
 
-A profile is a folder in the project, `profiles/<name>/`: `profile.json`, its words in `PROFILE.md`, and what it was drafted from in `sources/`. Your AI reaches the same through the `profile` tool over [MCP](mcp.md).
+A profile is a folder in the project, `profiles/<name>/`: `profile.json`, its words in `PROFILE.md`, and what it was drafted from in `sources/`. Commit them like the rest of the project. Your AI reaches the same through the `profile` tool over [MCP](mcp.md).
+
+## Git worktrees
+
+A project has one set of profiles. In a git worktree (a Conductor workspace, say), Spliced reads and writes the main checkout's `profiles/`, so a profile drafted in one workspace is the one a film is built in in another, and the app opened anywhere shows the same ones. An edit made from a worktree lands in the main checkout: commit it there. `spliced profile` and `spliced profile show` say where they are.
+
+A worktree that made a profile in its own `profiles/` before this still lists it, marked **Local**, and nothing in it is moved or written over. To share it:
+
+```bash
+spliced profile move-home acme    # into the main checkout; refused if it already has an acme
+```
+
+To keep profiles with each branch instead, like code:
+
+```json
+{ "worktree_profiles": "worktree" }
+```

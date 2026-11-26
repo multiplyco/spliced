@@ -18,6 +18,11 @@ change, how words arrive, and whether things float while held. Each is optional:
 the fields of the film kit's Profile (remotion/src/lib/motion/spec.ts), so an agent builds the film's motion profile
 from them in remotion/src/profiles.ts.
 
+One store per project: in a git worktree (a Conductor workspace, `git worktree add`) the profiles are the main
+checkout's (paths.profile_dir, spliced.json "worktree_profiles"), so every worktree and the app see the same ones and
+an edit made from a worktree lands there. A profile a worktree made in its own profiles/ before that is still listed,
+marked local, and never written over; `spliced profile move-home <profile>` moves it to the main checkout.
+
 A project from before profiles had one brand (spliced.json) and remotion/docs/HOUSE.md: `spliced setup` makes them
 its first profile, once, and leaves both files where they were.
 
@@ -44,18 +49,18 @@ its first profile, once, and leaves both files where they were.
   spliced profile forget <profile> <n>              take rule n out
   spliced profile pin <profile> <film/sNN>          a scene that shows the look; unpin takes it out
   spliced profile remove <profile>                  kept in .cache/profiles-removed/ first
+  spliced profile move-home <profile>               a profile kept in this worktree's own profiles/ goes to the main checkout's
 """
 import argparse, datetime as dt, json, os, re, shutil, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import paths
 
-DIR = paths.PROFILE_DIR
+LOCAL = paths.PROFILE_DIR   # this folder's own profiles/: the store, except in a worktree (store())
 NONE = "none"   # a build in no profile: as the reference
 FONT_SOURCES = ("local", "google")
 SOURCE_EXT = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".mp4", ".mov", ".m4v", ".webm", ".txt", ".md", ".key", ".pptx"}
 SOURCE_MAX = 400 * 1024 * 1024
-MOTIONS = os.path.join(DIR, "motions.json")   # motions saved as starting points: {slug: {name, base, pace?, ...}}
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
 MD_INTRO = ("<!-- This profile in your own words: the voice, the stage, the type, what its films always do and never do. "
             "Your AI reads it before building a film in this profile. -->\n")
@@ -137,10 +142,41 @@ def slugify(s):
     return re.sub(r"[^a-z0-9]+", "-", str(s).lower()).strip("-")[:48].strip("-")
 
 
+def store():
+    """Where profiles are kept: this project's profiles/, or in a git worktree the main checkout's (paths.profile_dir)."""
+    return paths.profile_dir()
+
+
+def motions_file():
+    """Motions saved as starting points: {slug: {name, base, pace?, ...}}, beside the profiles."""
+    return os.path.join(store(), "motions.json")
+
+
+def _local_only(slug):
+    """A profile this worktree made in its own profiles/ (before profiles went home) that the store has no namesake of."""
+    return (store() != LOCAL and os.path.isfile(os.path.join(LOCAL, slug, "profile.json"))
+            and not os.path.isdir(os.path.join(store(), slug)))
+
+
 def _dir(slug):
     if not SLUG.match(str(slug or "")):
         raise ValueError(f"{slug!r} isn't a profile (a short kebab-case name)")
-    return os.path.join(DIR, slug)
+    return os.path.join(LOCAL, slug) if _local_only(slug) else os.path.join(store(), slug)
+
+
+def shown(path):
+    """A path as a person or agent is told it: project-relative, or in full when it is in the main checkout."""
+    return path if paths.rel(path).startswith(paths.MAIN_PREFIX) else paths.rel(path)
+
+
+def where(slug):
+    """A profile's folder as an agent is told it (shown)."""
+    return shown(_dir(slug))
+
+
+def agent_path(relpath):
+    """A path Spliced wrote down (paths.rel) as an agent can open it: "@main/..." becomes the full path."""
+    return paths.abspath(relpath) if str(relpath).startswith(paths.MAIN_PREFIX) else relpath
 
 
 def _write(path, text):
@@ -201,15 +237,48 @@ def _read(slug):
             "motion": _motion(p.get("motion")), "scenes": [str(x) for x in (p.get("scenes") or [])],
             "rules": [r for r in (p.get("rules") or []) if isinstance(r, dict) and r.get("text")], "from_film": p.get("from_film") or "",
             "created": p.get("created") or "", "updated": p.get("updated") or "", "md": md.replace(MD_INTRO, "", 1),
+            "local": _local_only(slug),   # kept in this worktree's own profiles/, not the project's store
             "found": {"palette": colours_in(md)}}   # what its words name, for the app to offer in one click
 
 
+def _slugs(d):
+    return sorted(x for x in os.listdir(d) if SLUG.match(x)) if os.path.isdir(d) else []
+
+
 def every():
-    """Every profile, the default first, then by name."""
-    if not os.path.isdir(DIR):
+    """Every profile, the default first, then by name: the store's, and any this worktree keeps in its own profiles/."""
+    names = _slugs(store()) + [x for x in _slugs(LOCAL) if store() != LOCAL and _local_only(x)]
+    out = [p for p in (_read(d) for d in names) if p]
+    return sorted(out, key=lambda p: (not p["default"], p["local"], p["name"].lower()))
+
+
+def shadowed():
+    """Profiles this worktree keeps in its own profiles/ that the store has one of the same name: not used, never removed."""
+    if store() == LOCAL:
         return []
-    out = [p for p in (_read(d) for d in sorted(os.listdir(DIR)) if SLUG.match(d)) if p]
-    return sorted(out, key=lambda p: (not p["default"], p["name"].lower()))
+    return [x for x in _slugs(LOCAL) if os.path.isfile(os.path.join(LOCAL, x, "profile.json")) and os.path.isdir(os.path.join(store(), x))]
+
+
+def move_home(slug):
+    """Move a profile this worktree keeps in its own profiles/ into the store (the main checkout's). Refuses when the
+    store has one of that name; nothing is written over. Returns the new folder."""
+    if store() == LOCAL:
+        raise ValueError("this project keeps its profiles here: there is nowhere else to move one")
+    if not SLUG.match(str(slug or "")) or not os.path.isfile(os.path.join(LOCAL, slug, "profile.json")):
+        raise KeyError(f"this worktree keeps no profile called {slug!r} in its own profiles/")
+    home = os.path.join(store(), slug)
+    if os.path.exists(home):
+        raise ValueError(f"the main checkout already has a profile called {slug!r}, so both are kept as they are: rename this "
+                         f"worktree's folder (profiles/{slug}) and move that, or copy what you need across by hand")
+    was_default = default()
+    os.makedirs(store(), exist_ok=True)
+    shutil.copytree(os.path.join(LOCAL, slug), home)
+    p = _read(slug)
+    if p and p["default"] and was_default and was_default != slug:   # the store's default stays the default
+        p["default"] = False
+        _save(slug, p)
+    shutil.rmtree(os.path.join(LOCAL, slug))
+    return home
 
 
 def get(slug):
@@ -345,7 +414,7 @@ def set_motion(slug, changes, p=None):
 
 def saved_motions():
     try:
-        with open(MOTIONS) as f:
+        with open(motions_file()) as f:
             d = json.load(f)
     except (OSError, ValueError):
         return {}
@@ -376,7 +445,7 @@ def save_motion(slug, name):
         raise ValueError(f"{name!r} can't be a motion's name" + (" (the kit has one called that)" if key in paths.PROFILES else ""))
     d = saved_motions()
     d[key] = {"name": name, **{k: v for k, v in p["motion"].items() if k != "from"}}
-    _write(MOTIONS, json.dumps(d, indent=1, ensure_ascii=False) + "\n")
+    _write(motions_file(), json.dumps(d, indent=1, ensure_ascii=False) + "\n")
     return key
 
 
@@ -385,7 +454,7 @@ def remove_motion(key):
     if key not in d:
         raise ValueError(f"no saved motion called {key!r}")
     del d[key]
-    _write(MOTIONS, json.dumps(d, indent=1, ensure_ascii=False) + "\n")
+    _write(motions_file(), json.dumps(d, indent=1, ensure_ascii=False) + "\n")
 
 
 SITE = ".site.md"   # a website Spliced read for a profile: <site>.site.md, its pictures beside it as "<site> logo.svg" ...
@@ -394,7 +463,7 @@ SITE_FILES = ("logo", "icon", "share", "first screen", "page")
 
 def sources(slug):
     """What a profile was drafted from: [{file, name, kind, bytes}], project-relative paths. A website's read is kind "site"."""
-    d = os.path.join(DIR, slug, "sources")
+    d = os.path.join(_dir(slug), "sources")
     if not os.path.isdir(d):
         return []
     kind = lambda n, e: "site" if n.endswith(SITE) else "video" if e in (".mp4", ".mov", ".m4v", ".webm") else \
@@ -562,7 +631,8 @@ def pin(slug, key, on=True):
 def remove(slug):
     """Take a profile out; its folder is kept in .cache/profiles-removed/<time>/ first."""
     p = get(slug)
-    keep = os.path.join(paths.CACHE, "profiles-removed", dt.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    home = paths.ROOT if p["local"] else paths.profile_home()   # kept beside the store it came from
+    keep = os.path.join(home, ".cache", "profiles-removed", dt.datetime.now().strftime("%Y%m%d-%H%M%S"))
     os.makedirs(keep, exist_ok=True)
     shutil.move(_dir(slug), os.path.join(keep, slug))
     if p["default"]:
@@ -619,7 +689,10 @@ def motion_lines(m):
 def brief(slug):
     """A profile as an agent reads it before building in it: what `spliced profile show` prints."""
     p = get(slug)
-    lines = [f"# Profile: {p['name']}", "", f"profiles/{slug}/{' · the default' if p['default'] else ''}", ""]
+    home = where(slug)
+    lines = [f"# Profile: {p['name']}", "", f"{home}/{' · the default' if p['default'] else ''}"
+             + (" · kept in this worktree only (`" + paths.CLI + f" profile move-home {slug}` moves it to the main checkout)" if p["local"]
+                else " · the main checkout's: every worktree shares it, and edits land there" if os.path.isabs(home) else ""), ""]
     if p["about"]:
         lines += [p["about"], ""]
     if p["palette"]:
@@ -634,7 +707,7 @@ def brief(slug):
     if p["rules"]:
         lines += ["## Rules learned while making films", ""] + [f"{i}. {r['text']}{(' (from ' + r['from'] + ')') if r.get('from') else ''}" for i, r in enumerate(p["rules"], 1)] + [""]
     if p["sources"]:
-        lines += ["## What it was drafted from", "", ", ".join(f"`{x['file']}`" for x in p["sources"]), ""]
+        lines += ["## What it was drafted from", "", ", ".join(f"`{agent_path(x['file'])}`" for x in p["sources"]), ""]
     if p["scenes"]:
         lines += ["## Scenes that show the look", "", "Read each with `" + paths.CLI + " board scene <id>`: " + ", ".join(f"`{k}`" for k in p["scenes"]), ""]
     return "\n".join(lines).rstrip() + "\n"
@@ -664,6 +737,7 @@ def main():
     for name in ("pin", "unpin"):
         x = sub.add_parser(name); x.add_argument("profile"); x.add_argument("scene")
     x = sub.add_parser("remove"); x.add_argument("profile")
+    x = sub.add_parser("move-home"); x.add_argument("profile")
     sub.add_parser("setup", help="spliced setup's step: a project from before profiles gets its first one")
     a = ap.parse_args()
     try:
@@ -673,8 +747,15 @@ def main():
                 print(f"No profiles yet. Make one: {paths.CLI} profile new \"<name>\" (or in the app: Profiles)")
                 return
             for p in ps:
-                print(f"{'*' if p['default'] else ' '} {p['slug']:24} {p['name']:28} motion {p['motion']['base']:9} {len(p['rules'])} rules  {len(p['scenes'])} scenes")
+                print(f"{'*' if p['default'] else ' '} {p['slug']:24} {p['name']:28} motion {p['motion']['base']:9} {len(p['rules'])} rules  {len(p['scenes'])} scenes"
+                      + ("  (local: this worktree only)" if p["local"] else ""))
             print(f"\n* the default: a brief starts in it. `{paths.CLI} profile show <profile>` before building in one.")
+            if store() != LOCAL:
+                print(f"Profiles live in the main checkout ({store()}): every worktree shares them, and edits land there.")
+            if any(p["local"] for p in ps):
+                print(f"A local one was made in this worktree before that: `{paths.CLI} profile move-home <profile>` moves it to the main checkout.")
+            for x in shadowed():
+                print(f"This worktree's own profiles/{x} is not used: the main checkout has a profile called {x} too. Both are kept.")
         elif a.cmd == "show":
             print(brief(a.profile), end="")
         elif a.cmd == "new":
@@ -726,7 +807,9 @@ def main():
             p = pin(a.profile, a.scene, a.cmd == "pin")
             print(f"{p['slug']}: {len(p['scenes'])} scenes")
         elif a.cmd == "remove":
-            print(f"Removed; kept in {os.path.relpath(remove(a.profile), paths.ROOT)}")
+            print(f"Removed; kept in {shown(remove(a.profile))}")
+        elif a.cmd == "move-home":
+            print(f"Moved {a.profile} to the main checkout: {move_home(a.profile)}. Every worktree sees it now; commit it there.")
         elif a.cmd == "setup":
             p = take_in_house()
             print(f"Your house rules are now the profile {p['name']} (profiles/{p['slug']}/), the default. Profiles holds it, and any other looks you make."

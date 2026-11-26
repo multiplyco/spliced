@@ -11,7 +11,7 @@ def git(cwd, *a):
     subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True, text=True)
 
 
-class Worktrees(unittest.TestCase):
+class WorktreeCase(unittest.TestCase):
     def setUp(self):
         if not shutil.which("git"):
             self.skipTest("no git")
@@ -36,6 +36,9 @@ class Worktrees(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         return json.loads(r.stdout)
 
+
+
+class Worktrees(WorktreeCase):
     def render_in_main(self, name):
         """What `spliced film render` run in the worktree leaves: the render in the main checkout's remotion/out."""
         out = os.path.join(self.main, "remotion", "out")
@@ -77,6 +80,87 @@ class Worktrees(unittest.TestCase):
             json.dump(c, f)
         here = self.py(self.wt, "import paths, film; print(json.dumps([paths.render_home(), film.production('demo')['renders_dir']]))")
         self.assertEqual(here, [os.path.realpath(self.wt), "remotion/out"])
+
+
+class ProfileStore(WorktreeCase):
+    """One profile store per project: a worktree reads and writes the main checkout's profiles/."""
+    def run_cli(self, root, *args):
+        return subprocess.run([sys.executable, CLI, "--project", root, *args], capture_output=True, text=True, cwd=root,
+                              env={**self.env(), "SPLICED_OFFLINE": "1"}, timeout=120)
+
+    def local_profile(self, slug, name):
+        d = os.path.join(self.wt, "profiles", slug)
+        os.makedirs(d)
+        with open(os.path.join(d, "profile.json"), "w") as f:
+            json.dump({"name": name, "motion": {"base": "soft"}}, f)
+        with open(os.path.join(d, "PROFILE.md"), "w") as f:
+            f.write("made in the worktree\n")
+        return d
+
+    def test_a_profile_made_in_a_worktree_is_the_main_checkouts(self):
+        self.cli(self.wt, "profile", "new", "Acme house", "--motion", "material")
+        self.assertTrue(os.path.isfile(os.path.join(self.main, "profiles", "acme-house", "profile.json")))
+        self.assertFalse(os.path.exists(os.path.join(self.wt, "profiles")), "nothing is written in the worktree")
+        self.assertIn("acme-house", self.cli(self.main, "profile"))
+        self.cli(self.main, "profile", "learn", "acme-house", "never bounce the logo")
+        out = self.cli(self.wt, "profile", "show", "acme-house")
+        self.assertIn("never bounce the logo", out, "an edit in the main checkout is seen at once")
+        self.assertIn(os.path.join(os.path.realpath(self.main), "profiles", "acme-house"), out, "an agent is told where it really is")
+        self.assertIn("Profiles live in the main checkout", self.cli(self.wt, "profile"))
+        got = self.py(self.wt, "import paths, profiles; print(json.dumps([paths.profile_home(), profiles.where('acme-house'), profiles.every()[0]['local']]))")
+        self.assertEqual(got, [os.path.realpath(self.main), os.path.join(os.path.realpath(self.main), "profiles", "acme-house"), False])
+
+    def test_a_profile_a_worktree_kept_itself_is_listed_local_and_moves_home(self):
+        self.local_profile("globex", "Globex")
+        self.cli(self.main, "profile", "new", "Acme")
+        out = self.cli(self.wt, "profile")
+        self.assertIn("globex", out)
+        self.assertIn("(local: this worktree only)", out)
+        self.assertIn("move-home", self.cli(self.wt, "profile", "show", "globex"))
+        self.cli(self.wt, "profile", "learn", "globex", "always left-aligned")   # edits stay where it is
+        self.assertFalse(os.path.exists(os.path.join(self.main, "profiles", "globex")))
+        self.assertNotIn("globex", self.cli(self.main, "profile"), "the main checkout doesn't see a worktree's own")
+        self.cli(self.wt, "profile", "move-home", "globex")
+        self.assertFalse(os.path.exists(os.path.join(self.wt, "profiles", "globex")))
+        with open(os.path.join(self.main, "profiles", "globex", "profile.json")) as f:
+            p = json.load(f)
+        self.assertEqual(p["rules"][0]["text"], "always left-aligned")
+        self.assertFalse(p["default"], "the main checkout's default stays the default")
+        self.assertIn("globex", self.cli(self.main, "profile"))
+        self.assertNotIn("local", self.cli(self.wt, "profile"))
+
+    def test_moving_home_never_writes_over_a_profile_of_the_same_name(self):
+        self.cli(self.main, "profile", "new", "Acme", "--about", "the main checkout's")
+        mine = self.local_profile("acme", "Acme (worktree)")
+        r = self.run_cli(self.wt, "profile", "move-home", "acme")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("already has a profile called 'acme'", r.stdout + r.stderr)
+        self.assertTrue(os.path.isfile(os.path.join(mine, "profile.json")), "the worktree's copy is kept")
+        with open(os.path.join(self.main, "profiles", "acme", "profile.json")) as f:
+            self.assertEqual(json.load(f)["about"], "the main checkout's")
+        out = self.cli(self.wt, "profile")
+        self.assertIn("profiles/acme is not used", out)
+        self.assertIn("the main checkout's", self.cli(self.wt, "profile", "show", "acme"))
+        self.assertNotEqual(self.run_cli(self.main, "profile", "move-home", "acme").returncode, 0, "the main checkout has nowhere to move to")
+
+    def test_a_project_can_keep_profiles_with_the_branch(self):
+        p = os.path.join(self.wt, "spliced.json")
+        with open(p) as f:
+            c = json.load(f)
+        c["worktree_profiles"] = "worktree"
+        with open(p, "w") as f:
+            json.dump(c, f)
+        self.cli(self.wt, "profile", "new", "Acme")
+        self.assertTrue(os.path.isfile(os.path.join(self.wt, "profiles", "acme", "profile.json")))
+        self.assertFalse(os.path.exists(os.path.join(self.main, "profiles")))
+
+    def test_a_profile_job_in_a_worktree_writes_to_the_main_checkout(self):
+        self.cli(self.wt, "profile", "new", "Acme")
+        self.cli(self.wt, "profile", "ask", "acme", "make it warmer")
+        out = self.cli(self.wt, "imports", "next")
+        self.assertIn(os.path.join(os.path.realpath(self.main), "profiles", "acme", "PROFILE.md"), out)
+        argv = self.py(self.wt, "import os; os.environ['SPLICED_RUNNER'] = 'claude'; import runners; print(json.dumps(runners.argv('x')))")
+        self.assertIn(os.path.join(os.path.realpath(self.main), "profiles"), argv, "a headless agent may write there")
 
 
 if __name__ == "__main__":

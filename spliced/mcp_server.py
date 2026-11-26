@@ -185,8 +185,8 @@ def profile_tool(a):
             if a.get(k) is not None:
                 args += [f"--{k.replace('_', '-')}", str(a[k])]
         return text(*run(*args))
-    if action == "drafted":
-        return text(*run("profile", "drafted", prof))
+    if action in ("drafted", "move-home"):
+        return text(*run("profile", action, prof))
     if action == "motion":
         args = ["profile", "motion", prof]
         if a.get("from"):
@@ -195,7 +195,7 @@ def profile_tool(a):
             if a.get(k) is not None:
                 args += [f"--{flag}", str(a[k])]
         return text(*run(*args))
-    raise Bad("`action` is list, show, set, learn, pin, unpin, motion, drafted, new or draft")
+    raise Bad("`action` is list, show, set, learn, pin, unpin, motion, drafted, new, draft or move-home")
 
 
 def folders_tool(a):
@@ -372,8 +372,9 @@ TOOLS = [
      "`from` starts again from a kit or saved motion). drafted: say a profile you filled in from its sources is done. "
      "new: a profile (from_film starts it from a reference film's look). draft: start or redo a profile from files (a brand book, logo, screenshots, "
      "a film) or a website: Spliced reads a site's colours, typefaces, motion and screenshots into the profile's sources, then queues the drafting "
-     "for you (imports next). A build in no profile recreates its references as they are.",
-     S({"action": {"type": "string", "enum": ["list", "show", "set", "learn", "pin", "unpin", "motion", "drafted", "new", "draft"]},
+     "for you (imports next). move-home: a profile a git worktree kept in its own profiles/ goes to the main checkout's, which every "
+     "worktree shares. A build in no profile recreates its references as they are.",
+     S({"action": {"type": "string", "enum": ["list", "show", "set", "learn", "pin", "unpin", "motion", "drafted", "new", "draft", "move-home"]},
         "sources": {"type": "array", "items": STR, "description": "draft: files in the project, or websites (acme.com, https://acme.com/about)"},
         "about": {"type": "string"}, "palette": {"type": "string", "description": "set: \"#hex name, #hex name\""},
         "font": {"type": "string", "description": "set: the headline typeface"}, "font_source": {"type": "string", "enum": ["local", "google"]},

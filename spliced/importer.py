@@ -376,12 +376,13 @@ def profile_prompt(j):
     slug = j["slug"]
     p = profiles.get(slug)
     reqs = profile_requests(slug)
-    files = "\n".join(f"- {x['file']} ({x['kind']}, {x['bytes'] // 1024} KB)" for x in p["sources"])
+    files = "\n".join(f"- {profiles.agent_path(x['file'])} ({x['kind']}, {x['bytes'] // 1024} KB)" for x in p["sources"])
+    home = profiles.where(slug)
     cli, request = paths.CLI, "\n".join(reqs).strip()
     what = (f"The person asks for this change, in their words:\n{request}\n\nMake it: read `{cli} profile show {slug}` first, change only what "
             "the request is about, and say what you changed.\n" if request else "")
     given = (f"The person dropped these on it, so read them and fill the profile in from what they show:\n{files}\n\n" if p["sources"] and not request
-             else f"Its own words are in profiles/{slug}/PROFILE.md: fill in what they state (colours, typefaces, motion, rules) and is still empty.\n\n" if not request
+             else f"Its own words are in {home}/PROFILE.md: fill in what they state (colours, typefaces, motion, rules) and is still empty.\n\n" if not request
              else "")
     prompt = (
         f"Repo: {ROOT}. Work only from that directory.\n\n"
@@ -399,7 +400,7 @@ def profile_prompt(j):
         f"- `{cli} profile motion {slug} --base <soft|material|apple|splice> [--pace ..] [--bounce ..] [--stagger ..] [--transition ..] [--text ..] [--idle ..]` "
         f"(`{cli} profile motion {slug}` prints what each means); only from a film, a brand book's motion rules, or a website's transitions and curves "
         "(its curve picks the base and the bounce; its UI lengths say brisk or relaxed, not seconds to copy)\n"
-        f"- write profiles/{slug}/PROFILE.md: the look in words for a designer (voice, stage, type, logo, what its films always do and never do), "
+        f"- write {home}/PROFILE.md: the look in words for a designer (voice, stage, type, logo, what its films always do and never do), "
         "keeping its first comment line\n"
         f"- `{cli} profile learn {slug} \"<rule>\" --from \"<file>\"` for each hard rule the sources state (never stretch the logo, ...)\n"
         f"Finish with `{cli} profile drafted {slug}`. Don't commit. Don't ask questions: decide sensibly and say what was uncertain in a short summary."

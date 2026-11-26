@@ -502,7 +502,7 @@ async function render(main, slug) {
   for (const p of list) {
     const c = h(`<a class="pf-card" href="#/profiles/${esc(p.slug)}" title="Open ${esc(p.name)}">
       <div class="pf-cover"></div>
-      <div class="pf-body"><div class="pf-t"><b>${esc(p.name)}</b>${p.slug === def ? `<span class="pf-badge on" title="Briefs start in this profile">${icon("check")}Default</span>` : ""}</div>
+      <div class="pf-body"><div class="pf-t"><b>${esc(p.name)}</b>${p.slug === def ? `<span class="pf-badge on" title="Briefs start in this profile">${icon("check")}Default</span>` : ""}${p.local ? `<span class="pf-badge" title="Kept in this worktree's own profiles/ only, so other workspaces don't see it. ${esc(SP.cmd("profile", "move-home", p.slug))} moves it to the main checkout, where every workspace shares it">Local</span>` : ""}</div>
       ${p.about ? `<p>${esc(p.about)}</p>` : ""}
       <div class="pf-meta"><span class="pf-dots">${dots(p.palette, 6)}</span>${p.font ? `<span style="font-family:${esc(faceCss(p.font))}">${esc(p.font)}</span>` : ""}<span>${p.scenes.length} scene${p.scenes.length === 1 ? "" : "s"}</span><span>${p.rules.length} rule${p.rules.length === 1 ? "" : "s"}</span></div></div></a>`);
     if (p.font_source === "google") googleFace(p.font);

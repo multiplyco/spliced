@@ -63,8 +63,8 @@ class Mcp(unittest.TestCase):
 
     def test_tools_are_described_well_enough_to_call(self):
         tools = self.call("tools/list")["result"]["tools"]
-        self.assertEqual([t["name"] for t in tools], ["project_info", "library_search", "library_scene", "board_read", "board_edit", "show_in_app", "film_status", "film_notes",
-                                                     "film_note", "film_mark", "film_new", "folders", "profile", "film_sheet", "film_render", "film_voice", "reference_add", "film_kit", "import_folder", "imports", "uploads", "library_build"])
+        self.assertEqual([t["name"] for t in tools], ["project_info", "library_search", "library_scene", "board_read", "board_edit", "show_in_app", "film_status", "film_context", "film_notes",
+                                                     "film_note", "film_mark", "film_new", "folders", "profile", "film_sheet", "film_render", "film_voice", "reference_add", "film_kit", "import_folder", "imports", "uploads", "agents_context", "library_build"])
         for t in tools:
             self.assertGreater(len(t["description"]), 40, t["name"])
             self.assertEqual(t["inputSchema"]["type"], "object", t["name"])

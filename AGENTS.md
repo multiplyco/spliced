@@ -12,6 +12,7 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
 | `spliced/cli.py` | The `spliced` command: lists and dispatches to the tools; `setup` (everything in one go), `init`, `agents install` |
 | `spliced/updates.py` | Whether a newer Spliced is out (`spliced update`, `/api/update`, the doctor's first lines), and how this copy is updated |
 | `spliced/doctor.py` | What this machine and project can do, and the next step. Also `/api/doctor`, which the app's Setup view (`web/setup.js`) shows |
+| `spliced/sessions.py` | What a Claude Code session in a project loads (`agents context`, names and counts from `~/.claude.json`, never a value) and lean film sessions (`agents install --lean`, written to `.claude/settings.local.json`, undone with `--lean off`) |
 | `spliced/connect.py` | `spliced connect`: this project's MCP entry in a chat app's own settings (Claude desktop app, Cursor, Codex) |
 | `spliced/mcp_server.py` | The tools offered to an agent over MCP. Each one is a `spliced` command run as its own process |
 | `spliced/projects.py` | The projects this person has opened (kept with their settings, `~/.config/spliced/`): `spliced projects`, and the browser sidebar's menu of projects (`/api/projects`) |

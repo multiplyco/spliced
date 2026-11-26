@@ -20,6 +20,7 @@ spliced mcp
 | Tool | What it does |
 | --- | --- |
 | `project_info` | Where an agent starts: what this project is, what is set up, its boards, its films, and any import waiting |
+| `agents_context` | What a Claude Code session in this project loads, and how to slim it. Names and counts only |
 | `library_search` | Search the library's scenes by words and tags |
 | `library_scene` | One scene's breakdown, with its frames as a picture |
 | `library_build` | Rebuild the library after a breakdown changed, or only validate it |
@@ -40,6 +41,7 @@ spliced mcp
 | --- | --- |
 | `film_new` | Start a film from a board |
 | `film_status` | A film beat by beat: each beat's window, status, references and open notes, and its renders |
+| `film_context` | A short brief of a film for a new session: plan, open notes by beat, cues, file map, assets, sound, next commands |
 | `film_notes` | The notes you pinned to moments of a film, open ones first |
 | `film_note` | File, answer or close a note |
 | `film_mark` | Set a beat's status as the agent works |

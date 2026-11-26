@@ -37,6 +37,8 @@ What it covers:
 6. **Check.** It says what it checked and what it could not.
 7. **Deliver.** The render, and what changed.
 
+It keeps sessions short: each one starts from `spliced film context <slug>`, a brief of the film, instead of its code, and a new round of notes gets a new session.
+
 ## Your own house rules
 
 House rules for your films go in `remotion/docs/HOUSE.md`: brand, type, sound direction, where your product's code is. Your AI reads them before the kit's defaults.

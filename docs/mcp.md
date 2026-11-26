@@ -20,6 +20,7 @@ spliced mcp
 | Tool | What it does |
 | --- | --- |
 | `project_info` | Where an agent starts: what this project is, what is set up, its boards, its films, and any import waiting |
+| `agents_context` | What a Claude Code session in this project loads, and how to slim it. Names and counts only |
 | `library_search` | Search the library's scenes by words and tags |
 | `library_scene` | One scene's breakdown, with its frames as a picture |
 | `library_build` | Rebuild the library after a breakdown changed, or only validate it |

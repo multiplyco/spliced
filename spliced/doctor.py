@@ -136,6 +136,12 @@ def check(fresh=False):
     add("apps", "analyse", "AI apps connected to this project", "ok" if linked else "off",
         ("Connected: " + ", ".join(linked)) if linked else ("Not yet: " + ", ".join(a["name"] for a in apps) + " on this machine") if apps else "None of the Claude desktop app, Cursor or Codex found",
         "Ask about your library, boards and films from a chat app, without opening the folder", f"{paths.CLI} connect", optional=True)
+    if shutil.which("claude"):   # a suggestion, never a fault: what a Claude Code session here carries besides Spliced (sessions.py)
+        import sessions
+        lean, what = sessions.summary()
+        add("lean", "analyse", "Lean Claude Code sessions for film work", "ok" if lean else "off", what,
+            "Film sessions that cost less: fewer tools read on every call",
+            f"{paths.CLI} agents context shows what a session here loads; {paths.CLI} agents install --lean trims it to Spliced's own tools (undo: --lean off)", optional=True)
     r = runners.name()
     add("runner", "analyse", "Who reads imported films", "ok" if r == "none" or runners.available() else "missing",
         "Your own agent, when you ask it (imports wait for it)" if r == "none" else f"A background {r} session per film" + (", unfenced (bypass)" if runners.bypass() else ", fenced in") + ("" if runners.available() else f": but {r} isn't installed"),

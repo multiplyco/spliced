@@ -24,7 +24,8 @@ Run commands from inside a project, or pass `--project <folder>`.
 | `spliced doctor` | What this machine and project can do now, and the step that unlocks the next thing. `--json` |
 | `spliced update` | Whether a newer Spliced is out, and the command that gets it. `--json` |
 | `spliced projects` | The projects you have opened on this machine, and which are running now |
-| `spliced agents install` | Spliced's skills, a section in `AGENTS.md` and its MCP server. A skill file you changed is kept; `--force` replaces it |
+| `spliced agents install` | Spliced's skills, a section in `AGENTS.md` and its MCP server. A skill file you changed is kept; `--force` replaces it. `--lean` for [lighter Claude Code sessions](connect-your-ai.md) (`--keep <server>`, `--keep-connectors`, `--lean off`) |
+| `spliced agents context` | What a Claude Code session in this project loads, and how to slim it. Changes nothing |
 | `spliced connect` | Add this project's tools to an AI app: `claude-desktop`, `cursor`, `codex`. `--remove`, `--dry-run` |
 | `spliced mcp` | Spliced's tools for an AI agent, over MCP. Your agent starts this, not you |
 | `spliced keys` | Service keys in `.env`: which are set, and `set <service>` to paste one |

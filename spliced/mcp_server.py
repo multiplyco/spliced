@@ -129,6 +129,10 @@ def film_context(a):
     return text(*run("film", "context", need(a, "film", SLUG)))
 
 
+def agents_context(a):
+    return text(*run("agents", "context"))
+
+
 def film_notes(a):
     return text(*run("film", "notes", need(a, "film", SLUG), *(["--all"] if a.get("include_closed") else [])))
 
@@ -428,6 +432,8 @@ TOOLS = [
      S({"action": {"type": "string", "enum": ["list", "next", "done", "cancel"]}, "id": STR, "renamed_to": {"type": "string", "description": "done: the film's new slug, if you renamed it"}}, ["action"])),
     ("uploads", uploads, "Uploaded images, GIFs and clips. pending: the ones not read yet, with the file to look at for each. set: store your reading of one (tags are checked against the taxonomy).",
      S({"action": {"type": "string", "enum": ["pending", "list", "set"]}, "id": STR, "analysis": {"type": "object"}}, ["action"])),
+    ("agents_context", agents_context, "What a Claude Code session opened in this project loads (MCP servers by where they come from, claude.ai connectors, plugins, skills, "
+     "the instruction files read on every call) and the steps that slim it. Names and counts only; it changes nothing.", S()),
     ("library_build", library_build, "Rebuild the library after a breakdown changed (scene strips, pages, the app's index), or with check_only just validate: every tag in the taxonomy, no gaps between scenes, no broken references.",
      S({"check_only": BOOL})),
 ]

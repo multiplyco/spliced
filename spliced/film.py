@@ -42,7 +42,7 @@ usage:
 Statuses: todo -> wip (being built) -> review (rendered, waiting for the person) -> changes (notes left) / approved.
 `mark ... --done` files the open note in the beat's log with what was changed, and clears it.
 """
-import datetime as dt, hashlib, json, os, re, subprocess, sys, time
+import datetime as dt, hashlib, json, os, re, stat, subprocess, sys, time
 
 import paths
 import profiles
@@ -1494,11 +1494,23 @@ def _header(name, text):
     return None
 
 
+CONTEXT_READ = 256 * 1024   # a film's code file is far smaller: anything bigger is named with its size, not read
+
+
+def _plain_file(path):
+    try:
+        return stat.S_ISREG(os.lstat(path).st_mode)   # lstat: a link is not followed, so it is not a plain file
+    except OSError:
+        return False
+
+
 def _file_line(path, name):
     try:
+        if os.path.getsize(path) > CONTEXT_READ:
+            raise ValueError("too big to read for a brief")
         with open(path, encoding="utf-8") as f:
-            text = f.read()
-    except (OSError, UnicodeDecodeError):
+            text = f.read(CONTEXT_READ)
+    except (OSError, UnicodeDecodeError, ValueError):
         return f"{name}  {os.path.getsize(path) // 1024} KB"
     out = f"{name}  {text.count(chr(10)) + (0 if text.endswith(chr(10)) or not text else 1)} lines"
     what = _KNOWN.get(name) or _header(name, text)
@@ -1684,7 +1696,9 @@ def context(slug, limit=CONTEXT_LIMIT):
     files = []
     for dp, dn, fn in os.walk(d):
         dn[:] = sorted(x for x in dn if not x.startswith(".") and x not in ("node_modules", "__pycache__", "renders", "out", "snapshots", "exports"))
-        files += [os.path.join(dp, f) for f in sorted(fn) if not f.startswith(".") and not f.endswith((".pyc",) + VIDEO_EXT + IMG_EXT + AUDIO_EXT)]
+        # the film's own files only: a link could lead anywhere (a .env), and a pipe or device would never finish reading
+        files += [os.path.join(dp, f) for f in sorted(fn) if not f.startswith(".") and not f.endswith((".pyc",) + VIDEO_EXT + IMG_EXT + AUDIO_EXT)
+                  and _plain_file(os.path.join(dp, f))]
     L += ["", f"Files ({p['dir']}/):"]
     for f in files[:25]:
         L.append("  " + _file_line(f, os.path.relpath(f, d)))

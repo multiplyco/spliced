@@ -50,6 +50,58 @@ class Sessions(unittest.TestCase):
         with open(self.claude_json, "rb") as f:
             self.assertEqual(f.read(), self.claude_json_bytes, "the person's ~/.claude.json is never written")
 
+    def lean(self, *args, ok=True):
+        env = {k: v for k, v in os.environ.items() if not k.startswith(("SPLICED_", "CUTTING_ROOM_"))}
+        r = subprocess.run([sys.executable, os.path.join(support.TOOLS, "cli.py"), "--project", self.root, "agents", "install", "--lean", *args],
+                           env={**env, "HOME": self.home, "SPLICED_OFFLINE": "1"}, capture_output=True, text=True, cwd=support.REPO)
+        return r.stdout + r.stderr
+
+    def test_a_settings_file_someone_committed_cant_break_the_doctor(self):
+        with open(os.path.join(self.root, ".claude", "settings.json")) as f:
+            st = json.load(f)
+        st.update(deniedMcpServers=[{"serverName": ["x"]}, "y"], enabledPlugins=["acme@market"], disabledMcpjsonServers={"a": 1})
+        with open(os.path.join(self.root, ".claude", "settings.json"), "w") as f:
+            json.dump(st, f)
+        self.assertIn("this project's .mcp.json:", self.cli("agents", "context"))
+        env = {k: v for k, v in os.environ.items() if not k.startswith(("SPLICED_", "CUTTING_ROOM_"))}
+        r = subprocess.run([sys.executable, os.path.join(support.TOOLS, "cli.py"), "--project", self.root, "doctor"],
+                           env={**env, "HOME": self.home, "SPLICED_OFFLINE": "1"}, capture_output=True, text=True, cwd=support.REPO)
+        self.assertNotIn("Traceback", r.stdout + r.stderr)
+
+    def test_lean_never_writes_through_a_link_or_over_what_it_cant_read(self):
+        outside = os.path.join(self.home, ".claude", "settings.json")   # where a link a repo ships could point
+        with open(outside, "w") as f:
+            f.write('{"theme": "mine"}\n')
+        local = os.path.join(self.root, ".claude", "settings.local.json")
+        os.symlink(outside, local)
+        out = self.lean()
+        self.assertIn("leads outside this project", out)
+        with open(outside) as f:
+            self.assertEqual(f.read(), '{"theme": "mine"}\n', "the person's own settings are never written through a link")
+        os.remove(local)
+        with open(local, "w") as f:
+            json.dump({"deniedMcpServers": {"serverName": "mine"}}, f)
+        self.assertIn("isn't a list, so nothing was changed", self.lean())
+        self.assertEqual(self.local(), {"deniedMcpServers": {"serverName": "mine"}})
+        os.remove(local)
+        self.lean()
+        self.assertNotIn(".tmp", " ".join(os.listdir(os.path.join(self.root, ".claude"))), "written whole, through a file of its own")
+
+    def test_a_folder_name_with_brackets_is_still_kept_out_of_git(self):
+        repo = tempfile.mkdtemp(prefix="spliced-repo-")
+        self.addCleanup(shutil.rmtree, repo, ignore_errors=True)
+        subprocess.run(["git", "init", "-q", repo], check=True)
+        inner = os.path.join(repo, "films [2026]")
+        shutil.copytree(self.root, inner, ignore=shutil.ignore_patterns(".git"))
+        shutil.rmtree(os.path.join(self.root, ".git"))
+        self.root = inner
+        self.lean()
+        self.lean()
+        r = subprocess.run(["git", "-C", repo, "status", "--porcelain", "--untracked-files=all"], capture_output=True, text=True)
+        self.assertNotIn("settings.local.json", r.stdout)
+        with open(os.path.join(repo, ".git", "info", "exclude")) as f:
+            self.assertEqual(f.read().count("settings.local.json"), 1, "written once, however often --lean runs")
+
     def test_context_names_and_counts_what_a_session_loads_and_never_a_value(self):
         out = self.cli("agents", "context")
         self.assertNotIn(SECRET, out)

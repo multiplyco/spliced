@@ -136,9 +136,14 @@ def check(fresh=False):
     add("apps", "analyse", "AI apps connected to this project", "ok" if linked else "off",
         ("Connected: " + ", ".join(linked)) if linked else ("Not yet: " + ", ".join(a["name"] for a in apps) + " on this machine") if apps else "None of the Claude desktop app, Cursor or Codex found",
         "Ask about your library, boards and films from a chat app, without opening the folder", f"{paths.CLI} connect", optional=True)
+    lean = None
     if shutil.which("claude"):   # a suggestion, never a fault: what a Claude Code session here carries besides Spliced (sessions.py)
         import sessions
-        lean, what = sessions.summary()
+        try:
+            lean, what = sessions.summary()
+        except Exception:  # noqa: BLE001  (a settings file someone committed is odd in a way not seen yet: no suggestion, not a broken doctor)
+            lean = None
+    if lean is not None:
         add("lean", "analyse", "Lean Claude Code sessions for film work", "ok" if lean else "off", what,
             "Film sessions that cost less: fewer tools read on every call",
             f"{paths.CLI} agents context shows what a session here loads; {paths.CLI} agents install --lean trims it to Spliced's own tools (undo: --lean off)", optional=True)

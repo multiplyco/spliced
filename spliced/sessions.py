@@ -44,7 +44,25 @@ def _json(path, default=None):
 
 
 def _names(d):
-    return sorted(d) if isinstance(d, dict) else []
+    return sorted(k for k in d if isinstance(k, str)) if isinstance(d, dict) else []
+
+
+# Settings files can come from anyone who shares the repo (.claude/settings.json is committed): read every value as
+# what it might be, never as what it should be, so a bad one can't stop the doctor or `agents context`.
+def _list(v):
+    return v if isinstance(v, list) else []
+
+
+def _dict(v):
+    return v if isinstance(v, dict) else {}
+
+
+def _strs(v):
+    return {n for n in _list(v) if isinstance(n, str)}
+
+
+def _denied_names(v):
+    return {e["serverName"] for e in _list(v) if isinstance(e, dict) and isinstance(e.get("serverName"), str)}
 
 
 def _tokens(path):
@@ -64,34 +82,34 @@ def inventory():
     home = _home()
     cj = _json(os.path.join(home, ".claude.json"), {}) or {}
     real, here = os.path.realpath(ROOT), {}
-    for key, v in (cj.get("projects") or {}).items():   # kept by the path the session was started from (/tmp or /private/tmp)
+    for key, v in _dict(cj.get("projects")).items():   # kept by the path the session was started from (/tmp or /private/tmp)
         if isinstance(v, dict) and (key == ROOT or os.path.realpath(key) == real):
             here = v
     user_st = _json(os.path.join(home, ".claude", "settings.json"), {}) or {}
     proj_st = _json(SETTINGS, {}) or {}
     local_st = _json(LOCAL, {}) or {}
     files = (user_st, proj_st, local_st)
-    rejected = set(n for st in files for n in st.get("disabledMcpjsonServers") or [] if isinstance(n, str))
-    rejected |= set(n for n in here.get("disabledMcpjsonServers") or [] if isinstance(n, str))
-    denied = set(e.get("serverName") for st in files for e in st.get("deniedMcpServers") or [] if isinstance(e, dict) and e.get("serverName"))
-    toggled = set(n for n in here.get("disabledMcpServers") or [] if isinstance(n, str))   # switched off with /mcp
+    rejected = set().union(*(_strs(st.get("disabledMcpjsonServers")) for st in files)) | _strs(here.get("disabledMcpjsonServers"))
+    denied = set().union(*(_denied_names(st.get("deniedMcpServers")) for st in files))
+    toggled = _strs(here.get("disabledMcpServers"))   # switched off with /mcp
     project = _names((_json(os.path.join(ROOT, ".mcp.json"), {}) or {}).get("mcpServers"))
     local, user = _names(here.get("mcpServers")), _names(cj.get("mcpServers"))
     off = lambda n: n in denied or n in toggled
     connectors_off = any(st.get("disableClaudeAiConnectors") is True for st in files)
     plugins = {}
     for st in files:   # local over project over user
-        for k, v in (st.get("enabledPlugins") or {}).items():
+        for k, v in _dict(st.get("enabledPlugins")).items():
             plugins[k] = v
     instr = [(name, path, _tokens(path)) for name, path in (("CLAUDE.md", os.path.join(ROOT, "CLAUDE.md")), ("AGENTS.md", os.path.join(ROOT, "AGENTS.md")),
                                                            ("~/.claude/CLAUDE.md", os.path.join(home, ".claude", "CLAUDE.md"))) if os.path.isfile(path)]
-    last = {k: here[k] for k in ("lastTotalInputTokens", "lastTotalCacheReadInputTokens", "lastTotalCacheCreationInputTokens", "lastTotalOutputTokens") if isinstance(here.get(k), (int, float))}
+    last = {k: here[k] for k in ("lastTotalInputTokens", "lastTotalCacheReadInputTokens", "lastTotalCacheCreationInputTokens", "lastTotalOutputTokens")
+            if isinstance(here.get(k), (int, float)) and not isinstance(here.get(k), bool)}
     return {
         "project": [{"name": n, "on": not (n in rejected or off(n))} for n in project],
         "local": [{"name": n, "on": not off(n)} for n in local],
         "user": [{"name": n, "on": not off(n)} for n in user],
-        "connectors": {"on": not connectors_off, "known": len(cj.get("claudeAiMcpEverConnected") or [])},
-        "plugins": sorted(k for k, v in plugins.items() if v is True),
+        "connectors": {"on": not connectors_off, "known": len(_list(cj.get("claudeAiMcpEverConnected")))},
+        "plugins": sorted(k for k, v in plugins.items() if v is True and isinstance(k, str)),
         "skills": {"project": len(_skills(os.path.join(ROOT, ".claude", "skills"))), "user": len(_skills(os.path.join(home, ".claude", "skills")))},
         "instructions": [{"name": n, "tokens": t} for n, _p, t in instr],
         "last_session": last, "lean": bool(_json(RECORD)),
@@ -145,11 +163,24 @@ def report():
 
 
 # ---------- --lean ----------
+def _inside(path):
+    """Whether a file Spliced writes really lands in this project: a .claude folder or settings file a repo ships as a
+    link would otherwise carry the write somewhere else (the person's own ~/.claude/settings.json)."""
+    real = os.path.realpath(path)
+    return real.startswith(os.path.realpath(ROOT) + os.sep) and not os.path.islink(path)
+
+
 def _write(path, st):
+    """The whole file or none of it: a half-written settings file is invalid JSON, which Claude Code ignores, with the
+    person's own permissions in it."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
+    if not _inside(path):
+        raise OSError(f"{os.path.relpath(path, ROOT)} leads outside this project")
+    tmp = f"{path}.{os.getpid()}.tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(st, f, indent=2)
         f.write("\n")
+    os.replace(tmp, path)
 
 
 def _exclude_from_git():
@@ -162,12 +193,14 @@ def _exclude_from_git():
             return True   # already ignored
         ex = subprocess.run(["git", "-C", ROOT, "rev-parse", "--git-path", "info/exclude"], capture_output=True, text=True, timeout=10).stdout.strip()
         ex = ex if os.path.isabs(ex) else os.path.join(ROOT, ex)
-        line = "/" + os.path.relpath(LOCAL, top.stdout.strip()).replace(os.sep, "/")
+        rel = os.path.relpath(LOCAL, top.stdout.strip()).replace(os.sep, "/")
+        line = "/" + "".join("\\" + c if c in "\\[]*?" else c for c in rel)   # a folder called "films [2026]" is a name, not a pattern
         os.makedirs(os.path.dirname(ex), exist_ok=True)
         have = open(ex).read() if os.path.exists(ex) else ""
-        with open(ex, "a") as f:
-            f.write(("" if not have or have.endswith("\n") else "\n") + line + "\n")
-        return True
+        if line not in have.splitlines():
+            with open(ex, "a") as f:
+                f.write(("" if not have or have.endswith("\n") else "\n") + line + "\n")
+        return subprocess.run(["git", "-C", ROOT, "check-ignore", "-q", LOCAL], timeout=10).returncode == 0   # only said when git agrees
     except (OSError, subprocess.SubprocessError):
         return False
 
@@ -195,6 +228,11 @@ def lean(keep=(), keep_connectors=False, off=False):
     st = _json(LOCAL, None) if os.path.exists(LOCAL) else {}
     if st is None:
         return [".claude/settings.local.json isn't valid JSON, so nothing was changed; fix or remove it, then run this again"]
+    for key in ("deniedMcpServers", "disabledMcpjsonServers"):   # one we can't read is the person's, and left as it is
+        if key in st and not isinstance(st[key], list):
+            return [f".claude/settings.local.json has {key} that isn't a list, so nothing was changed; fix it, then run this again"]
+    if any(os.path.lexists(p) and not _inside(p) for p in (LOCAL, os.path.dirname(LOCAL))):
+        return [".claude/settings.local.json (or its .claude folder) is a link that leads outside this project, so nothing was changed"]
     rec = _json(RECORD, {}) or {}
     st = _unapply(st, rec)
     lines = []
@@ -212,8 +250,8 @@ def lean(keep=(), keep_connectors=False, off=False):
     unknown = sorted(set(keep) - known - {OWN})
     if unknown:
         lines.append(f"           not one of your MCP servers: {', '.join(unknown)} (claude.ai connectors go all together: --keep-connectors)")
-    have_denied = {e.get("serverName") for e in st.get("deniedMcpServers") or [] if isinstance(e, dict)}
-    have_rejected = set(st.get("disabledMcpjsonServers") or [])
+    have_denied = _denied_names(st.get("deniedMcpServers"))
+    have_rejected = _strs(st.get("disabledMcpjsonServers"))
     deny = [s["name"] for k in ("local", "user") for s in inv[k] if s["name"] not in keep and s["name"] not in have_denied]
     reject = [s["name"] for s in inv["project"] if s["name"] not in keep and s["name"] not in have_rejected]
     new = {"denied": sorted(set(deny)), "rejected": reject, "connectors": False}

@@ -71,6 +71,19 @@ class FilmContext(unittest.TestCase):
         self.assertIn("... cut at about 3000 tokens. The rest: ", text)
         self.assertIn("film status demo", text.splitlines()[-1])
 
+    def test_only_the_films_own_files_are_read(self):
+        with open(os.path.join(self.root, ".env"), "a") as f:
+            f.write("# ACME_KEY=sk-live-not-for-an-agent\n")
+        os.symlink(os.path.join(self.root, ".env"), os.path.join(self.film, "envlink.txt"))   # a link a shared project could ship
+        os.mkfifo(os.path.join(self.film, "pipe.txt"))   # never finishes reading
+        self.write("big.txt", "// big\n" + "x" * (400 * 1024))
+        code, text = self.cli("film", "context", "demo")
+        self.assertEqual(code, 0, text)
+        self.assertNotIn("sk-live", text)
+        self.assertNotIn("envlink", text)
+        self.assertNotIn("pipe.txt", text)
+        self.assertIn("big.txt  400 KB", text, "a big file is named with its size, not read")
+
     def test_no_such_film(self):
         code, out = self.cli("film", "context", "nope")
         self.assertNotEqual(code, 0)

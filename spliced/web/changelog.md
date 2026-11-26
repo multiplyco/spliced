@@ -4,6 +4,19 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+<!-- release 1.5.0 2026-11-26 -->
+
+## Safer with files from anywhere
+2026-11-26
+*An SVG or a brand book you drop into Spliced can only ever be a picture, and a website is read without reaching into your machine.*
+
+A logo or picture you add as an SVG is now always shown as a picture, whatever address it is opened at; before, one
+written in an unusual way could run script in the app. A profile's digest takes out a huge picture hidden in a small
+PDF by name instead of filling your Mac's memory, stops after twenty minutes, and fetches pictures (with `--fetch`)
+from the public web only, never from your Mac or your local network. The logo a profile gives your films is only
+ever one the digest cleaned itself. `spliced film context` reads only the film's own files, and `agents install
+--lean` never writes outside your project.
+
 ## A profile is code your films use as it is
 2026-11-26
 *A film made in a profile moves and colours itself from the profile, with nothing copied by hand.*

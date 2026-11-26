@@ -20,6 +20,7 @@ in Spliced's Build view (spliced open) and, for agents, in a pairing sheet.
 usage:
   spliced film list
   spliced film status <slug>                       # beat by beat: window, status, references, open notes
+  spliced film context <slug>                      # a new session's brief: plan, notes, cues, file map (~3k tokens)
   spliced film new <slug> --board "<board name>" [--folder <folder>]   # start a Remotion film from a Spliced board
   spliced film move <slug> <folder>                # put a film in one of the project's folders (- for none), renders too
   spliced film mark <slug> <beat> <status> [--done "what changed"]
@@ -1463,6 +1464,253 @@ def cmd_status(a):
         print(f"\nNext: beat {todo[0]['n']} `{todo[0]['id']}` ({todo[0]['status']})")
 
 
+# ---------- context: a new session's brief of a film, so an agent starts from it instead of reading the code ----------
+CONTEXT_LIMIT = 12000          # characters (about 3k tokens); past it the brief is cut, with a pointer to the rest
+_KNOWN = {"storyboard.json": "the plan beat by beat (this brief reads it)", "cues.json": "every time in the film (the beats' cues below)",
+          "assets.json": "what made each still and clip (prompt, model, source)", "sound.json": "the mix: music, voice and effect tracks",
+          "takes.json": "alternatives for each sound track, the chosen one marked", "review.json": "the person's review notes"}
+_EXPORT = re.compile(r"^export\s+(?:default\s+)?(?:async\s+)?(?:const|let|var|function\*?|class|type|interface|enum)\s+([A-Za-z_$][\w$]*)", re.M)
+_EXPORT_LIST = re.compile(r"^export\s*(?:type\s*)?\{([^}]*)\}", re.M)
+_DEFINES = re.compile(r"^(?:const|function)\s+([A-Z][\w$]*)", re.M)
+
+
+def _clip(s, n):
+    s = " ".join(str(s or "").split())
+    return s if len(s) <= n else s[:n - 3].rstrip() + "..."
+
+
+def _header(name, text):
+    """The first line of a file's header comment (or a Markdown file's first heading, a Python file's docstring)."""
+    lines = [x.strip() for x in text.splitlines()[:40]]
+    for x in lines:
+        if not x or x.startswith(("#!", "# ///", "# requires", "# dependencies", "import ", "'use ", '"use ')):
+            continue
+        if name.endswith(".md"):
+            return x.lstrip("#").strip()
+        for mark in ("//", "/**", "/*", "*", "#", '"""', "'''"):
+            if x.startswith(mark):
+                return x[len(mark):].strip(" */\"'") or None
+        return None
+    return None
+
+
+def _file_line(path, name):
+    try:
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+    except (OSError, UnicodeDecodeError):
+        return f"{name}  {os.path.getsize(path) // 1024} KB"
+    out = f"{name}  {text.count(chr(10)) + (0 if text.endswith(chr(10)) or not text else 1)} lines"
+    what = _KNOWN.get(name) or _header(name, text)
+    if what:
+        out += f"  {_clip(what, 110)}"
+    if name.endswith((".tsx", ".ts", ".jsx", ".js")):
+        ex = list(dict.fromkeys(_EXPORT.findall(text) + [w.split(" as ")[-1].strip() for g in _EXPORT_LIST.findall(text) for w in g.split(",") if w.strip()]))
+        defs = [d for d in dict.fromkeys(_DEFINES.findall(text)) if d not in ex]
+        if ex:
+            out += f"\n      exports: {', '.join(ex[:12])}" + (f" +{len(ex) - 12} more" if len(ex) > 12 else "")
+        if defs:
+            out += f"\n      also defines: {', '.join(defs[:12])}" + (f" +{len(defs) - 12} more" if len(defs) > 12 else "")
+    return out
+
+
+def _flat_cues(v, pre=""):
+    """A cue's inner timings, flattened: {"logo": 0.25, "card": {"in": 1}} -> ["logo .25", "card.in 1"]."""
+    out = []
+    for k, x in (v.items() if isinstance(v, dict) else []):
+        if k.startswith("_"):
+            continue
+        if isinstance(x, (int, float)) and not isinstance(x, bool):
+            out.append(f"{pre}{k} {round(x, 3):g}")
+        elif isinstance(x, list) and len(x) == 2 and all(isinstance(y, (int, float)) for y in x):
+            out.append(f"{pre}{k} {round(x[0], 3):g}-{round(x[1], 3):g}")
+        elif isinstance(x, dict):
+            out += _flat_cues(x, f"{pre}{k}.")
+    return out
+
+
+def _beat_cues(cues, b):
+    """One line per place cues.json times a beat: its scene windows when it has several, the scene's own inner times,
+    and any other top-level table keyed by the beat's cue (e.g. cues.beat.<id>)."""
+    keys = b["cue"] if isinstance(b["cue"], list) else [b["cue"]]
+    out = []
+    for k in keys:
+        sc = (cues.get("scenes") or {}).get(k)
+        if len(keys) > 1 and sc is not None:
+            w = [sc["start"], sc["end"]] if isinstance(sc, dict) and "start" in sc else sc if isinstance(sc, list) else None
+            if w:
+                out.append(f"scenes.{k} {fmt_t(w[0])}-{fmt_t(w[1])}")
+        inner = _flat_cues({x: y for x, y in sc.items() if x not in ("start", "end")}) if isinstance(sc, dict) else []
+        if inner:
+            out.append(f"scenes.{k}: " + ", ".join(inner))
+        for top, tab in cues.items():
+            if top in ("scenes", "fps", "duration", "board") or top.startswith("_") or not isinstance(tab, dict) or not isinstance(tab.get(k), dict):
+                continue
+            inner = _flat_cues(tab[k])
+            if inner:
+                out.append(f"{top}.{k}: " + ", ".join(inner))
+    return [_clip(x, 220) for x in out]
+
+
+def _sound_line(p):
+    d = os.path.join(ROOT, p["dir"])
+    sj = load_json(os.path.join(d, "sound.json"), {}) or {}
+    tracks = sj.get("tracks") or []
+    if not tracks:
+        return f"none in sound.json yet ({paths.CLI} sound show {p['slug']} takes a finished mix apart)"
+    try:
+        tk = takes(p["slug"], p)["tracks"]
+    except (KeyError, OSError):
+        tk = {}
+    lanes = {}
+    for t in tracks:
+        lanes.setdefault(t.get("lane") or "music", []).append(t)
+    parts = []
+    for t in lanes.get("music", []):
+        ch = (tk.get(t.get("id")) or {}).get("chosen")
+        parts.append(f"music {os.path.basename(t.get('file', '')) or t.get('id')}" + (f" (take {ch})" if ch else ""))
+    for lane, word in (("voice", "voice line"), ("sfx", "effect")):
+        n = len(lanes.get(lane, []))
+        if n:
+            parts.append(f"{n} {word}{'s' if n > 1 else ''}")
+    parts += [f"{len(v)} {k}" for k, v in lanes.items() if k not in ("music", "voice", "sfx")]
+    return ", ".join(parts) + f"  ({paths.CLI} sound show {p['slug']} for the beat grid)"
+
+
+def _assets_lines(slug):
+    try:
+        r = assets(slug)
+    except (KeyError, OSError):
+        return []
+    items = r.get("assets") or []
+    if not items:
+        return [f"Assets: none in {r.get('dir') or 'the film’s public folder'}"]
+    stacks, seen, units = {s["id"]: s for s in r.get("stacks", [])}, set(), []
+    for x in items:   # a stack (a render's frames) counts as one
+        sid = x.get("stack")
+        if sid in stacks:
+            if sid in seen:
+                continue
+            seen.add(sid)
+            frames = [y for y in items if y.get("stack") == sid]
+            units.append({**x, "name": os.path.basename(stacks[sid]["pattern"]), "uses": [u for y in frames for u in y["uses"]], "frames": len(frames)})
+        else:
+            units.append(x)
+    by = {}
+    for x in units:
+        by[f"{x['kind']} {x['type']}"] = by.get(f"{x['kind']} {x['type']}", 0) + 1
+    unused = [os.path.join(x["dir"], x["name"]) if x["dir"] != "." else x["name"] for x in units if not x["uses"]]
+    out = [f"Assets in {r['dir']}: {len(units)}" + (" (a stack of frames counts once)" if seen else "") + ", "
+           + ", ".join(f"{n} {k}{'s' if n > 1 else ''}" for k, n in sorted(by.items(), key=lambda kv: -kv[1]))]
+    if unused:
+        out.append(f"  unused ({len(unused)}): " + ", ".join(unused[:8]) + (f" +{len(unused) - 8} more" if len(unused) > 8 else ""))
+    out.append(f"  where each is used and what made it: {paths.CLI} film assets {slug}")
+    return out
+
+
+def context(slug, limit=CONTEXT_LIMIT):
+    """Everything a new session needs to pick a film up, as plain text of about 3k tokens: the plan, open notes by beat,
+    the cues, a map of the film's files, its assets and sound, and the next commands. Built from what `film status`
+    reads (production), so the two never disagree."""
+    p = production(slug)
+    if not p:
+        raise KeyError(f"no film called {slug} ({paths.CLI} film list)")
+    cli, L = paths.CLI, []
+    L.append(f"# {p['title']} ({slug}): brief for a new session")
+    L.append(f"Start from this, not from the film's code; open only the files a note touches. Everything: {cli} film status {slug}")
+    L.append("")
+    if p.get("message"):
+        L.append(f"Message: {_clip(p['message'], 300)}")
+    L.append(f"Format: {p.get('format') or '?'}, {p.get('fps') or '?'} fps, {fmt_t(p['duration']).strip()}, {len(p['beats'])} beats ({p['engine']}, {p['dir']})")
+    style = p.get("style")
+    if style and style != "none":
+        L.append(f"Profile: {style}  (read it before changing the look: {cli} profile show {style})")
+    else:
+        L.append("Profile: " + ("none, the references recreated as they are" if style == "none" else "the project default"))
+    if p["engine"] == "remotion":
+        L.append(f"Motion profile: {p.get('profile') or '-'}  (moves come from motion('{p.get('profile')}'); {cli} motion checks it)")
+    rs = p.get("renders") or []
+    if rs:
+        r = rs[0]
+        flags = ["code changed since" if r.get("code_newer") else "code unchanged since"] + (["times changed since"] if r.get("stale") else [])
+        L.append(f"Latest render: {r['file']} ({ago(r['mtime'])}, {'beat ' + r['beat'] if r.get('beat') else 'whole film'}; {', '.join(flags)})")
+        whole = next((x for x in rs if not x.get("beat")), None)
+        if whole and whole is not r:
+            L.append(f"  last whole render: {whole['file']} ({ago(whole['mtime'])}" + ("; code changed since" if whole.get("code_newer") else "") + ")")
+    else:
+        L.append("Latest render: none yet")
+    for w in p.get("warnings", [])[:3]:
+        L.append(f"! {w}")
+    L.append("Notes: " + ("MANUAL, work only on the notes a prompt names" if p.get("notes_mode") == "manual" else "AUTO, open notes are yours to fix"))
+    # open notes, each under its beat
+    nb, pin_beat = {b["id"]: b for b in p["beats"]}, {x["id"]: x for x in p.get("pins", [])}
+    under, other = {}, []
+    for kind, nid, t, note in open_notes(p):
+        if kind == "beat":
+            bid = nid
+        elif kind == "note":
+            bid = (pin_beat.get(nid) or {}).get("beat")
+        else:
+            bid = next((b["id"] for b in reversed(p["beats"]) if b["start"] is not None and t is not None and t >= b["start"] - 0.001), None)
+        pin = pin_beat.get(nid) if kind == "note" else None
+        reply = (pin or {}).get("replies", [])[-1:] if pin else []
+        line = (f"[{nid}] {fmt_t(t).strip()} " if kind == "note" else f"[{nid}] beat note: " if kind == "beat" else f"[{nid}] sound {fmt_t(t).strip()}: ")
+        line += _clip(note, 260) + (f"  (in {pin['render']})" if pin and pin.get("render") else "") + (f"  reply: {_clip(reply[0].get('text'), 100)}" if reply else "")
+        (under.setdefault(bid, []) if bid in nb else other).append(line)
+    n_open = sum(map(len, under.values())) + len(other)
+    cues = load_json(os.path.join(ROOT, p["cues"]), {}) or {} if p.get("cues") else {}
+    L += ["", f"Beats ({n_open} open note{'s' if n_open != 1 else ''}; ids in [brackets]):"]
+    shown = 0
+    for b in p["beats"]:
+        words = b.get("copy") or b.get("on_screen") or ""
+        L.append(f"{b['n']:>2}. {b['id']}  {fmt_t(b['start']).strip()}-{fmt_t(b['end']).strip()}  [{b['status']}]" + (f"  \"{_clip(words, 140)}\"" if words else ""))
+        if b.get("vo"):
+            L.append(f"      vo: \"{_clip(b['vo'], 120)}\"")
+        for c in _beat_cues(cues, b) if cues else []:
+            L.append(f"      cues {c}")
+        for x in under.get(b["id"], []):
+            shown += 1
+            if shown <= 25:
+                L.append(f"      NOTE {x}")
+    for x in other:
+        shown += 1
+        if shown <= 25:
+            L.append(f"   NOTE (film-wide) {x}")
+    if shown > 25:
+        L.append(f"   ... {shown - 25} more open notes: {cli} film notes {slug}")
+    L += ["", f"Sound: {_sound_line(p)}" if p["engine"] == "remotion" else f"Sound: {cli} sound show {slug}"]
+    # the film's folder, file by file
+    d = os.path.join(ROOT, p["dir"])
+    files = []
+    for dp, dn, fn in os.walk(d):
+        dn[:] = sorted(x for x in dn if not x.startswith(".") and x not in ("node_modules", "__pycache__", "renders", "out", "snapshots", "exports"))
+        files += [os.path.join(dp, f) for f in sorted(fn) if not f.startswith(".") and not f.endswith((".pyc",) + VIDEO_EXT + IMG_EXT + AUDIO_EXT)]
+    L += ["", f"Files ({p['dir']}/):"]
+    for f in files[:25]:
+        L.append("  " + _file_line(f, os.path.relpath(f, d)))
+    if len(files) > 25:
+        L.append(f"  ... {len(files) - 25} more files")
+    if p["engine"] == "remotion":
+        L += [""] + _assets_lines(slug)
+    first = next((b for b in p["beats"] if under.get(b["id"])), None) or next((b for b in p["beats"] if b["status"] in ("changes", "todo", "wip")), None)
+    bid = first["id"] if first else "<beat>"
+    L += ["", "Next:",
+          f"  render one beat:     {cli} film render {slug} --beat {bid} --fixes <note ids> --note \"what changed\" --background",
+          f"  then:                {cli} film render-status {slug}, and look: {cli} film sheet {slug} --beat {bid}",
+          f"  file the person's feedback: {cli} film note {slug} <0:12.50 | beat> \"...\" --by chat",
+          f"  close fixed notes:   {cli} film done {slug} <ids> --done \"what changed\"   (partly done: {cli} film note-reply {slug} <id> \"...\")",
+          f"  set a beat's status: {cli} film mark {slug} <beat> wip|review"]
+    text = "\n".join(L)
+    if len(text) > limit:
+        cut = text[:limit].rsplit("\n", 1)[0]
+        text = cut + f"\n... cut at about {limit // 4} tokens. The rest: {cli} film status {slug}, {cli} film notes {slug}, {cli} film assets {slug}"
+    return text
+
+
+def cmd_context(a):
+    print(context(a.slug))
+
+
 def cmd_move(a):
     p = move_film(a.slug, a.folder)
     name = next((f["name"] for f in paths.FOLDERS if f["folder"] == p["folder"]), "")
@@ -1865,6 +2113,8 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("list").set_defaults(fn=cmd_list)
     s = sub.add_parser("status"); s.add_argument("slug"); s.set_defaults(fn=cmd_status)
+    s = sub.add_parser("context", help="a new session's brief of a film (about 3k tokens): plan, open notes by beat, cues, file map, assets, sound, next commands")
+    s.add_argument("slug"); s.set_defaults(fn=cmd_context)
     s = sub.add_parser("new"); s.add_argument("slug"); s.add_argument("--board", required=True)
     s.add_argument("--folder", help="one of the project's folders (default: the board's, or the folder you are in)"); s.set_defaults(fn=cmd_new)
     s = sub.add_parser("move", help="put a film in one of the project's folders (- for none); its renders move with it")

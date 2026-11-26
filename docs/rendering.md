@@ -15,7 +15,13 @@ Press **Start film** on a board, or:
 spliced film new launch --board "Launch"
 spliced film list
 spliced film status launch        # beat by beat: window, status, references, open notes
+spliced film context launch       # a short brief for a new AI session: plan, open notes by beat, cues, file map
 ```
+
+`film context` is what your AI reads first when it picks a film up in a new conversation, instead of the film's
+code: about 3,000 tokens with the plan, the open notes under their beats with their ids, each beat's cues, the
+latest render and whether the code changed since, every file in the film's folder with what it holds and exports,
+the assets and sound in a line or two, and the commands to render a beat and close notes.
 
 ## Render
 

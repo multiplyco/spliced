@@ -27,7 +27,7 @@ COMMANDS = {
     "doctor": ("doctor.py", "What this machine and project can do now, and the step that unlocks the next thing; --json"),
     "update": ("updates.py", "Is a newer Spliced out, and the command that gets it; --json"),
     "board": ("board.py", "Boards: find scenes, read and edit a board's script, point the open app at one"),
-    "film": ("film.py", "Films in production: status, notes, render, the storyboard beside the render"),
+    "film": ("film.py", "Films in production: status, context (a new session's brief), notes, render, the storyboard beside the render"),
     "folders": ("folders.py", "The project's folders (one per kind of video, or per client): list, add, remove"),
     "reference": ("add_reference.py", "Add a reference film from a link or a file, and run the machine pass"),
     "imports": ("importer.py", "The import queue: add, list, cancel; `next` and `done` for an agent picking a job up"),

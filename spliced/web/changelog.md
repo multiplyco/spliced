@@ -4,6 +4,17 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+## A short brief for each new AI session
+2026-11-26
+*`spliced film context <slug>` gives your AI a film in about 3,000 tokens, so a new conversation starts without reading the code.*
+
+When your AI picks a film up in a new conversation, it now reads one short brief instead of the film's code: the
+message, format and profile, the latest render and whether the code changed since, each beat in a line with its
+words, its cues and the open notes on it (with their ids), every file in the film's folder with what it holds and
+what it exports, the assets and the sound in a line or two, and the commands to render a beat and close notes. It
+then opens only the files a note touches. A long conversation is read again on every step, so a fresh one that
+starts from the brief costs a fraction. For agents without a shell it is the MCP tool `film_context`.
+
 <!-- release 1.4.0 2026-11-26 -->
 
 ## A profile from your website

@@ -125,6 +125,10 @@ def film_status(a):
     return text(*(run("film", "status", need(a, "film", SLUG)) if a.get("film") else run("film", "list")))
 
 
+def film_context(a):
+    return text(*run("film", "context", need(a, "film", SLUG)))
+
+
 def film_notes(a):
     return text(*run("film", "notes", need(a, "film", SLUG), *(["--all"] if a.get("include_closed") else [])))
 
@@ -349,6 +353,8 @@ TOOLS = [
     ("show_in_app", show_in_app, "Point the person's open Spliced tab at a board or a scene (they see it change). Needs the app running.",
      S({"target": {"type": "string", "description": "A board's name, or a scene id"}, "note": {"type": "string", "description": "One line shown with it"}}, ["target"])),
     ("film_status", film_status, "A film in production, beat by beat: each beat's window, status, references and open notes, and its renders. With no film, the list of films.", S({"film": FILM})),
+    ("film_context", film_context, "Start every new session on a film here, instead of reading its code: a short brief (about 3k tokens) of its plan, open notes by beat with their ids, "
+     "cues, the latest render, a map of its files (what each holds and exports), assets, sound and the next commands. Then open only the files a note touches.", S({"film": FILM}, ["film"])),
     ("film_notes", film_notes, "The notes the person pinned to moments of a film, open ones first.", S({"film": FILM, "include_closed": BOOL}, ["film"])),
     ("film_note", film_note, "File, answer or close a note on a film. add: the person's feedback from the chat, pinned to its frame. reply: say what is done on a note that stays open. done: close the notes you fixed, with what you changed. Close every note you fix in the same step.",
      S({"film": FILM, "action": {"type": "string", "enum": ["add", "reply", "done"]}, "at": {"type": "string", "description": "add: a film time like 0:18.66, or a beat id"},

@@ -54,3 +54,15 @@ def fake_npm(bin_dir):
         f.write("#!/bin/sh\necho \"npm $1 (stand-in)\"\nmkdir -p node_modules/remotion\necho 'added 1 package'\n")
     os.chmod(npm, 0o755)
     return npm
+
+
+def next_import(ask, timeout=300):
+    """`imports next` once a job is ready for an agent: a profile job digests its sources first (digest.py), which
+    takes a while on a machine where the digest's packages aren't installed yet. ask() runs it: (code, output)."""
+    import time
+    end = time.time() + timeout
+    while True:
+        code, out = ask()
+        if "Nothing is waiting" not in out or time.time() > end:
+            return code, out
+        time.sleep(1)

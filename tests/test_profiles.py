@@ -143,7 +143,7 @@ class Profiles(unittest.TestCase):
         code, out = self.cli("profile", "draft", "Globex", brief)
         self.assertEqual(code, 0, out)
         self.assertTrue(os.path.isfile(os.path.join(self.root, "profiles", "globex", "sources", "brand book.txt")))
-        code, out = self.cli("imports", "next")
+        code, out = support.next_import(lambda: self.cli("imports", "next"))
         self.assertIn("Draft the Spliced profile `globex`", out)
         self.assertIn("profiles/globex/sources/brand book.txt", out)
         jid = out.split()[1]

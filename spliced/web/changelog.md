@@ -4,6 +4,21 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+## A profile from your website
+2026-11-26
+*Give a new profile a website and your AI drafts it from the colours, typefaces and motion the site really uses.*
+
+New profile now reads **From files or a website**. Type an address (acme.com, or a page on it), drag a link from your
+browser onto Profiles, or paste one there, and Spliced reads that page: the colours its CSS uses, counted and with
+the names the site gives them, the typefaces it sets and loads, how big and heavy its headlines and buttons are, how
+long its transitions take and the curves they move on, its headlines for the voice, and its logo and icon. When
+Chrome, Chromium, Edge or Brave is on your Mac, it also takes two screenshots, the first screen and the whole page,
+in a browser window of its own with none of your logins. Your AI then fills in the palette, typefaces, motion and
+rules from all of it, the way it does from a brand book. On a profile's page, add a website under Drafted from; it
+shows as one tile with its first screen. Adding the same site again replaces what was read before.
+
+![New profile, with a website's address typed in](changelog/profile-from-a-website.jpg)
+
 <!-- release 1.3.0 2026-11-25 -->
 
 ## Your own films in the Library

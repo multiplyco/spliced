@@ -129,19 +129,31 @@ function pickFiles() {
   inp.onchange = () => uploadFiles(inp.files); inp.click();
 }
 // drop files anywhere; paste an image (not into a field)
-let dragN = 0;
+let dragN = 0, dragInside = false;
 const isFileDrag = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
+// on Profiles, a link dragged in from another window is a website to draft a profile from (never one of the app's own)
+const isLinkDrag = (e) => !dragInside && !isFileDrag(e) && route().view === "profiles" && [...(e.dataTransfer?.types || [])].includes("text/uri-list");
+const isDrop = (e) => isFileDrag(e) || isLinkDrag(e);
+document.addEventListener("dragstart", () => { dragInside = true; });
+document.addEventListener("dragend", () => { dragInside = false; });
 // the overlay lives only while files are being dragged over the page: dragover fires many times a second, so when it
 // stops (the drag left the window, or was let go somewhere the counting missed) the overlay goes too
 let dragT = 0;
-const endDrag = () => { clearTimeout(dragT); dragN = 0; document.body.classList.remove("dropping"); };
-document.addEventListener("dragenter", (e) => { if (!isFileDrag(e)) return; e.preventDefault(); if (++dragN === 1) document.body.classList.add("dropping"); });
-document.addEventListener("dragover", (e) => { if (!isFileDrag(e)) return; e.preventDefault(); document.body.classList.add("dropping"); clearTimeout(dragT); dragT = setTimeout(endDrag, 350); });
+const endDrag = () => { clearTimeout(dragT); dragN = 0; document.body.classList.remove("dropping"); delete document.body.dataset.dropLink; };
+document.addEventListener("dragenter", (e) => { if (!isDrop(e)) return; e.preventDefault(); if (isLinkDrag(e)) document.body.dataset.dropLink = "1"; if (++dragN === 1) document.body.classList.add("dropping"); });
+document.addEventListener("dragover", (e) => { if (!isDrop(e)) return; e.preventDefault(); document.body.classList.add("dropping"); clearTimeout(dragT); dragT = setTimeout(endDrag, 350); });
 ["dragend", "blur"].forEach((t) => addEventListener(t, endDrag));
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.body.classList.contains("dropping")) endDrag(); }, true);
-document.addEventListener("dragleave", (e) => { if (!isFileDrag(e)) return; if (--dragN <= 0) { dragN = 0; document.body.classList.remove("dropping"); } });
+document.addEventListener("dragleave", (e) => { if (!isDrop(e)) return; if (--dragN <= 0) { dragN = 0; document.body.classList.remove("dropping"); } });
 document.addEventListener("drop", (e) => {
-  if (!isFileDrag(e)) return; e.preventDefault(); endDrag();
+  if (!isDrop(e)) return; e.preventDefault();
+  if (isLinkDrag(e)) {   // a website, for a profile
+    endDrag();
+    const u = (e.dataTransfer.getData("text/uri-list") || "").split(/\r?\n/).find((l) => /^https?:\/\//i.test(l.trim()));
+    if (u && !u.startsWith(location.origin)) window.Profiles?.dropSite?.(u.trim());
+    return;
+  }
+  endDrag();
   if (route().view === "assets" && window.AssetsView?.drop) { window.AssetsView.drop(e.dataTransfer.files); return; }   // into a film's assets
   if (route().view === "profiles" && window.Profiles?.drop) { window.Profiles.drop(e.dataTransfer.files); return; }   // a profile drafted from them
   uploadFiles(e.dataTransfer.files);
@@ -149,6 +161,10 @@ document.addEventListener("drop", (e) => {
 document.addEventListener("paste", (e) => {
   if (/input|textarea|select/i.test(document.activeElement?.tagName || "") || document.activeElement?.isContentEditable) return;
   const files = [...(e.clipboardData?.files || [])];
+  const link = (e.clipboardData?.getData("text/plain") || "").trim();
+  if (!files.length && route().view === "profiles" && /^https?:\/\/\S+$/i.test(link) && window.Profiles?.dropSite) {   // a website, for a profile
+    e.preventDefault(); e.stopImmediatePropagation(); window.Profiles.dropSite(link); return;
+  }
   if (files.length) { e.preventDefault(); e.stopImmediatePropagation(); uploadFiles(files); }
 }, true);
 

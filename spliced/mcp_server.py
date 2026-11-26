@@ -157,6 +157,13 @@ def profile_tool(a):
     action = a.get("action") or "list"
     if action == "list":
         return text(*run("profile"))
+    if action == "draft":   # files in the project, or websites Spliced reads; then the person's AI fills it in (an import)
+        target = str(a.get("profile") or a.get("name") or "").strip()
+        srcs = a.get("sources")
+        srcs = [srcs] if isinstance(srcs, str) else srcs
+        if not target or not isinstance(srcs, list) or not srcs or not all(isinstance(x, str) and x.strip() and not x.strip().startswith("-") for x in srcs):
+            raise Bad("draft needs `profile` (or a new profile's `name`) and `sources`: files in the project, or websites (acme.com)")
+        return text(*run("profile", "draft", target, *[x.strip() for x in srcs], timeout=300))
     prof = need(a, "profile", r"[a-z0-9][a-z0-9-]*", "a profile's name, as list shows it") if action != "new" else ""
     if action == "show":
         return text(*run("profile", "show", prof))
@@ -188,7 +195,7 @@ def profile_tool(a):
             if a.get(k) is not None:
                 args += [f"--{flag}", str(a[k])]
         return text(*run(*args))
-    raise Bad("`action` is list, show, set, learn, pin, unpin, motion, drafted or new")
+    raise Bad("`action` is list, show, set, learn, pin, unpin, motion, drafted, new or draft")
 
 
 def folders_tool(a):
@@ -363,14 +370,17 @@ TOOLS = [
      "that shows the look. set: its about line, palette (\"#hex name, #hex name\"), typefaces (font and text_font, each with a source: local or google) "
      "and how type is set. motion: change its motion (a base motion profile, and pace, bounce, stagger, transition, words, idle; \"base\" resets one; "
      "`from` starts again from a kit or saved motion). drafted: say a profile you filled in from its sources is done. "
-     "new: a profile (from_film starts it from a reference film's look). A build in no profile recreates its references as they are.",
-     S({"action": {"type": "string", "enum": ["list", "show", "set", "learn", "pin", "unpin", "motion", "drafted", "new"]},
+     "new: a profile (from_film starts it from a reference film's look). draft: start or redo a profile from files (a brand book, logo, screenshots, "
+     "a film) or a website: Spliced reads a site's colours, typefaces, motion and screenshots into the profile's sources, then queues the drafting "
+     "for you (imports next). A build in no profile recreates its references as they are.",
+     S({"action": {"type": "string", "enum": ["list", "show", "set", "learn", "pin", "unpin", "motion", "drafted", "new", "draft"]},
+        "sources": {"type": "array", "items": STR, "description": "draft: files in the project, or websites (acme.com, https://acme.com/about)"},
         "about": {"type": "string"}, "palette": {"type": "string", "description": "set: \"#hex name, #hex name\""},
         "font": {"type": "string", "description": "set: the headline typeface"}, "font_source": {"type": "string", "enum": ["local", "google"]},
         "text_font": {"type": "string", "description": "set: the text typeface"}, "text_font_source": {"type": "string", "enum": ["local", "google"]},
         "type": {"type": "string", "description": "set: how type is set"}, "profile": {"type": "string", "description": "The profile's name, as list shows it"},
         "text": {"type": "string", "description": "learn: the rule, in a sentence"}, "from": {"type": "string", "description": "learn: where it came from, e.g. launch-film note 3; motion: a kit or saved motion to start from"},
-        "scene": {"type": "string", "description": "pin / unpin: a scene id like acme-launch/s05"}, "name": {"type": "string", "description": "new: its name"},
+        "scene": {"type": "string", "description": "pin / unpin: a scene id like acme-launch/s05"}, "name": {"type": "string", "description": "new, draft: a new profile's name"},
         "motion": {"type": "string", "description": "new: its base motion profile"}, "base": {"type": "string", "description": "motion: the base motion profile"},
         "pace": {"type": ["number", "string"], "description": "motion: 0.5 to 2, how long moves take against the base (1 = the base's)"},
         "bounce": {"type": ["number", "string"], "description": "motion: 0 to 0.5 overshoot"}, "stagger": {"type": ["number", "string"], "description": "motion: seconds between grouped items"},

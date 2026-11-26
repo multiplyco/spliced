@@ -20,8 +20,11 @@ import paths
 
 RUNNERS = ("none", "claude")
 # what a headless session needs for an import job and nothing more: files in the project, and Spliced's own tools
-# (by the installed command, and by this checkout's own, since a prompt names whichever paths.CLI is)
-FENCED_COMMANDS = ("library", "uploads", "reference", "analyze", "imports")
+# (by the installed command, and by this checkout's own, since a prompt names whichever paths.CLI is). A profile job
+# fills the profile in with these profile commands and no others: `profile draft` would have Spliced open any web
+# address, which a page the agent reads must not be able to ask for.
+FENCED_COMMANDS = ("library", "uploads", "reference", "analyze", "imports",
+                   "profile show", "profile set", "profile motion", "profile learn", "profile drafted")
 
 
 def allowed():

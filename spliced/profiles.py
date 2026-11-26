@@ -71,7 +71,15 @@ FONT_SOURCES = ("local", "google")
 SOURCE_EXT = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".mp4", ".mov", ".m4v", ".webm", ".txt", ".md", ".key", ".pptx",
               ".json", ".html", ".htm"}
 SOURCE_MAX = 400 * 1024 * 1024
-SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
+SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}\Z")   # \Z, not $: "acme\n" is no profile
+
+
+def _slug(slug):
+    """A profile's slug, checked here as well as by every caller: it becomes a folder name and a command's argument."""
+    slug = str(slug or "")
+    if not SLUG.match(slug):
+        raise ValueError(f"{slug!r} isn't a profile (a short kebab-case name)")
+    return slug
 MD_INTRO = ("<!-- This profile in your own words: the voice, the stage, the type, what its films always do and never do. "
             "Your AI reads it before building a film in this profile. -->\n")
 
@@ -164,13 +172,13 @@ def motions_file():
 
 def _local_only(slug):
     """A profile this worktree made in its own profiles/ (before profiles went home) that the store has no namesake of."""
+    slug = _slug(slug)
     return (store() != LOCAL and os.path.isfile(os.path.join(LOCAL, slug, "profile.json"))
             and not os.path.isdir(os.path.join(store(), slug)))
 
 
 def _dir(slug):
-    if not SLUG.match(str(slug or "")):
-        raise ValueError(f"{slug!r} isn't a profile (a short kebab-case name)")
+    slug = _slug(slug)
     return os.path.join(LOCAL, slug) if _local_only(slug) else os.path.join(store(), slug)
 
 
@@ -507,6 +515,7 @@ def digest_state(slug):
 
 
 def _digest_cmd(slug, fetch=False, force=False):
+    slug = _slug(slug)
     if not shutil.which("uv"):
         raise ValueError("digesting a profile's sources needs uv: https://docs.astral.sh/uv/getting-started/installation/")
     return ["uv", "run", "-q", paths.tool("digest"), slug, *(["--fetch"] if fetch else []), *(["--force"] if force else [])]
@@ -525,6 +534,10 @@ def digest_later(slug):
     """Digest a profile's sources in the background (a source was just added); never fails the caller. Not while one is
     already running: a draft job digests again first when the sources changed since (digest.py's content hash)."""
     import subprocess
+    try:
+        slug = _slug(slug)
+    except ValueError:
+        return
     try:
         import fcntl
         with open(os.path.join(paths.profile_home(), ".cache", f"digest-{slug}.lock"), "a") as fh:

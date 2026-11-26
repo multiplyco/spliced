@@ -91,6 +91,14 @@ class AHostilePdf(unittest.TestCase):
 
 
 class TheLogoInTheFilmKit(unittest.TestCase):
+    def test_a_profiles_name_is_checked_where_it_becomes_a_path(self):
+        import profiles
+        for bad in ("acme\n", "../acme", "-acme", "Acme", ""):
+            with self.assertRaises(ValueError, msg=repr(bad)):
+                profiles._dir(bad)
+            with self.assertRaises(ValueError, msg=repr(bad)):
+                profiles._digest_cmd(bad)
+
     def test_only_a_logo_the_digest_cleaned_is_copied(self):
         root = support.project(self)
         env = {k: v for k, v in os.environ.items() if not k.startswith(("SPLICED_", "CUTTING_ROOM_"))}

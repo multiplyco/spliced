@@ -154,6 +154,10 @@ be saved, and any profile can start from it (`spliced profile save-motion`, `pro
 Drop a brand book, a logo, screenshots or a film on Profiles and your AI drafts a profile from them: the files go into
 the profile's `sources/`, and the reading is an import like a film's breakdown (`spliced profile draft "<name>"
 <files>`; your AI picks it up with `spliced imports next`, or a background session does when `spliced.json` asks for one).
+Give it a website instead (type the address, or drag a link onto Profiles; `spliced profile draft "<name>" acme.com`)
+and Spliced reads that one page first: the colours and typefaces its CSS really uses, how it moves, its words, its logo,
+and screenshots when Chrome, Chromium, Edge or Brave is installed (headless, in a browser profile of its own). It opens
+only that page, its stylesheets and its pictures, and only when you ask.
 
 Briefs start in the default profile. Every brief you copy (a board's build prompt, a scene, a whole reference film) can
 choose another, or **No profile**: then the film recreates its references as they are, in their own look. In the app:

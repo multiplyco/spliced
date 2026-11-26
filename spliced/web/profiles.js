@@ -334,6 +334,22 @@ async function sendSources(slug, files, onEach) {
   }
   return n;
 }
+/* A website, read by Spliced into a profile's sources (website.py): the colours, typefaces and motion its own CSS
+   uses, its logo, and screenshots. Then the person's AI drafts from it like any other source. */
+const SITE_OK = /^(https?:\/\/)?(([\w-]+\.)+[a-z]{2,}|localhost|\d{1,3}(\.\d{1,3}){3})(:\d+)?([/?#]\S*)?$/i;   // acme.com, localhost:3000
+const siteHost = (u) => { try { return new URL(/^https?:\/\//i.test(u) ? u : `https://${u}`).hostname.replace(/^www\./, ""); } catch { return String(u); } };
+const siteName = (u) => { const host = siteHost(u); if (host === "localhost" || /^[\d.]+$/.test(host)) return "";   // nothing to guess from
+  const p = host.split("."); const w = p.length > 2 && p[p.length - 2].length <= 3 ? p[p.length - 3] : p[p.length - 2] || p[0];
+  return (w || "").replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase()); };
+async function sendSite(slug, url) {
+  try { return (await post({ op: "site", profile: slug, url })).site; } catch (e) { toast(e.message); return null; }
+}
+// the web address a drag carries, when it is a link from another page and not files
+const linkOf = (dt) => { const u = ((dt?.getData("text/uri-list") || dt?.getData("text/plain") || "").split(/\r?\n/).find((l) => l.trim() && !l.startsWith("#")) || "").trim();
+  return /^https?:\/\//i.test(u) && !u.startsWith(location.origin) ? u : ""; };
+const siteField = (value = "", button = false) => h(`<form class="pf-site" title="A website: Spliced reads the colours, typefaces and motion it uses and takes screenshots, for ${esc(SP.ai)} to draft from">
+  ${icon("globe")}<input type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="Or a website: acme.com" value="${esc(value)}" aria-label="A website" title="A website's address: acme.com, or a page on it">
+  ${button ? `<button class="icon-btn sm" title="Read this website into the profile, then ${esc(SP.ai)} drafts from it">Add website</button>` : ""}</form>`);
 /* An in-app dialog in place of the browser's: a title, a line, an optional field. Resolves to the field's text (or
    true), or null when it is cancelled. */
 function ask({ title, text = "", input = null, ok = "OK", danger = false }) {
@@ -353,17 +369,18 @@ function ask({ title, text = "", input = null, ok = "OK", danger = false }) {
   });
 }
 
-/* New profile: three ways in, each a click or a drop. Files a person drops are read by their AI, which fills the
-   profile in; a film from the library gives its palette, type and moves; blank is for setting it up by hand. */
-function newSheet({ film = null, files = null } = {}) {
+/* New profile: three ways in, each a click or a drop. Files a person drops, and a website they give, are read by their
+   AI, which fills the profile in; a film from the library gives its palette, type and moves; blank is for setting it up
+   by hand. */
+function newSheet({ film = null, files = null, site = "" } = {}) {
   const films = CR.films();
-  let how = files ? "files" : film ? "film" : "files", chosen = files ? [...files] : [], pick = film?.slug || "";
+  let how = files || site ? "files" : film ? "film" : "files", chosen = files ? [...files] : [], pick = film?.slug || "", named = "";
   const scrim = h(`<div class="pf-scrim"><div class="pf-sheet pf-new" role="dialog" aria-label="New profile">
     <div class="pf-sheet-h"><b>New profile</b><span class="spacer"></span><button class="icon-btn sm ghost" data-a="close" title="Close (Esc)">${icon("x")}</button></div>
     <div class="pf-new-body">
       <label class="pf-new-name"><span>Name</span><input placeholder="Your company, or the look you want" aria-label="Name" title="What the app and ${esc(SP.ai)} call it"></label>
       <div class="pf-new-ways">
-        <button data-how="files" title="${esc(SP.Ai)} reads a brand book, logo, screenshots or a film and fills the profile in">${icon("upload")}<b>From files</b><small>A brand book, logo, screenshots or a film. ${esc(SP.Ai)} fills it in.</small></button>
+        <button data-how="files" title="${esc(SP.Ai)} reads a brand book, logo, screenshots, a film or your website and fills the profile in">${icon("upload")}<b>From files or a website</b><small>A brand book, logo, screenshots, a film, or a website. ${esc(SP.Ai)} fills it in.</small></button>
         <button data-how="film" title="Take a film's palette, type and moves from your library" ${films.length ? "" : "disabled"}>${icon("film")}<b>From a film</b><small>${films.length ? "Its palette, type and moves, from your library." : "Add a reference film first."}</small></button>
         <button data-how="blank" title="Set the colours, typefaces and motion yourself">${icon("plus")}<b>Blank</b><small>Choose everything yourself, or ask ${esc(SP.ai)} later.</small></button>
       </div>
@@ -373,15 +390,28 @@ function newSheet({ film = null, files = null } = {}) {
   document.body.append(scrim);
   const nameEl = scrim.querySelector(".pf-new-name input"), pane = scrim.querySelector(".pf-new-pane"), go = scrim.querySelector('[data-a="go"]'), hint = scrim.querySelector(".pf-new-hint");
   const guess = (f) => f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/\b(brand ?book|guidelines?|brand|final|v\d+)\b/gi, "").trim();
+  const siteOk = () => SITE_OK.test(site.trim());
+  // a name the sheet gave itself follows the site; one the person typed stays
+  const nameFromSite = () => { if (siteOk() && (!nameEl.value || nameEl.value === named)) nameEl.value = named = siteName(site.trim()); };
+  const sum = () => {   // the button and the line beside it, for what is chosen so far
+    if (how !== "files") return;
+    const what = [chosen.length && `${chosen.length > 1 ? "them" : "it"}`, siteOk() && siteHost(site)].filter(Boolean);
+    go.textContent = "Create and draft"; go.disabled = !chosen.length && !siteOk();
+    hint.textContent = !what.length ? "" : siteOk() && !chosen.length ? `Spliced reads ${siteHost(site)}: its colours, typefaces, motion and screenshots. ${SP.Ai} fills the profile in from them.`
+      : `${SP.Ai} reads ${chosen.length > 1 ? "them" : "it"}${siteOk() ? ` and ${siteHost(site)}` : ""} and fills in the palette, typefaces, motion and rules. You can change everything after.`;
+  };
   const paint = () => {
     scrim.querySelectorAll("[data-how]").forEach((b) => b.classList.toggle("on", b.dataset.how === how));
     if (how === "files") {
       pane.innerHTML = "";
-      const dz = dropZone(chosen.length ? `${chosen.length} file${chosen.length > 1 ? "s" : ""}: ${chosen.map((f) => f.name).join(", ")}` : "Drop files here, or click to choose");
-      wireDrop(dz, (fs) => { chosen = [...chosen, ...[...fs].filter((f) => DROP_OK.test(f.name))]; if (!nameEl.value && chosen[0]) nameEl.value = guess(chosen[0]); paint(); });
-      pane.append(dz);
-      go.textContent = "Create and draft"; go.disabled = !chosen.length;
-      hint.textContent = chosen.length ? `${SP.Ai} reads ${chosen.length > 1 ? "them" : "it"} and fills in the palette, typefaces, motion and rules. You can change everything after.` : "";
+      const dz = dropZone(chosen.length ? `${chosen.length} file${chosen.length > 1 ? "s" : ""}: ${chosen.map((f) => f.name).join(", ")}` : "Drop files or a link here, or click to choose");
+      const field = siteField(site), inp = field.querySelector("input");
+      wireDrop(dz, (fs) => { chosen = [...chosen, ...[...fs].filter((f) => DROP_OK.test(f.name))]; if (!nameEl.value && chosen[0]) nameEl.value = guess(chosen[0]); paint(); },
+        (u) => { site = u; nameFromSite(); paint(); });
+      inp.oninput = () => { site = inp.value; nameFromSite(); sum(); };
+      field.onsubmit = (e) => { e.preventDefault(); go.click(); };
+      pane.append(dz, field);
+      sum();
     } else if (how === "film") {
       pane.innerHTML = `<div class="pf-new-films">${films.map((f) => `<button class="pf-new-film ${f.slug === pick ? "on" : ""}" data-f="${esc(f.slug)}" title="${esc(f.title)}">${f.thumb ? `<img alt="" loading="lazy" src="${esc(f.thumb)}">` : "<span></span>"}<small>${esc(f.title)}</small></button>`).join("")}</div>`;
       pane.querySelectorAll("[data-f]").forEach((b) => (b.onclick = () => { const was = films.find((f) => f.slug === pick); pick = b.dataset.f; if (!nameEl.value || (was && nameEl.value === `${was.title} look`)) nameEl.value = `${films.find((f) => f.slug === pick).title} look`; paint(); }));
@@ -393,11 +423,13 @@ function newSheet({ film = null, files = null } = {}) {
     }
   };
   scrim.querySelectorAll("[data-how]").forEach((b) => (b.onclick = () => { how = b.dataset.how; paint(); }));
-  const close = () => { scrim.remove(); document.removeEventListener("keydown", key, true); };
+  const close = () => { scrim.remove(); document.removeEventListener("keydown", key, true); siteTarget = was; };
   const key = (e) => { if (e.key === "Escape" && !document.querySelector(".pf-dialog")) { e.stopPropagation(); close(); } };
   document.addEventListener("keydown", key, true);
   scrim.addEventListener("mousedown", (e) => { if (e.target === scrim) close(); });
   scrim.querySelector('[data-a="close"]').onclick = close;
+  const was = siteTarget;   // a link dropped on the page while the sheet is open is its website
+  siteTarget = (u) => { how = "files"; site = u; nameFromSite(); paint(); };
   go.onclick = async () => {
     const f = films.find((x) => x.slug === pick);
     const n = nameEl.value.trim() || (how === "film" && f ? `${f.title} look` : how === "files" && chosen[0] ? guess(chosen[0]) : "");
@@ -405,15 +437,22 @@ function newSheet({ film = null, files = null } = {}) {
     go.disabled = true;
     try {
       const j = await post({ op: "new", name: n, from_film: how === "film" ? pick : undefined });
-      if (how === "files") { go.textContent = "Adding files…"; if (await sendSources(j.profile, chosen)) await post({ op: "draft", profile: j.profile }); window.Imports?.refresh?.(); }
+      if (how === "files") {
+        let got = 0;
+        if (chosen.length) { go.textContent = "Adding files…"; got += await sendSources(j.profile, chosen); }
+        if (siteOk()) { go.textContent = `Reading ${siteHost(site)}…`; hint.textContent = "Its colours, typefaces, motion and screenshots. This takes a few seconds."; got += (await sendSite(j.profile, site.trim())) ? 1 : 0; }
+        if (got) await post({ op: "draft", profile: j.profile });
+        window.Imports?.refresh?.();
+      }
       close(); toast(`Made the profile ${n}`); location.hash = `#/profiles/${j.profile}`;
     } catch (e) { toast(e.message); go.disabled = false; }
   };
   paint(); nameEl.focus();
 }
 const draftNew = (files) => newSheet({ files });
-let dropTarget = null;   // the profile page open, if any: drops add to its sources
+let dropTarget = null, siteTarget = null;   // the profile page (or new sheet) open, if any: what is dropped joins its sources
 function drop(files) { if (dropTarget) dropTarget(files); else draftNew(files); }
+function dropSite(url) { if (siteTarget) siteTarget(url); else newSheet({ site: url }); }
 async function jobFor(slug) {
   try { const r = await (await fetch("/api/imports")).json(); return (r.jobs || []).filter((j) => j.type === "profile" && j.slug === slug).pop() || null; } catch { return null; }
 }
@@ -422,20 +461,25 @@ async function jobFor(slug) {
 const thumbs = (keys, n) => keys.slice(0, n).map((k) => { const s = CR.scene(k); return s ? `<img alt="" loading="lazy" src="${esc(CR.sceneThumb(s))}">` : ""; }).join("");
 
 const create = (film) => newSheet({ film });
-const dropZone = (label) => h(`<label class="pf-drop" title="Drop a brand book, a logo, screenshots or a film, or click to choose files. ${esc(SP.Ai)} reads them and fills the profile in">
-  ${icon("upload")}<span><b>${label}</b><small>A brand book (PDF), a logo, screenshots, a film or a deck. ${esc(SP.Ai)} reads them and fills in the palette, typefaces, motion and rules.</small></span>
+const dropZone = (label) => h(`<label class="pf-drop" title="Drop a brand book, a logo, screenshots, a film or a link to a website, or click to choose files. ${esc(SP.Ai)} reads them and fills the profile in">
+  ${icon("upload")}<span><b>${label}</b><small>A brand book (PDF), a logo, screenshots, a film, a deck, or a link to a website. ${esc(SP.Ai)} reads them and fills in the palette, typefaces, motion and rules.</small></span>
   <input type="file" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.svg,.mp4,.mov,.m4v,.webm,.txt,.md,.key,.pptx"></label>`);
-function wireDrop(el, onFiles) {
+function wireDrop(el, onFiles, onSite) {
   el.querySelector("input").onchange = (e) => { onFiles(e.target.files); e.target.value = ""; };
   el.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); el.classList.add("over"); });
   el.addEventListener("dragleave", () => el.classList.remove("over"));
-  el.addEventListener("drop", (e) => { e.preventDefault(); e.stopPropagation(); el.classList.remove("over"); onFiles(e.dataTransfer.files); });
+  el.addEventListener("drop", (e) => {
+    e.preventDefault(); e.stopPropagation(); el.classList.remove("over");
+    if (e.dataTransfer.files.length) return onFiles(e.dataTransfer.files);
+    const u = linkOf(e.dataTransfer);   // a link dragged from a browser: the website it points to
+    if (u && onSite) onSite(u);
+  });
 }
 
 async function render(main, slug) {
   main.innerHTML = `<div class="empty">Loading profiles…</div>`;
   await load();
-  dropTarget = null;
+  dropTarget = null; siteTarget = null;
   document.body.dataset.dropProfile = "a new profile";
   if (slug) return detail(main, slug);
   main.innerHTML = "";
@@ -443,8 +487,8 @@ async function render(main, slug) {
     <button class="icon-btn sm primary" data-a="new" title="A new profile: a look your films can be made in">${icon("plus")}New profile</button></div>`);
   head.querySelector('[data-a="new"]').onclick = () => newSheet();
   main.append(head);
-  const dz = dropZone("Drop a brand book or a film to draft a profile");
-  wireDrop(dz, draftNew);
+  const dz = dropZone("Drop a brand book, a film or a link to your website to draft a profile");
+  wireDrop(dz, draftNew, dropSite);
   if (!list.length) {
     const e = h(`<div class="empty pf-empty"><b>No profiles yet</b><p>A profile is a look your films are made in: your company's own, or one you want to try. It keeps a palette, typefaces, its motion and your rules, and ${esc(SP.ai)} adds what it learns on every film.</p><p>Without one, a brief copies its reference as it is.</p>
       <div class="pf-empty-acts">${SPLICED.brand ? `<button class="icon-btn sm primary" data-a="house" title="Make ${esc(SPLICED.brand)}'s profile from the project's brand and house rules">${icon("palette")}Make ${esc(SPLICED.brand)}'s profile</button>` : ""}<button class="icon-btn sm" data-a="new2" title="A new profile">${icon("plus")}New profile</button></div></div>`);
@@ -570,7 +614,7 @@ function detail(main, slug) {
       <ol class="pf-rules"></ol>
       <div class="pf-add"><input placeholder="A rule, in a sentence: never bounce the logo" title="Add a rule to this profile" aria-label="New rule"><button class="icon-btn sm" data-a="learn" title="Keep this rule in the profile">Add rule</button></div></section>
     <section class="pf-sec"><div class="pf-sec-h"><h3>Drafted from</h3><button class="icon-btn sm" data-a="redraft" hidden title="Have ${esc(SP.ai)} read the sources again and fill the profile in">${icon("rotate-cw")}Draft again</button></div>
-      <p class="meta">Drop a brand book, a logo, screenshots or a film here, or anywhere on this page. ${esc(SP.Ai)} reads them and fills the profile in.</p>
+      <p class="meta">Drop a brand book, a logo, screenshots, a film or a link to a website here, or anywhere on this page, or type a website's address. ${esc(SP.Ai)} reads them and fills the profile in.</p>
       <div class="pf-sources"></div></section>
   </div>`);
   main.append(page);
@@ -758,12 +802,37 @@ function detail(main, slug) {
 
   // drafted from: the sources, and the reading of them by the person's AI
   const srcEl = page.querySelector(".pf-sources"), banner = page.querySelector(".pf-drafting"), redraft = page.querySelector('[data-a="redraft"]');
-  const kindIcon = { video: "film", image: "image", document: "file-text" };
+  const kindIcon = { video: "film", image: "image", document: "file-text", site: "globe" };
   const paintSources = () => {
-    srcEl.innerHTML = `<div class="pf-src-list">${p.sources.map((x) => `<span class="pf-src">${x.kind === "image" && !/\.svg$/i.test(x.name) ? `<img alt="" src="${esc(SP.fileUrl(x.file))}">` : `<span class="pf-src-i">${icon(kindIcon[x.kind] || "file-text")}</span>`}<small title="${esc(x.file)}">${esc(x.name)}</small></span>`).join("")}</div>`;
-    const dz = dropZone(p.sources.length ? "Add more" : "Drop files to draft this profile"); dz.classList.add("small");
-    wireDrop(dz, addFiles); srcEl.append(dz);
+    // a website is one tile: its first screen, with the pictures Spliced took from it folded in (they stay files in sources/)
+    const sites = p.sources.filter((x) => x.kind === "site").map((x) => ({ ...x, site: x.name.replace(/\.site\.md$/, "") }));
+    const ofSite = (x) => sites.find((st) => x.kind !== "site" && x.name.startsWith(`${st.site} `));
+    const tile = (x) => {
+      if (x.kind === "site") {
+        const parts = p.sources.filter((y) => ofSite(y) === sites.find((st) => st.file === x.file)), shot = parts.find((y) => / first screen\.png$/.test(y.name));
+        return `<span class="pf-src site" title="${esc(`${x.site}: what Spliced read on this website (${[x, ...parts].map((y) => y.name).join(", ")}), for ${SP.ai} to draft from`)}">${shot ? `<img alt="" src="${esc(SP.fileUrl(shot.file))}">` : `<span class="pf-src-i">${icon("globe")}</span>`}<small>${icon("globe")}${esc(x.site)}</small></span>`;
+      }
+      return `<span class="pf-src">${x.kind === "image" && !/\.svg$/i.test(x.name) ? `<img alt="" src="${esc(SP.fileUrl(x.file))}">` : `<span class="pf-src-i">${icon(kindIcon[x.kind] || "file-text")}</span>`}<small title="${esc(x.file)}">${esc(x.name)}</small></span>`;
+    };
+    srcEl.innerHTML = `<div class="pf-src-list">${[...sites, ...p.sources.filter((x) => x.kind !== "site" && !ofSite(x))].map(tile).join("")}</div>`;
+    const dz = dropZone(p.sources.length ? "Add more" : "Drop files or a link to draft this profile"); dz.classList.add("small");
+    wireDrop(dz, addFiles, addSite);
+    const field = siteField("", true), inp = field.querySelector("input");
+    field.onsubmit = (e) => { e.preventDefault(); const v = inp.value.trim(); if (!SITE_OK.test(v)) { inp.focus(); return toast("That isn't a website's address: acme.com, or a page on it"); } addSite(v); };
+    srcEl.append(dz, field);
     redraft.hidden = !p.sources.length;
+  };
+  const addSite = async (url) => {
+    const host = siteHost(url);
+    banner.hidden = false; banner.dataset.was = "";
+    banner.innerHTML = `<span class="dk-load"><img class="on-dark" src="brand/splice-loader-white.svg" alt=""><img class="on-light" src="brand/splice-loader-black.svg" alt=""></span><span><b>Reading ${esc(host)}</b><small>Its colours, typefaces, motion and screenshots, for ${esc(SP.ai)} to draft from</small></span>`;
+    const got = await sendSite(slug, url);
+    banner.hidden = true;
+    if (!got) return;
+    toast(`Read ${host}`);
+    await post({ op: "draft", profile: slug }).catch((e) => toast(e.message));
+    await load(); p = get(slug); paintSources(); watch();
+    window.Imports?.refresh?.();
   };
   const addFiles = async (files) => {
     files = [...files]; if (!files.length) return;
@@ -775,7 +844,7 @@ function detail(main, slug) {
     window.Imports?.refresh?.();
   };
   redraft.onclick = async () => { try { await post({ op: "draft", profile: slug }); toast(`${SP.Ai} will read the sources again`); watch(); window.Imports?.refresh?.(); } catch (e) { toast(e.message); } };
-  dropTarget = addFiles;
+  dropTarget = addFiles; siteTarget = addSite;
   document.body.dataset.dropProfile = p.name;
   let watchT = 0;
   const watch = async () => {
@@ -824,5 +893,5 @@ function scenePicker(p, toggle) {
   q.oninput = paint; paint(); q.focus();
 }
 
-return { ready, load, get, resolve, name, line, pick, splitCopy, briefFor, pinRow, render, create, drop, googleFace, remembered, remember, NONE, all: () => list, default: () => def, onChange: (fn) => listeners.add(fn) };
+return { ready, load, get, resolve, name, line, pick, splitCopy, briefFor, pinRow, render, create, drop, dropSite, googleFace, remembered, remember, NONE, all: () => list, default: () => def, onChange: (fn) => listeners.add(fn) };
 })();

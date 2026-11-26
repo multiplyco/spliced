@@ -5,8 +5,9 @@ A profile is a folder in the project, profiles/<slug>/:
                  scenes that show the look, the rules learned while making films
   PROFILE.md     the profile in prose: voice, stage, type, what to do and never do. The person's to write, and the
                  first thing an agent reads before building in it.
-  sources/       what a profile was drafted from, when the person dropped a brand book, logo, screenshots or a film on
-                 it: the person's AI reads them and fills the profile in (an import job, importer.py, type "profile")
+  sources/       what a profile was drafted from, when the person dropped a brand book, logo, screenshots, a film or a
+                 website on it: the person's AI reads them and fills the profile in (an import job, importer.py, type
+                 "profile"). A website is read by Spliced first (website.py): <site>.site.md and its pictures
 
 One profile may be the default: a brief starts in it. Every brief can choose another, or none ("as the reference":
 recreate what the reference shows, in its own look).
@@ -33,8 +34,9 @@ its first profile, once, and leaves both files where they were.
   spliced profile motion <profile> --from <motion>  start again from a kit motion profile or a saved motion (spliced profile motions)
   spliced profile motions                           the motions to start from: the kit's, the project's, and the ones saved here
   spliced profile save-motion <profile> "<name>"    keep this profile's motion as a starting point for others
-  spliced profile draft <profile | "New name"> <file>...   copy a brand book, logo, screenshots or a film into its
-                                                    sources/ and have the person's AI fill the profile in from them
+  spliced profile draft <profile | "New name"> <file | website>...   copy a brand book, logo, screenshots or a film into
+                                                    its sources/, read a website into them (its colours, type, motion,
+                                                    screenshots), and have the person's AI fill the profile in from them
   spliced profile ask <profile> "<what to change>"  the person's request, for their AI to make in the profile
   spliced profile drafted <profile>                 the agent that drafted or changed it says it is done
   spliced profile default <profile | none>          the profile a brief starts in
@@ -386,14 +388,49 @@ def remove_motion(key):
     _write(MOTIONS, json.dumps(d, indent=1, ensure_ascii=False) + "\n")
 
 
+SITE = ".site.md"   # a website Spliced read for a profile: <site>.site.md, its pictures beside it as "<site> logo.svg" ...
+SITE_FILES = ("logo", "icon", "share", "first screen", "page")
+
+
 def sources(slug):
-    """What a profile was drafted from: [{file, kind, bytes}], project-relative paths."""
+    """What a profile was drafted from: [{file, name, kind, bytes}], project-relative paths. A website's read is kind "site"."""
     d = os.path.join(DIR, slug, "sources")
     if not os.path.isdir(d):
         return []
-    kind = lambda e: "video" if e in (".mp4", ".mov", ".m4v", ".webm") else "image" if e in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg") else "document"
-    return [{"file": paths.rel(os.path.join(d, n)), "name": n, "kind": kind(os.path.splitext(n)[1].lower()), "bytes": os.path.getsize(os.path.join(d, n))}
+    kind = lambda n, e: "site" if n.endswith(SITE) else "video" if e in (".mp4", ".mov", ".m4v", ".webm") else \
+        "image" if e in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg") else "document"
+    return [{"file": paths.rel(os.path.join(d, n)), "name": n, "kind": kind(n, os.path.splitext(n)[1].lower()), "bytes": os.path.getsize(os.path.join(d, n))}
             for n in sorted(os.listdir(d)) if not n.startswith(".") and os.path.isfile(os.path.join(d, n))]
+
+
+def is_site(arg):
+    """Whether something given to `profile draft` is a web address rather than a file: http(s)://, or a bare
+    acme.com/about that is no file here."""
+    arg = str(arg or "").strip()
+    if re.match(r"^https?://", arg, re.I):
+        return True
+    if os.path.exists(os.path.expanduser(arg)) or os.path.splitext(arg.split("/")[0])[1].lower() in SOURCE_EXT:
+        return False   # brand-book.pdf is a file, even where .pdf could be a domain
+    return bool(re.match(r"^(([\w-]+\.)+[a-z]{2,}|localhost|\d{1,3}(\.\d{1,3}){3})(:\d+)?([/?#]\S*)?$", arg, re.I))   # acme.com, localhost:3000
+
+
+def add_site(slug, url, progress=None):
+    """Read a website into a profile's sources/ (website.py): <site>.site.md, what its page is made of, with its
+    logo, icon, share picture and screenshots beside it. A site read again replaces its last read. Returns
+    {site, url, files}; a ValueError in a sentence when the page can't be read."""
+    get(slug)
+    import website
+    r = website.read(url, progress)
+    d = os.path.join(_dir(slug), "sources")
+    label = r["label"]
+    if os.path.isdir(d):   # the last read of this site goes, only the files Spliced named for it
+        for n in os.listdir(d):
+            stem, ext = os.path.splitext(n)
+            if n == label + SITE or (ext.lower() in {*website.IMAGE_EXT.values(), ".jpeg"} and stem in {f"{label} {w}" for w in SITE_FILES}):
+                os.remove(os.path.join(d, n))
+    saved = {what: add_source(slug, name, data) for what, name, data in r["files"]}
+    md = add_source(slug, label + SITE, website.markdown(r, saved).encode())
+    return {"site": label, "url": r["final"], "files": [md, *saved.values()]}
 
 
 def add_source(slug, name, data):
@@ -422,7 +459,7 @@ def draft(slug, request=""):
     p = get(slug)
     request = " ".join(str(request or "").split())
     if not (p["sources"] or p["md"].strip() or request):
-        raise ValueError(f"{slug} has nothing to draft from: drop a brand book, logo, screenshots or a film on it, or say what it should be")
+        raise ValueError(f"{slug} has nothing to draft from: drop a brand book, logo, screenshots, a film or a website on it, or say what it should be")
     import importer
     return importer.add_profile_job(slug, request)
 
@@ -618,7 +655,7 @@ def main():
         x.add_argument(f"--{f}")
     sub.add_parser("motions")
     x = sub.add_parser("save-motion"); x.add_argument("profile"); x.add_argument("name")
-    x = sub.add_parser("draft"); x.add_argument("profile"); x.add_argument("files", nargs="+")
+    x = sub.add_parser("draft"); x.add_argument("profile"); x.add_argument("files", nargs="+", help="files, or websites (acme.com)")
     x = sub.add_parser("drafted"); x.add_argument("profile")
     x = sub.add_parser("ask"); x.add_argument("profile"); x.add_argument("request")
     x = sub.add_parser("default"); x.add_argument("profile")
@@ -662,6 +699,10 @@ def main():
             if not SLUG.match(a.profile) or not _read(a.profile):
                 a.profile = create(a.profile)["slug"] if not _read(slugify(a.profile)) else slugify(a.profile)
             for fp in a.files:
+                if is_site(fp):
+                    r = add_site(a.profile, fp, progress=lambda m: print(f"  {m}...", flush=True))
+                    print(f"  read {r['url']}: " + ", ".join(r["files"]))
+                    continue
                 with open(os.path.expanduser(fp), "rb") as f:
                     print(f"  {add_source(a.profile, os.path.basename(fp), f.read())}")
             j = draft(a.profile)
@@ -692,6 +733,8 @@ def main():
                   if p else f"{len(every())} profile{'' if len(every()) == 1 else 's'}" if every() else "No profiles yet: make one in the app (Profiles) when you want one.")
     except (KeyError, ValueError) as e:
         sys.exit(str(e.args[0]) if e.args else str(e))
+    except OSError as e:   # a file to draft from that isn't there, or can't be read
+        sys.exit(f"Couldn't read {e.filename or 'it'}: {e.strerror or e}" + (" (for a website, give its address: acme.com)" if getattr(e, "filename", None) else ""))
 
 
 if __name__ == "__main__":

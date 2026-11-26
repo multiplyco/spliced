@@ -35,7 +35,8 @@ API:
   GET  /api/connect          the agents and chat apps this project is connected to   POST /api/connect {agents, apps: {id: bool}}
   GET  /api/update           is a newer Spliced out (updates.py)
   GET  /api/profiles         the project's profiles (profiles.py)   POST /api/profiles {op: new|set|default|learn|forget|pin|unpin|remove|house|
-                             motion-save|motion-remove|draft, ...}   POST /api/profiles/<slug>/sources (raw file, X-Filename)  what one is drafted from
+                             motion-save|motion-remove|draft|site, ...}   POST /api/profiles/<slug>/sources (raw file, X-Filename)  what one is drafted from
+                             (site: {profile, url}, a website Spliced reads into its sources, website.py)
   GET  /api/own-films        the project's own films with a whole render, their beats as scenes, for the Library
   GET  /api/fonts            the font families on this machine, and whether Google Fonts may be offered (spliced.json "google_fonts")
 Data: .cache/library.json, built by `spliced library` (run it after changing breakdowns) and served as
@@ -615,6 +616,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/api/profiles":
             # A change to the project's profiles, the same operations as `spliced profile`: {op, profile?, ...}
             op, slug = str(body.get("op", "")), str(body.get("profile", ""))
+            if op == "site":   # a website read into its sources (website.py): seconds of fetching, so not under the lock
+                try:
+                    site = profiles.add_site(slug, str(body.get("url", "")))
+                except (KeyError, ValueError, OSError) as e:
+                    return self._json(400, {"error": str(e.args[0]) if e.args else str(e)})
+                return self._json(200, {"profile": slug, "site": site, "sources": profiles.sources(slug), "profiles": profiles.every(), "default": profiles.default()})
             try:
                 with LOCK:
                     if op == "new":
@@ -642,7 +649,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     elif op == "remove":
                         profiles.remove(slug)
                     else:
-                        return self._json(400, {"error": "op is new, set, default, learn, forget, pin, unpin, remove, house, motion-save, motion-remove or draft"})
+                        return self._json(400, {"error": "op is new, set, default, learn, forget, pin, unpin, remove, house, motion-save, motion-remove, draft or site"})
             except (KeyError, ValueError, OSError) as e:
                 return self._json(400, {"error": str(e.args[0]) if e.args else str(e)})
             return self._json(200, {"profile": slug, "profiles": profiles.every(), "default": profiles.default(), "motions": profiles.motions()})

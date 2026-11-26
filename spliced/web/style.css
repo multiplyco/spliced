@@ -2561,6 +2561,7 @@ a.pf-card:hover { border-color: var(--border-strong); }
 .pf-pick-grid .pf-pick:hover { color: var(--foreground); }
 @media (max-width: 900px) { .pf-hero { grid-template-columns: 1fr; } .pf-mrow { grid-template-columns: 100px 1fr; } .pf-mrow .pf-mv { grid-column: 2; } }
 body.dropping[data-drop-profile]::after { content: "Drop to draft " attr(data-drop-profile) " from these files"; }
+body.dropping[data-drop-profile][data-drop-link]::after { content: "Drop to draft " attr(data-drop-profile) " from this website"; }
 
 /* profiles: typefaces */
 .pf-faces { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -2598,6 +2599,15 @@ body.dropping[data-drop-profile]::after { content: "Drop to draft " attr(data-dr
 .pf-src img, .pf-src-i { width: 120px; height: 80px; border-radius: 8px; object-fit: cover; background: var(--splice-bg-raised); display: grid; place-items: center; }
 .pf-src-i .i { width: 22px; height: 22px; }
 .pf-src small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-src.site .pf-src-i { color: var(--foreground); }
+.pf-src.site small { display: flex; align-items: center; gap: 4px; color: var(--foreground); }
+.pf-src.site small .i { width: 12px; height: 12px; flex: none; color: var(--muted-foreground); }
+/* a website's address, read into a profile's sources */
+.pf-site { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 4px 4px 4px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--background); }
+.pf-site:focus-within { border-color: var(--border-strong); }
+.pf-site > .i { width: 16px; height: 16px; color: var(--muted-foreground); flex: none; }
+.pf-site input { flex: 1; min-width: 0; height: 34px; border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 14px; }
+.pf-site input:focus { outline: none; }
 .pf-drafting { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--splice-bg-surface); border: 1px solid var(--border); }
 .pf-drafting > span { display: flex; flex-direction: column; flex: 1; }
 .pf-drafting b { font-size: 13.5px; }

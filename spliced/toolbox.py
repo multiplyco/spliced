@@ -963,6 +963,8 @@ def announce(port, url):
             pass
     atexit.register(gone)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))   # the Mac app stops us with SIGTERM: clean up on the way out
+    if hasattr(signal, "pthread_sigmask"):   # a stop that came while restart() was replacing us waited for this: it lands now
+        signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGTERM})
     parent = paths.env("PARENT_PID")
     if parent and parent.isdigit():   # started by the Mac app: if it goes away without stopping us (a crash), go too
 
@@ -991,6 +993,10 @@ def restart():
     except OSError:
         pass
     sys.stdout.flush(); sys.stderr.flush()
+    # A SIGTERM while the new process starts would kill it before it can tidy up, leaving .cache/server.json behind
+    # under its (unchanged) pid. Held back across the exec instead, and let in by announce() once the handler is set.
+    if hasattr(signal, "pthread_sigmask"):
+        signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGTERM})
     os.execv(sys.executable, [sys.executable, os.path.abspath(__file__)] + sys.argv[1:])
 
 

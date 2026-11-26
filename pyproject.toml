@@ -1,6 +1,6 @@
 [project]
 name = "spliced-app"
-version = "1.3.0"
+version = "1.4.0"
 description = "A workshop for motion design: study the films you love scene by scene, name their moves, and build your own films from them with your AI."
 readme = "README.md"
 requires-python = ">=3.10"

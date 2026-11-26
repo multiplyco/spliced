@@ -130,8 +130,9 @@ suit the project:
 The board is the script (read it with `spliced board show "<name>" --md`). Create
 `remotion/src/films/<slug>/BRIEF.md` (slug: `feature-what`, e.g. `search-launch`) from it, with:
 - the news in one sentence, audience, destination, aspect, length;
-- **the motion profile**: the profile's motion when the film is made in one (`spliced profile show` says its base and what
-  it changes; build that as a motion profile named after it in `remotion/src/profiles.ts`), else the board's, else the
+- **the motion profile**: the profile's own when the film is made in one: it is code already, `motion('<profile>')`, and
+  its palette, fonts and logo are `profileTokens('<profile>')` (`spliced profile show` says what it changes; never copy
+  them into constants or a hand-written profile), else the board's, else the
   project's default in `spliced.json`. Compare profiles in the
   composition `Specimen-Profiles` (`npm run dev`);
 - the beats: for each, the reference scene IDs (`film/sNN`) and system moves (`system-moves/sNN`) it borrows.

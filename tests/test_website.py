@@ -132,7 +132,7 @@ class AProfileFromAWebsite(unittest.TestCase):
         with open(os.path.join(self.root, "profiles", "acme", "sources", "127.0.0.1.site.md")) as f:
             md = f.read()
         self.assertIn("`profiles/acme/sources/127.0.0.1 logo.png`", md, "the read names the pictures beside it by where they are")
-        code, out = self.cli("imports", "next")
+        code, out = support.next_import(lambda: self.cli("imports", "next"))
         self.assertIn("profiles/acme/sources/127.0.0.1.site.md", out)
         self.assertIn("a website by its `<site>.site.md`", out)
         self.assertIn("a website's transitions and curves", out)

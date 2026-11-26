@@ -21,6 +21,7 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
 | `spliced/toolbox_state.py`, `board.py` | Boards, reviews, moments: named operations on `library/state.json` |
 | `spliced/film.py`, `sound.py`, `soundkit.py`, `voice.py` | Films in production. `film.own_films` (`/api/own-films`) gives the Library each film with a whole render, its beats as scenes keyed `@<slug>/<beat>` |
 | `spliced/profiles.py`, `web/profiles.js` | Profiles: the looks a project's films are made in (`profiles/<slug>/`: profile.json and PROFILE.md), the default, the rules learned on films, saved motions (`profiles/motions.json`), and the files one is drafted from (`sources/`, read by the person's AI as an import job of type "profile"). A board, a brief or a film names one, or none (as the reference). `web/google-fonts.json` is the Google Fonts name list the typeface picker offers |
+| `spliced/digest.py` | A profile's sources digested once into `profiles/<slug>/digest/` (`spliced profile digest`; PyMuPDF and Pillow in its own uv environment): a PDF's text and contact sheet, every picture extracted and measured (kind, subject box, a device's screen, colours), clean SVG logos, and the colours, fonts, products and image URLs in JSON or HTML. `README.md` there is what an agent reads instead of the sources. Online only with `--fetch` |
 | `spliced/website.py` | A website read for a profile (`profile draft <profile> acme.com`, the `site` op): the colours, typefaces and motion its own CSS uses, its words, logo and screenshots (a Chrome-family browser driven headless over its DevTools pipe), written into the profile's `sources/` as `<site>.site.md` and pictures. Standard library only |
 | `spliced/folders.py`, `web/folders.js` | The project's folders (spliced.json "folders"): films, boards and assets sorted by kind of video or by client. Build, Boards and Assets group and filter by them; the Library never |
 | `spliced/add_reference.py`, `analyze_reference.py`, `build_library.py`, `importer.py`, `runners.py`, `uploads.py`, `stock.py` | The library and what feeds it |
@@ -129,7 +130,8 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
   `ffmpeg` and `ffprobe`). A hint that names a Spliced command writes it `paths.CLI`, never a bare `spliced`.
 - **The film kit is the source of the motion library.** Change motion, specimens, the craft or sound docs in
   `spliced/kit/managed/`, never in a project's copy: `spliced kit update` brings it there. A company's own profile
-  belongs in that project's `remotion/src/profiles.ts`, not in the kit. An example film in `starter/` shows only what
+  belongs in that project's `remotion/src/profiles.ts`, not in the kit; its Spliced profiles reach the kit as data
+  in `remotion/src/profiles.generated.ts` (written by `profiles.write_code`), derived by `lib/motion/derive.ts`. An example film in `starter/` shows only what
   is ours (no frames of other people's films, no citations of their films, no review history): `tests/test_kit.py`
   checks it.
 - **Keys never pass through an agent.** Service keys live in the project's `.env`, written by `apikeys.py` (Settings,

@@ -138,7 +138,9 @@ spliced kit update               # after updating Spliced: its files replaced wi
 
 The kit's files (`remotion/src/lib`, `src/specimen`, `docs/CRAFT.md`, `MOTION-SYSTEMS.md`, `SOUND.md`, the UI sounds)
 are Spliced's, and `update` replaces them; a file you changed by hand is listed and left alone. Your films, your
-`Root.tsx` and your own motion profiles (`remotion/src/profiles.ts`) are yours and never touched. Ask your AI to make
+`Root.tsx` and your own motion profiles (`remotion/src/profiles.ts`) are yours and never touched. Your profiles reach the
+kit as code in `remotion/src/profiles.generated.ts`, written by Spliced, so a film says `motion('acme')` and
+`profileTokens('acme')` and writes no profile by hand. Ask your AI to make
 a film and it follows the `make-film` skill (`spliced agents install` puts it in the project). Remotion is free for
 individuals and small teams and needs a paid licence above that.
 
@@ -158,6 +160,11 @@ Give it a website instead (type the address, or drag a link onto Profiles; `spli
 and Spliced reads that one page first: the colours and typefaces its CSS really uses, how it moves, its words, its logo,
 and screenshots when Chrome, Chromium, Edge or Brave is installed (headless, in a browser profile of its own). It opens
 only that page, its stylesheets and its pictures, and only when you ask.
+
+Before your AI reads them, Spliced digests a profile's sources into its `digest/` (`spliced profile digest`): a PDF's
+text and pages on one sheet, every picture taken out and measured (cut-out, photo or backdrop, where the subject sits,
+a device's screen, its colours), SVG logos cleaned, and the colours, typefaces and products a JSON or HTML export holds.
+It downloads nothing, unless you add `--fetch`: then it fetches the picture addresses those files list, once each, from the public web only (never this machine or your local network), for three minutes at most.
 
 Briefs start in the default profile. Every brief you copy (a board's build prompt, a scene, a whole reference film) can
 choose another, or **No profile**: then the film recreates its references as they are, in their own look. In the app:

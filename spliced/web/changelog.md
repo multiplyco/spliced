@@ -4,6 +4,40 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+## A profile is code your films use as it is
+2026-11-26
+*A film made in a profile moves and colours itself from the profile, with nothing copied by hand.*
+
+Spliced now keeps every profile as code in your film kit (`remotion/src/profiles.generated.ts`): its motion, palette,
+typefaces and the logo its sources hold. A film made in the profile `acme` says `motion('acme')` and gets the profile's
+pace, bounce, stagger, scene changes, word style and float, worked out from the motion it starts from, and
+`profileTokens('acme')` for its colours by name, typefaces and logo. Your AI no longer rebuilds a profile by hand, and
+the film can't drift from it: change the profile and the next render follows. The file is rewritten whenever a profile
+changes, on `spliced kit update` and before a render; to fine-tune one by hand, add a motion profile with the same name
+to `remotion/src/profiles.ts`, and yours wins.
+
+## Your AI reads a brand book without opening it
+2026-11-26
+*Spliced takes a profile's sources apart once, so your AI works from a short list instead of reading every page.*
+
+A brand book used to cost your AI a page-by-page read, and then the same handwork every time. Now Spliced digests a
+profile's sources into its `digest/` folder when you add one and before your AI drafts the profile: a PDF's text, all
+its pages on one small sheet, every picture in it taken out once (transparent ones kept transparent), and each picture
+measured: its size, whether it is a cut-out, a photo or a blurred backdrop, where the product sits in it, where a
+device's screen is, and its colours. SVG logos come out as clean files, and a JSON or HTML export gives its colours,
+typefaces, products and picture addresses. Your AI reads one short list instead. Run it yourself with
+`spliced profile digest <profile>`; `--fetch` also downloads the pictures a JSON file lists, once.
+
+## One set of profiles in every workspace
+2026-11-26
+*A profile drafted in one git worktree is the one every other worktree, and the app, sees.*
+
+In a git worktree (a Conductor workspace, say), Spliced now reads and writes the main checkout's profiles, the way
+renders already go there. Draft a profile in one workspace and build a film in it from another, with no copying;
+edits made from a worktree land in the main checkout, ready to commit there. A profile a worktree made in its own
+folder before this is still listed, marked Local, and left as it is: `spliced profile move-home <profile>` moves it
+to the main checkout. To keep profiles with each branch instead, set `"worktree_profiles": "worktree"` in spliced.json.
+
 ## Lighter Claude Code sessions for film work
 2026-11-26
 *`spliced agents context` shows what a Claude Code session in your project loads, and `agents install --lean` trims it to Spliced's own tools.*

@@ -217,8 +217,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if not self.path.startswith(("/api/frame", "/api/library")):  # these set their own (a frame's URL carries the render's mtime; the library has an ETag)
             self.send_header("Cache-Control", "no-store" if self.path.startswith(("/api/", "/app")) else "max-age=3600")
         self.send_header("X-Content-Type-Options", "nosniff")
-        if self.path.startswith("/project/") and urlsplit(self.path).path.lower().endswith(".svg"):
-            self.send_header("Content-Security-Policy", "sandbox; default-src 'none'; style-src 'unsafe-inline'")  # an uploaded SVG is a picture, never a page that runs
+        if self.path.startswith("/project/") and (served(urlsplit(self.path).path) or "").lower().endswith(".svg"):
+            # an uploaded SVG is a picture, never a page that runs: judged by the file served, not by how its URL is
+            # written (logo.sv%67 and logo.svg/ reach the same file as logo.svg)
+            self.send_header("Content-Security-Policy", "sandbox; default-src 'none'; style-src 'unsafe-inline'")
         super().end_headers()
 
     def _json(self, code, obj):
@@ -514,6 +516,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             try:
                 with LOCK:
                     f = profiles.add_source(sm.group(1), unquote(self.headers.get("X-Filename", "source")), data)
+                profiles.digest_later(sm.group(1))   # digested for an agent in the background (digest.py)
                 return self._json(200, {"file": f, "sources": profiles.sources(sm.group(1))})
             except (KeyError, ValueError, OSError) as e:
                 return self._json(400, {"error": str(e.args[0]) if e.args else str(e)})
@@ -621,6 +624,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     site = profiles.add_site(slug, str(body.get("url", "")))
                 except (KeyError, ValueError, OSError) as e:
                     return self._json(400, {"error": str(e.args[0]) if e.args else str(e)})
+                profiles.digest_later(slug)
                 return self._json(200, {"profile": slug, "site": site, "sources": profiles.sources(slug), "profiles": profiles.every(), "default": profiles.default()})
             try:
                 with LOCK:

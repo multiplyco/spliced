@@ -65,6 +65,9 @@ def argv(prompt):
     if name() != "claude":
         return None
     cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose"]
+    home = paths.profile_home()
+    if home != paths.ROOT:   # a worktree: its profiles are the main checkout's, and a profile job writes there
+        cmd += ["--add-dir", os.path.join(home, paths.LAYOUT["profiles"])]
     if bypass():
         return cmd + ["--permission-mode", "bypassPermissions"]
     return cmd + ["--permission-mode", "acceptEdits", "--allowedTools", ",".join(allowed())]

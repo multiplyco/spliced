@@ -1846,6 +1846,7 @@ def cmd_render(a):
     import kit   # without its packages npx would fetch whatever Remotion is newest and fail far from the cause: put them in first
     if kit.packages()["state"] != "ok" and not kit.install_packages():
         sys.exit(f"Remotion's packages aren't installed in {rel(paths.REMOTION)}/, so nothing was rendered ({paths.CLI} kit packages)")
+    profiles.write_code()   # the profiles as code, current with the shared store (another worktree may have changed one)
     out_dir = paths.renders_dir(p["folder"])
     os.makedirs(out_dir, exist_ok=True)
     vs = [r["version"] for r in p["renders"] if r["version"]]

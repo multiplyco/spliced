@@ -109,6 +109,14 @@ class Server(unittest.TestCase):
         self.assertEqual(f["scenes"][0]["on_screen"], "A headline.")
         self.assertEqual(self.req("GET", "/project/" + f["file"])[0], 200, "and its render plays")
 
+    def test_a_projects_svg_never_runs_whatever_its_url(self):
+        with open(os.path.join(self.root, "library", "mark.svg"), "w") as f:
+            f.write('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')
+        for path in ("/project/library/mark.svg", "/project/library/mark.sv%67", "/project/library/mark.svg/"):
+            code, h, _ = self.req("GET", path)
+            if code == 200:
+                self.assertIn("sandbox", h.get("content-security-policy", ""), path)
+
     def test_project_media(self):
         code, h, body = self.req("GET", "/project/reference/Demo%20two%20%5Babc123%5D.mp4", headers={"Range": "bytes=0-99"})
         self.assertEqual((code, len(body), h.get("content-type")), (206, 100, "video/mp4"))

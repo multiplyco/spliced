@@ -463,7 +463,7 @@ const thumbs = (keys, n) => keys.slice(0, n).map((k) => { const s = CR.scene(k);
 const create = (film) => newSheet({ film });
 const dropZone = (label) => h(`<label class="pf-drop" title="Drop a brand book, a logo, screenshots, a film or a link to a website, or click to choose files. ${esc(SP.Ai)} reads them and fills the profile in">
   ${icon("upload")}<span><b>${label}</b><small>A brand book (PDF), a logo, screenshots, a film, a deck, or a link to a website. ${esc(SP.Ai)} reads them and fills in the palette, typefaces, motion and rules.</small></span>
-  <input type="file" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.svg,.mp4,.mov,.m4v,.webm,.txt,.md,.key,.pptx"></label>`);
+  <input type="file" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.svg,.mp4,.mov,.m4v,.webm,.txt,.md,.key,.pptx,.json,.html,.htm"></label>`);
 function wireDrop(el, onFiles, onSite) {
   el.querySelector("input").onchange = (e) => { onFiles(e.target.files); e.target.value = ""; };
   el.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); el.classList.add("over"); });
@@ -502,7 +502,7 @@ async function render(main, slug) {
   for (const p of list) {
     const c = h(`<a class="pf-card" href="#/profiles/${esc(p.slug)}" title="Open ${esc(p.name)}">
       <div class="pf-cover"></div>
-      <div class="pf-body"><div class="pf-t"><b>${esc(p.name)}</b>${p.slug === def ? `<span class="pf-badge on" title="Briefs start in this profile">${icon("check")}Default</span>` : ""}</div>
+      <div class="pf-body"><div class="pf-t"><b>${esc(p.name)}</b>${p.slug === def ? `<span class="pf-badge on" title="Briefs start in this profile">${icon("check")}Default</span>` : ""}${p.local ? `<span class="pf-badge" title="Kept in this worktree's own profiles/ only, so other workspaces don't see it. ${esc(SP.cmd("profile", "move-home", p.slug))} moves it to the main checkout, where every workspace shares it">Local</span>` : ""}</div>
       ${p.about ? `<p>${esc(p.about)}</p>` : ""}
       <div class="pf-meta"><span class="pf-dots">${dots(p.palette, 6)}</span>${p.font ? `<span style="font-family:${esc(faceCss(p.font))}">${esc(p.font)}</span>` : ""}<span>${p.scenes.length} scene${p.scenes.length === 1 ? "" : "s"}</span><span>${p.rules.length} rule${p.rules.length === 1 ? "" : "s"}</span></div></div></a>`);
     if (p.font_source === "google") googleFace(p.font);

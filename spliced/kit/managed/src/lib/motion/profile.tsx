@@ -10,12 +10,17 @@
 //   <m.ViewChange t={t} start={cue} from={<A/>} to={<B/>} />
 //   m.seconds('enter')                            // how long a role takes, for laying out cues
 //
-// The built-in profiles are below; a project adds its own in src/profiles.ts (its file, never replaced by
-// `spliced kit update`). `npm run check:motion` flags hand-written easing in film code, so motion stays on the profile.
+// The built-in profiles are below. Every Spliced profile of the project (profiles/<slug>/) comes as code too: Spliced
+// writes their motion and tokens to src/profiles.generated.ts and they are derived here from their base (derive.ts),
+// so motion('<profile>') and profileTokens('<profile>') need no hand-written code. A project hand-writes its own in
+// src/profiles.ts (its file, never replaced by `spliced kit update`); one there with a profile's name wins.
+// `npm run check:motion` flags hand-written easing in film code, so motion stays on the profile.
 import React from 'react';
 import {M3_EASING, m3Spring, type M3Easing} from './material3';
 import {KIT_CURVES, sp, tw, type Profile, type ViewChangeKind, type Role, type MotionSpec} from './spec';
 import {PROJECT_PROFILES} from '../../profiles';
+import {GENERATED_PROFILES} from '../../profiles.generated';
+import {deriveProfile, type GeneratedProfile} from './derive';
 import {appleSpec} from './apple';
 import {clamp01, settleTime, springStep} from './spring';
 import {FadeThrough, SharedAxis} from './M3Transitions';
@@ -82,8 +87,17 @@ export const BUILT_IN_PROFILES = {
     stagger: 0.07, viewChange: {kind: 'blurThrough', seconds: 0.5}, idle: 0.3,
   },
 } satisfies Record<string, Profile>;
-/** Every profile a film can name: the built-in ones and this project's own (src/profiles.ts), which win on a clash. */
-export const PROFILES = {...BUILT_IN_PROFILES, ...PROJECT_PROFILES};
+type Generated = typeof GENERATED_PROFILES;
+const GENERATED_LIST = GENERATED_PROFILES as Record<string, GeneratedProfile>;
+const BASES: Record<string, Profile> = {...BUILT_IN_PROFILES, ...PROJECT_PROFILES};
+/** The project's Spliced profiles (src/profiles.generated.ts), each derived from its base motion profile. */
+const DERIVED = Object.fromEntries(
+  Object.entries(GENERATED_LIST).map(([k, g]) => [k, deriveProfile(BASES[g.motion?.base] ?? BUILT_IN_PROFILES.soft, g.motion ?? {base: 'soft'}, k, g.about || g.name)]),
+) as {[K in keyof Generated]: Profile};
+/** Every profile a film can name: the built-in ones, the project's Spliced profiles, and its own (src/profiles.ts), which win on a clash. */
+export const PROFILES = {...BUILT_IN_PROFILES, ...DERIVED, ...PROJECT_PROFILES};
+/** A Spliced profile's tokens: its palette (and colors by name), headline and text fonts, and logo (a staticFile path). */
+export const profileTokens = (name: keyof Generated): GeneratedProfile => GENERATED_LIST[name as string];
 export type ProfileName = keyof typeof PROFILES;
 
 const curveOf = (c: string) => (c in KIT_CURVES ? KIT_CURVES[c as keyof typeof KIT_CURVES] : M3_EASING[c as M3Easing]);

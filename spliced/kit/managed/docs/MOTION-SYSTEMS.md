@@ -38,6 +38,16 @@ m.idle(t, k)                               // never-still float for holds
 
 `splice` is the Spliced app's own language, from its brand tokens (`Spliced's web/splice-tokens.css`: ease-out, ease-ui, ease-sink), film-slowed; first used by the `splice-explainer` film.
 
+**The project's Spliced profiles, as code.** Every profile in the project's `profiles/` is a motion profile too.
+Spliced writes them into `src/profiles.generated.ts` (on every change to a profile, `spliced kit update`, a render, and
+`spliced profile code`; never edit it): each one's motion as data (its base and what it changes) and its tokens.
+`profile.tsx` derives each with `deriveProfile` (`derive.ts`): every tween's seconds and spring's duration times `pace`,
+`bounce` on the `ui` and `emphasis` springs (a tween there becomes a spring of the same length), `stagger` and `idle`
+as given, the view change from the first scene change the kit draws (cut, blur, fade, slide, push-in), and the word
+style from the first one `m.word` draws (sharpen, grey-to-ink). So a film says `motion('<profile>')` and
+`profileTokens('<profile>')` (palette, `colors` by name, fonts, logo as a staticFile path) and writes no profile code.
+One with the same name in `src/profiles.ts` wins, for hand-tuning.
+
 **Your own profile.** A project adds its own in `src/profiles.ts` (the project's file: `spliced kit update` never
 touches it), written with the same `tw()` and `sp()` helpers as the built-in ones, for example a house profile tuned
 to the brand's own film. `Specimen-Profiles` shows the first of them beside `soft`, `material` and `apple`, so you can

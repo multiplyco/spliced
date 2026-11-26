@@ -3,7 +3,8 @@
 Two kinds of file. The kit's own (the motion library in src/lib, the specimens, docs/CRAFT.md, MOTION-SYSTEMS.md,
 SOUND.md, the UI sound kit) are Spliced's: `update` replaces them with this version's, the way `agents install`
 replaces the skills. The project's own (package.json, Root.tsx, src/profiles.ts, its films) are written once if
-they are missing and never touched again. remotion/.spliced-kit.json remembers which version is in and what each
+they are missing and never touched again. src/profiles.generated.ts is Spliced's too: the project's profiles as code,
+written on every install and update and whenever a profile changes (profiles.write_code). remotion/.spliced-kit.json remembers which version is in and what each
 kit file held, so a kit file changed by hand is noticed instead of overwritten.
 
 usage:
@@ -64,6 +65,8 @@ def status():
             edited.append(rel)
         elif mine != theirs:
             stale.append(rel)
+    if not os.path.isfile(os.path.join(paths.REMOTION, "src", "profiles.generated.ts")):
+        missing.append("src/profiles.generated.ts")   # written by update, never shipped: the profiles as code
     return {"installed": True, "version": m.get("version"), "current": not (stale or missing), "edited": edited,
             "stale": stale, "missing": missing}
 
@@ -217,6 +220,9 @@ def install(force=False, quiet=False, npm=True):
             os.remove(p)
             wrote.append(rel + " (removed: no longer in the kit)")
     _write_manifest(files)
+    import profiles   # the project's profiles as code (src/profiles.generated.ts): the kit's profile.tsx reads it
+    if profiles.write_code(always=True):
+        wrote.append(os.path.relpath(profiles.CODE, paths.REMOTION) + " (the profiles as code)")
     if not quiet:
         where = paths.rel(paths.REMOTION)
         print(f"The film kit {paths.VERSION} is in {where}/." if wrote else f"The film kit in {where}/ is already current.")

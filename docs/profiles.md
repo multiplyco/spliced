@@ -11,7 +11,7 @@ A profile is a look your films are made in: your company's own, or one you want 
 
 **New profile** sets one up in a click:
 
-- Drop a brand book, a logo, screenshots or a film on it, and your AI fills it in from them: palette, typefaces, motion, its own words and its rules.
+- Drop a brand book, a logo, screenshots, a film or a JSON or HTML export of a site on it, and your AI fills it in from them: palette, typefaces, motion, its own words and its rules.
 - Or give it a website: type its address, or drag a link onto Profiles. Spliced reads what the site really uses, and your AI drafts the profile from that (see [From a website](#from-a-website)).
 - Start from a film in your library, which brings its palette, type and moves. A reference film's page can start one from its look too.
 - Or start blank.
@@ -32,6 +32,18 @@ All of it goes into the profile's `sources/`: a page of what was read (`acme.com
 
 Spliced only opens the page you give it, its stylesheets and its pictures, when you ask.
 
+## The digest
+
+Your AI never has to open a brand book page by page. Spliced takes a profile's sources apart once, into its `digest/` folder, and keeps it current: when you add a source, before your AI drafts the profile, and with `spliced profile digest`.
+
+- **A PDF**: the text of every page, every page on one small numbered sheet, and every picture in it taken out once (the same picture on ten pages is one file), with transparent ones kept transparent.
+- **Every picture**: its size; whether it is a cut-out (a product on white or on transparency), a photo or a blurred backdrop; where the subject sits inside it, so a film can frame it; for a device on a cut-out, where its screen is; and its main colours.
+- **Logos**: SVG files, and SVGs written inside JSON or HTML, saved as clean SVG files.
+- **JSON and HTML**, of any shape: the colours with the names that hold them, typefaces, products (a name, a price and a picture's address) and picture addresses.
+- **A film**: twelve frames on one sheet.
+
+`digest/README.md` lists all of it in a few lines per item, and `spliced profile show` points your AI there. Nothing is downloaded: `spliced profile digest acme --fetch` fetches the picture addresses the sources list, once each and from the public web only (never your Mac or your local network), and is the only time the digest goes online. The digest is made from the sources, so you can delete it and make it again.
+
 ## What a profile holds
 
 | Part | What it is |
@@ -44,6 +56,10 @@ Spliced only opens the page you give it, its stylesheets and its pictures, when 
 | Rules | What your AI learned while making films in it, each with where it came from |
 
 A motion's settings each have a small picture of what they do, hovering a style plays it, and **Reset** takes you back. **New** makes a motion of your own that any profile can use.
+
+## In a film's code
+
+Your AI builds nothing by hand to use a profile in a film: Spliced keeps every profile as code in `remotion/src/profiles.generated.ts`, so a film made in `acme` moves with `motion('acme')` and takes its colours, typefaces and logo from `profileTokens('acme')`. Change the profile and the film follows on its next render. See [The film kit](film-kit.md#motion-profiles).
 
 ## Choosing one for a brief
 
@@ -62,8 +78,26 @@ spliced profile set acme --palette "#0B0B0C ink, #F4F4F1 chalk"
 spliced profile motion acme --pace 1.2 --bounce 0 --transition "blur, whip"
 spliced profile draft acme brand-book.pdf logo.svg    # your AI fills it in
 spliced profile draft "Acme" acme.com               # from a website: its colours, type, motion and screenshots
+spliced profile digest acme                      # its sources taken apart for your AI (digest/README.md)
+spliced profile code                             # every profile as code in remotion/src/profiles.generated.ts
 spliced profile learn acme "never bounce the logo"
 spliced profile default none                     # briefs start in no profile
 ```
 
-A profile is a folder in the project, `profiles/<name>/`: `profile.json`, its words in `PROFILE.md`, and what it was drafted from in `sources/`. Your AI reaches the same through the `profile` tool over [MCP](mcp.md).
+A profile is a folder in the project, `profiles/<name>/`: `profile.json`, its words in `PROFILE.md`, what it was drafted from in `sources/`, and those sources digested in `digest/`. Commit them like the rest of the project. Your AI reaches the same through the `profile` tool over [MCP](mcp.md).
+
+## Git worktrees
+
+A project has one set of profiles. In a git worktree (a Conductor workspace, say), Spliced reads and writes the main checkout's `profiles/`, so a profile drafted in one workspace is the one a film is built in in another, and the app opened anywhere shows the same ones. An edit made from a worktree lands in the main checkout: commit it there. `spliced profile` and `spliced profile show` say where they are.
+
+A worktree that made a profile in its own `profiles/` before this still lists it, marked **Local**, and nothing in it is moved or written over. To share it:
+
+```bash
+spliced profile move-home acme    # into the main checkout; refused if it already has an acme
+```
+
+To keep profiles with each branch instead, like code:
+
+```json
+{ "worktree_profiles": "worktree" }
+```

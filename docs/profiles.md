@@ -42,7 +42,7 @@ Your AI never has to open a brand book page by page. Spliced takes a profile's s
 - **JSON and HTML**, of any shape: the colours with the names that hold them, typefaces, products (a name, a price and a picture's address) and picture addresses.
 - **A film**: twelve frames on one sheet.
 
-`digest/README.md` lists all of it in a few lines per item, and `spliced profile show` points your AI there. Nothing is downloaded: `spliced profile digest acme --fetch` fetches the picture addresses the sources list, once each, and is the only time the digest goes online. The digest is made from the sources, so you can delete it and make it again.
+`digest/README.md` lists all of it in a few lines per item, and `spliced profile show` points your AI there. Nothing is downloaded: `spliced profile digest acme --fetch` fetches the picture addresses the sources list, once each and from the public web only (never your Mac or your local network), and is the only time the digest goes online. The digest is made from the sources, so you can delete it and make it again.
 
 ## What a profile holds
 

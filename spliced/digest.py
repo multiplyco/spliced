@@ -30,7 +30,7 @@ fetched/ (and measures them like any picture). That is the one time this goes on
 usage:
   spliced profile digest <profile> [--fetch] [--force]
 """
-import base64, hashlib, io, json, os, re, shutil, subprocess, sys, urllib.parse, urllib.request
+import base64, hashlib, io, json, os, re, shutil, subprocess, sys, urllib.error, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -41,6 +41,12 @@ VERSION = 1
 MIN_SIDE, MIN_AREA = 96, 160 * 160          # a picture smaller than this is a bullet, a rule or an icon: left out
 SHEET_MAX = 240 * 1024                       # a contact sheet stays under this
 FETCH_MAX, FETCH_BYTES = 80, 15 * 1024 * 1024
+FETCH_SECONDS = 180                          # all of --fetch, however slowly a server answers
+PIXELS_MAX = 40_000_000                      # a picture bigger than this (a 6300 x 6300) is named, not decoded: a few KB of PDF can hold gigabytes
+PAGES_MAX = 200                              # pages drawn on the contact sheet and searched for pictures
+PAGE_SIDE_MAX = 4000                         # a page drawn for the sheet, at most this many pixels on its long side
+HTML_MAX = 8 * 1024 * 1024                   # an HTML source read for colours, typefaces, logos and links
+RUN_SECONDS = 20 * 60                        # a digest that takes longer than this stops (it runs unattended after an upload)
 IMAGE_EXT = (".png", ".jpg", ".jpeg", ".webp", ".gif")
 VIDEO_EXT = (".mp4", ".mov", ".m4v", ".webm")
 GENERIC_FONTS = {"serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui", "ui-sans-serif", "ui-serif", "ui-monospace",
@@ -227,13 +233,20 @@ def pdf(path, name, out, idx, seen):
     _put(out, f"pages/{stem}.md", "\n".join(text).encode())
     entry = {"source": f"sources/{name}", "kind": "pdf", "pages": doc.page_count, "text": f"digest/pages/{stem}.md",
              "sheet": f"digest/sheets/{stem}.jpg", "images": []}
-    _put(out, f"sheets/{stem}.jpg", sheet([_page_image(p, 360) for p in doc], [f"p{i}" for i in range(1, doc.page_count + 1)]))
+    shown = min(doc.page_count, PAGES_MAX)
+    _put(out, f"sheets/{stem}.jpg", sheet([_page_image(doc[i], 360) for i in range(shown)], [f"p{i}" for i in range(1, shown + 1)]))
+    if shown < doc.page_count:
+        idx["notes"].append(f"{name}: {doc.page_count} pages; the sheet and the pictures are from the first {shown}")
     done = {}
-    for pno, page in enumerate(doc, 1):
+    for pno in range(1, shown + 1):
+        page = doc[pno - 1]
         n_on_page = 0
         for info in page.get_images(full=True):
             xref, smask, w, h = info[0], info[1], info[2], info[3]
             if min(w, h) < MIN_SIDE or w * h < MIN_AREA:
+                continue
+            if w * h > PIXELS_MAX or (smask and _pixels(doc, smask) > PIXELS_MAX):   # decoded, it would be gigabytes
+                idx["notes"].append(f"{name} page {pno}: a {w} x {h} picture, too big to take out")
                 continue
             if xref in done:
                 if pno not in done[xref]["pages"]:
@@ -272,10 +285,18 @@ def pdf(path, name, out, idx, seen):
     idx["documents"].append(entry)
 
 
+def _pixels(doc, xref):
+    """A PDF picture's width times height, from its dictionary (nothing decoded); huge when it can't be read."""
+    try:
+        return int(doc.xref_get_key(xref, "Width")[1]) * int(doc.xref_get_key(xref, "Height")[1])
+    except (ValueError, TypeError, IndexError, RuntimeError):
+        return PIXELS_MAX + 1
+
+
 def _page_image(page, width):
     import pymupdf as fitz
     from PIL import Image
-    z = width / max(1, page.rect.width)
+    z = min(width / max(1, page.rect.width), PAGE_SIDE_MAX / max(1, page.rect.height))   # a page a mile tall stays a thumbnail
     pix = page.get_pixmap(matrix=fitz.Matrix(z, z), alpha=False)
     return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
 
@@ -359,19 +380,28 @@ def clean_svg(text):
         return None
     if root.tag.split("}")[-1] != "svg":
         return None
-    bad = {"script", "foreignobject", "iframe", "embed", "object", "handler", "listener"}
+    # animate and set can write a link (attributeName="href" to="javascript:..."); another namespace is another
+    # language (an XHTML form or img inside the SVG)
+    bad = {"script", "foreignobject", "iframe", "embed", "object", "handler", "listener", "animate", "set", "animatemotion",
+           "animatetransform", "animatecolor", "discard"}
+    ours = lambda tag: not tag.startswith("{") or tag.startswith("{" + SVG_NS + "}")
+    outside = re.compile(r"url\(\s*['\"]?(?!#)|@import|expression\s*\(|javascript:", re.I)
     for parent in list(root.iter()):
         for child in list(parent):
-            if not isinstance(child.tag, str) or child.tag.split("}")[-1].lower() in bad:
+            if not isinstance(child.tag, str) or not ours(child.tag) or child.tag.split("}")[-1].lower() in bad:
                 parent.remove(child)
     for el in root.iter():
+        if el.tag.split("}")[-1].lower() == "style" and el.text and outside.search(el.text):   # a stylesheet that reaches out reaches nowhere
+            t = re.sub(r"@import[^;]*;?", "", el.text, flags=re.I)
+            t = re.sub(r"url\(\s*['\"]?(?!#)[^)]*\)", "none", t, flags=re.I)
+            el.text = re.sub(r"expression\s*\(|javascript:", "", t, flags=re.I)
         for k in list(el.attrib):
             name, v = k.split("}")[-1].lower(), el.attrib[k].strip()
             if name.startswith("on"):
                 del el.attrib[k]
             elif name == "href" and not (v.startswith("#") or re.match(r"data:image/(png|jpe?g|gif|webp);", v, re.I)):
                 del el.attrib[k]
-            elif name == "style" and re.search(r"url\(\s*['\"]?(?!#)", v, re.I):
+            elif outside.search(v):   # style, fill, filter, mask, clip-path ...: only a url() to its own parts
                 del el.attrib[k]
     return ET.tostring(root, encoding="unicode")
 
@@ -516,8 +546,8 @@ def product(d, path, source, found):
 def html_scan(text, source, found):
     for m in DATA_URI.finditer(text):
         found.uris.append({"type": m.group(1).lower(), "params": m.group(2), "data": m.group(3), "key": "html", "source": source})
-    for m in re.finditer(r"<svg\b.*?</svg>", text, re.S | re.I):
-        found.uris.append({"type": "svg+xml", "params": ";inline", "data": m.group(0), "key": "inline svg", "source": source})
+    for svg in inline_svgs(text):
+        found.uris.append({"type": "svg+xml", "params": ";inline", "data": svg, "key": "inline svg", "source": source})
     for m in HEX_IN.finditer(text):
         found.colour("#" + m.group(1), "css", source)
     for m in CSS_FONT.finditer(text):
@@ -526,6 +556,24 @@ def html_scan(text, source, found):
         u = m.group(1).strip()
         if URL.match(u) and IMG_URL.search(u):
             found.url(u, "html", source)
+
+
+def inline_svgs(text, most=50):
+    """The <svg> ... </svg> in a page, by a single pass (a pattern with .*? takes minutes on a page full of '<svg ')."""
+    low, i, out = text.lower(), 0, []
+    while len(out) < most:
+        a = low.find("<svg", i)
+        if a < 0:
+            break
+        if low[a + 4:a + 5] not in (" ", ">", "\n", "\t", "\r", "/"):
+            i = a + 4
+            continue
+        b = low.find("</svg>", a)
+        if b < 0:
+            break   # nothing closes it, nor any after it
+        out.append(text[a:b + 6])
+        i = b + 6
+    return out
 
 
 def decode_uri(u):
@@ -588,11 +636,58 @@ def video(path, name, out, idx):
     idx["documents"].append(entry)
 
 
+def _public(host):
+    """Whether every address a host name stands for is on the public internet: never this machine, the local network,
+    a link-local cloud metadata address or anything reserved."""
+    import ipaddress, socket
+    try:
+        addrs = {ai[4][0] for ai in socket.getaddrinfo(host, None)}
+    except (OSError, UnicodeError):
+        return False
+    for a in addrs:
+        ip = ipaddress.ip_address(a.split("%")[0])
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast or ip.is_unspecified:
+            return False
+        if getattr(ip, "ipv4_mapped", None) and not _public(str(ip.ipv4_mapped)):
+            return False
+    return bool(addrs)
+
+
+class _PublicRedirects(urllib.request.HTTPRedirectHandler):
+    """A redirect is followed only to another public web address."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        u = urllib.parse.urlsplit(newurl)
+        if u.scheme not in ("http", "https") or not u.hostname or not _public(u.hostname):
+            raise urllib.error.HTTPError(newurl, code, "a redirect away from the public web", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _get(url, deadline):
+    """One picture from the public web: its bytes and content type, or None. Never past the deadline, never above FETCH_BYTES."""
+    import time
+    u = urllib.parse.urlsplit(url)
+    if u.scheme not in ("http", "https") or not u.hostname or not _public(u.hostname):
+        return None
+    opener = urllib.request.build_opener(_PublicRedirects)
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Spliced profile digest)"})
+    with opener.open(req, timeout=max(1, min(20, deadline - time.time()))) as r:
+        ctype, data = r.headers.get("Content-Type", ""), b""
+        while len(data) <= FETCH_BYTES:
+            if time.time() > deadline:
+                return None
+            chunk = r.read(64 * 1024)
+            if not chunk:
+                return data, ctype
+            data += chunk
+    return None
+
+
 def fetch(found, out, old, idx, seen, allowed):
     """The image URLs the sources list, fetched once each (only with --fetch); ones fetched before are kept."""
     have = {f["url"]: f for f in (old or {}).get("fetched", []) if os.path.isfile(os.path.join(out, f["file"].replace("digest/", "", 1)))}
+    import time
     urls = list(dict.fromkeys([p["image"] for p in found.products] + list(found.urls)))
-    got = []
+    got, deadline = [], time.time() + FETCH_SECONDS
     for i, u in enumerate(urls):
         if u in have:
             got.append(have[u])
@@ -603,19 +698,22 @@ def fetch(found, out, old, idx, seen, allowed):
             u2 = "https:" + u
         else:
             u2 = u
-        if not re.match(r"^https?://", u2, re.I):
+        if not re.match(r"^https?://", u2, re.I) or time.time() > deadline:
             continue
         try:
-            req = urllib.request.Request(u2, headers={"User-Agent": "Mozilla/5.0 (Spliced profile digest)"})
-            with urllib.request.urlopen(req, timeout=20) as r:
-                data = r.read(FETCH_BYTES + 1)
-                ctype = r.headers.get("Content-Type", "")
+            reply = _get(u2, deadline)
         except Exception:   # noqa: BLE001  (a picture that won't come is left out)
             continue
-        if len(data) > FETCH_BYTES:
+        if not reply:
             continue
+        data, ctype = reply
         ext = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "image/gif": ".gif", "image/svg+xml": ".svg",
                "image/avif": ".avif"}.get(ctype.split(";")[0].strip().lower()) or (os.path.splitext(urllib.parse.urlsplit(u2).path)[1].lower() or ".img")
+        if ext == ".svg":   # a picture from anywhere: cleaned like a source's logo, or left out
+            svg = clean_svg(data.decode("utf-8", "replace"))
+            if not svg:
+                continue
+            data = svg.encode()
         name = f"fetched/{len(got) + 1:03d}-{_safe(os.path.splitext(os.path.basename(urllib.parse.urlsplit(u2).path))[0])[:40]}{ext}"
         _put(out, name, data)
         got.append({"url": u, "file": f"digest/{name}"})
@@ -683,7 +781,7 @@ def _build(slug, do_fetch, force):
                     walk(json.load(fh), (), name, found)
             elif ext in (".html", ".htm"):
                 with open(f, encoding="utf-8", errors="replace") as fh:
-                    html_scan(fh.read(), name, found)
+                    html_scan(fh.read(HTML_MAX), name, found)
             elif ext in VIDEO_EXT:
                 video(f, name, out, idx)
             elif name.endswith(profiles.SITE):
@@ -840,6 +938,10 @@ def main():
         print(__doc__)
         return
     slug = a[0]
+    if hasattr(__import__("signal"), "alarm"):   # unattended after an upload: a source that would keep it busy for ever stops it
+        import signal
+        signal.signal(signal.SIGALRM, lambda *_: sys.exit(f"The digest of {slug} took over {RUN_SECONDS // 60} minutes and stopped"))
+        signal.alarm(RUN_SECONDS)
     try:
         idx, built = build(slug, do_fetch="--fetch" in a, force="--force" in a)
     except (KeyError, ValueError) as e:

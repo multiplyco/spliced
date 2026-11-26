@@ -522,8 +522,17 @@ def digest(slug, fetch=False, force=False, quiet=False):
 
 
 def digest_later(slug):
-    """Digest a profile's sources in the background (a source was just added); never fails the caller."""
+    """Digest a profile's sources in the background (a source was just added); never fails the caller. Not while one is
+    already running: a draft job digests again first when the sources changed since (digest.py's content hash)."""
     import subprocess
+    try:
+        import fcntl
+        with open(os.path.join(paths.profile_home(), ".cache", f"digest-{slug}.lock"), "a") as fh:
+            fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)   # the lock digest.build holds while it works
+    except BlockingIOError:
+        return
+    except (OSError, ImportError):
+        pass
     try:
         subprocess.Popen(_digest_cmd(slug), cwd=paths.ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     except (OSError, ValueError):
@@ -756,8 +765,13 @@ def _logo(slug, copy=True):
             logos = json.load(f).get("logos") or []
     except (OSError, ValueError):
         return ""
-    src = os.path.join(d, logos[0]["path"]) if logos and isinstance(logos[0], dict) and logos[0].get("path") else ""
-    if not src or not os.path.isfile(src) or not os.path.isdir(paths.PUBLIC):
+    src = os.path.join(d, logos[0]["path"]) if logos and isinstance(logos[0], dict) and isinstance(logos[0].get("path"), str) else ""
+    # index.json is a file an agent can write: only an SVG the digest cleaned into its own logos/ is ever copied into the
+    # film kit, never a path that leads elsewhere (the project's .env, the main checkout's, a file in the person's home)
+    home = os.path.realpath(os.path.join(d, "digest", "logos")) + os.sep
+    if not src or not os.path.realpath(src).startswith(home) or os.path.islink(src) or not src.lower().endswith(".svg"):
+        return ""
+    if not os.path.isfile(src) or not os.path.isdir(paths.PUBLIC):
         return ""
     rel = f"profiles/{slug}/logo{os.path.splitext(src)[1]}"
     dst = os.path.join(paths.PUBLIC, *rel.split("/"))

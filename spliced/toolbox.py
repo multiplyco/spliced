@@ -217,8 +217,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if not self.path.startswith(("/api/frame", "/api/library")):  # these set their own (a frame's URL carries the render's mtime; the library has an ETag)
             self.send_header("Cache-Control", "no-store" if self.path.startswith(("/api/", "/app")) else "max-age=3600")
         self.send_header("X-Content-Type-Options", "nosniff")
-        if self.path.startswith("/project/") and urlsplit(self.path).path.lower().endswith(".svg"):
-            self.send_header("Content-Security-Policy", "sandbox; default-src 'none'; style-src 'unsafe-inline'")  # an uploaded SVG is a picture, never a page that runs
+        if self.path.startswith("/project/") and (served(urlsplit(self.path).path) or "").lower().endswith(".svg"):
+            # an uploaded SVG is a picture, never a page that runs: judged by the file served, not by how its URL is
+            # written (logo.sv%67 and logo.svg/ reach the same file as logo.svg)
+            self.send_header("Content-Security-Policy", "sandbox; default-src 'none'; style-src 'unsafe-inline'")
         super().end_headers()
 
     def _json(self, code, obj):

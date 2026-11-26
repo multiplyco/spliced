@@ -384,9 +384,16 @@ def profile_prompt(j):
     given = (f"The person dropped these on it, so read them and fill the profile in from what they show:\n{files}\n\n" if p["sources"] and not request
              else f"Its own words are in {home}/PROFILE.md: fill in what they state (colours, typefaces, motion, rules) and is still empty.\n\n" if not request
              else "")
+    st = profiles.digest_state(slug)
+    digested = (f"Spliced digested the sources into {home}/digest/: start with its README.md (every picture taken out of them with its size, "
+                "kind and subject box, a device's screen, the logos as clean SVG, and the colours, typefaces and products JSON holds), a "
+                "document's text in digest/pages/ and its pages at a glance on one image in digest/sheets/. Work from those; open a source "
+                "itself only for what the digest doesn't hold (a brand book's rules are in its text, not its pictures).\n"
+                if st["state"] in ("current", "stale") else "")
     prompt = (
         f"Repo: {ROOT}. Work only from that directory.\n\n"
         f"{'Change' if request else 'Draft'} the Spliced profile `{slug}` (\"{p['name']}\"): the look a project's films are made in. " + what + given +
+        digested +
         "Read every file it was drafted from when it helps: a PDF or deck page by page (a brand book: its colours with their hex codes, typefaces, logo rules, tone of voice, "
         f"do's and don'ts); an image by looking at it; a film by looking at its frames (`{cli} analyze strip <file> 0 <seconds> 10 /tmp/frames.jpg`, "
         "several stretches for a long one; its pace, how things arrive, how scenes change, how words appear); a website by its `<site>.site.md`, which "
@@ -411,6 +418,12 @@ def profile_prompt(j):
 def draft_profile(j):
     import profiles
     p = profiles.get(j["slug"])
+    if profiles.digest_state(j["slug"])["state"] in ("missing", "stale"):   # digested first: the agent reads digest/README.md, not the sources
+        note(j, "Digesting the sources", "Digesting the sources")
+        try:
+            profiles.digest(j["slug"], quiet=True)
+        except (OSError, ValueError, subprocess.SubprocessError) as e:
+            note(j, f"Couldn't digest the sources ({e}); the agent reads them as they are")
     prompt, seen = profile_prompt(j)
     j["request"] = "\n".join(profile_requests(j["slug"])[:seen])
     note(j, "Making the change you asked for" if seen else f"Reading {len(p['sources'])} source(s)", "Changing the profile" if seen else "Reading the sources")

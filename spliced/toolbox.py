@@ -514,6 +514,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             try:
                 with LOCK:
                     f = profiles.add_source(sm.group(1), unquote(self.headers.get("X-Filename", "source")), data)
+                profiles.digest_later(sm.group(1))   # digested for an agent in the background (digest.py)
                 return self._json(200, {"file": f, "sources": profiles.sources(sm.group(1))})
             except (KeyError, ValueError, OSError) as e:
                 return self._json(400, {"error": str(e.args[0]) if e.args else str(e)})
@@ -621,6 +622,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     site = profiles.add_site(slug, str(body.get("url", "")))
                 except (KeyError, ValueError, OSError) as e:
                     return self._json(400, {"error": str(e.args[0]) if e.args else str(e)})
+                profiles.digest_later(slug)
                 return self._json(200, {"profile": slug, "site": site, "sources": profiles.sources(slug), "profiles": profiles.every(), "default": profiles.default()})
             try:
                 with LOCK:

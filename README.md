@@ -159,6 +159,11 @@ and Spliced reads that one page first: the colours and typefaces its CSS really 
 and screenshots when Chrome, Chromium, Edge or Brave is installed (headless, in a browser profile of its own). It opens
 only that page, its stylesheets and its pictures, and only when you ask.
 
+Before your AI reads them, Spliced digests a profile's sources into its `digest/` (`spliced profile digest`): a PDF's
+text and pages on one sheet, every picture taken out and measured (cut-out, photo or backdrop, where the subject sits,
+a device's screen, its colours), SVG logos cleaned, and the colours, typefaces and products a JSON or HTML export holds.
+It downloads nothing, unless you add `--fetch`: then it fetches the picture addresses those files list, once each.
+
 Briefs start in the default profile. Every brief you copy (a board's build prompt, a scene, a whole reference film) can
 choose another, or **No profile**: then the film recreates its references as they are, in their own look. In the app:
 Profiles, under Make. A project from before profiles keeps its brand and `remotion/docs/HOUSE.md`; `spliced setup`

@@ -187,6 +187,8 @@ def profile_tool(a):
         return text(*run(*args))
     if action in ("drafted", "move-home"):
         return text(*run("profile", action, prof))
+    if action == "digest":
+        return text(*run("profile", "digest", prof, *(["--fetch"] if a.get("fetch") is True else []), timeout=1800))
     if action == "motion":
         args = ["profile", "motion", prof]
         if a.get("from"):
@@ -195,7 +197,7 @@ def profile_tool(a):
             if a.get(k) is not None:
                 args += [f"--{flag}", str(a[k])]
         return text(*run(*args))
-    raise Bad("`action` is list, show, set, learn, pin, unpin, motion, drafted, new, draft or move-home")
+    raise Bad("`action` is list, show, set, learn, pin, unpin, motion, drafted, new, draft, digest or move-home")
 
 
 def folders_tool(a):
@@ -372,9 +374,12 @@ TOOLS = [
      "`from` starts again from a kit or saved motion). drafted: say a profile you filled in from its sources is done. "
      "new: a profile (from_film starts it from a reference film's look). draft: start or redo a profile from files (a brand book, logo, screenshots, "
      "a film) or a website: Spliced reads a site's colours, typefaces, motion and screenshots into the profile's sources, then queues the drafting "
-     "for you (imports next). move-home: a profile a git worktree kept in its own profiles/ goes to the main checkout's, which every "
+     "for you (imports next). digest: its sources taken apart once into digest/ (a PDF's text and pages on one sheet, every picture "
+     "measured: size, kind, subject box, a device's screen; logos as clean SVG; colours, typefaces, products and image URLs from JSON): "
+     "read digest/README.md instead of opening the sources; fetch: true also downloads the image URLs listed, once. move-home: a profile a git worktree kept in its own profiles/ goes to the main checkout's, which every "
      "worktree shares. A build in no profile recreates its references as they are.",
-     S({"action": {"type": "string", "enum": ["list", "show", "set", "learn", "pin", "unpin", "motion", "drafted", "new", "draft", "move-home"]},
+     S({"action": {"type": "string", "enum": ["list", "show", "set", "learn", "pin", "unpin", "motion", "drafted", "new", "draft", "digest", "move-home"]},
+        "fetch": {"type": "boolean", "description": "digest: also download the image URLs the sources list, once each (goes online)"},
         "sources": {"type": "array", "items": STR, "description": "draft: files in the project, or websites (acme.com, https://acme.com/about)"},
         "about": {"type": "string"}, "palette": {"type": "string", "description": "set: \"#hex name, #hex name\""},
         "font": {"type": "string", "description": "set: the headline typeface"}, "font_source": {"type": "string", "enum": ["local", "google"]},

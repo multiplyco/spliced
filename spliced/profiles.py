@@ -5,6 +5,10 @@ A profile is a folder in the project, profiles/<slug>/:
                  scenes that show the look, the rules learned while making films
   PROFILE.md     the profile in prose: voice, stage, type, what to do and never do. The person's to write, and the
                  first thing an agent reads before building in it.
+  digest/        its sources digested once (digest.py, `spliced profile digest`): a PDF's text and pages on one sheet,
+                 every picture taken out and measured (size, kind, subject box, a device's screen, colours), logos as clean
+                 SVG, and the colours, typefaces, products and image URLs JSON or HTML holds. Rebuilt when sources change,
+                 when one is added, and before a draft job, so an agent reads README.md there instead of the sources
   sources/       what a profile was drafted from, when the person dropped a brand book, logo, screenshots, a film or a
                  website on it: the person's AI reads them and fills the profile in (an import job, importer.py, type
                  "profile"). A website is read by Spliced first (website.py): <site>.site.md and its pictures
@@ -49,6 +53,8 @@ its first profile, once, and leaves both files where they were.
   spliced profile forget <profile> <n>              take rule n out
   spliced profile pin <profile> <film/sNN>          a scene that shows the look; unpin takes it out
   spliced profile remove <profile>                  kept in .cache/profiles-removed/ first
+  spliced profile digest <profile> [--fetch] [--force]   its sources digested into digest/ (only when they changed);
+                                                    --fetch also downloads the image URLs its JSON lists, once each
   spliced profile move-home <profile>               a profile kept in this worktree's own profiles/ goes to the main checkout's
 """
 import argparse, datetime as dt, json, os, re, shutil, sys
@@ -59,7 +65,8 @@ import paths
 LOCAL = paths.PROFILE_DIR   # this folder's own profiles/: the store, except in a worktree (store())
 NONE = "none"   # a build in no profile: as the reference
 FONT_SOURCES = ("local", "google")
-SOURCE_EXT = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".mp4", ".mov", ".m4v", ".webm", ".txt", ".md", ".key", ".pptx"}
+SOURCE_EXT = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".mp4", ".mov", ".m4v", ".webm", ".txt", ".md", ".key", ".pptx",
+              ".json", ".html", ".htm"}
 SOURCE_MAX = 400 * 1024 * 1024
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
 MD_INTRO = ("<!-- This profile in your own words: the voice, the stage, the type, what its films always do and never do. "
@@ -472,6 +479,51 @@ def sources(slug):
             for n in sorted(os.listdir(d)) if not n.startswith(".") and os.path.isfile(os.path.join(d, n))]
 
 
+def digest_stamp(files):
+    """A cheap fingerprint of a profile's sources (names, sizes, times): whether its digest looks current, unread."""
+    import hashlib
+    return hashlib.sha256("\n".join(f"{os.path.basename(f)}\t{os.path.getsize(f)}\t{int(os.path.getmtime(f))}" for f in files).encode()).hexdigest()[:16]
+
+
+def digest_state(slug):
+    """{state: none (no sources) | missing | stale | current, and what the digest holds}, without reading the sources."""
+    d = _dir(slug)
+    files = [os.path.join(d, "sources", x["name"]) for x in sources(slug)]
+    if not files:
+        return {"state": "none"}
+    try:
+        with open(os.path.join(d, "digest", "index.json")) as f:
+            idx = json.load(f)
+    except (OSError, ValueError):
+        return {"state": "missing"}
+    return {"state": "current" if idx.get("stamp") == digest_stamp(files) else "stale", "readme": f"{where(slug)}/digest/README.md",
+            **{k: len(idx.get(k) or []) for k in ("images", "logos", "colours", "fonts", "products")}}
+
+
+def _digest_cmd(slug, fetch=False, force=False):
+    if not shutil.which("uv"):
+        raise ValueError("digesting a profile's sources needs uv: https://docs.astral.sh/uv/getting-started/installation/")
+    return ["uv", "run", "-q", paths.tool("digest"), slug, *(["--fetch"] if fetch else []), *(["--force"] if force else [])]
+
+
+def digest(slug, fetch=False, force=False, quiet=False):
+    """Digest a profile's sources into its digest/ (digest.py, in its own uv environment: PyMuPDF and Pillow). Only
+    what changed is redone; --fetch is the one time it goes online. Returns the command's exit code."""
+    get(slug)
+    import subprocess
+    r = subprocess.run(_digest_cmd(slug, fetch, force), cwd=paths.ROOT, capture_output=quiet, text=True, timeout=3600)
+    return r.returncode
+
+
+def digest_later(slug):
+    """Digest a profile's sources in the background (a source was just added); never fails the caller."""
+    import subprocess
+    try:
+        subprocess.Popen(_digest_cmd(slug), cwd=paths.ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except (OSError, ValueError):
+        pass
+
+
 def is_site(arg):
     """Whether something given to `profile draft` is a web address rather than a file: http(s)://, or a bare
     acme.com/about that is no file here."""
@@ -508,7 +560,7 @@ def add_source(slug, name, data):
     base, ext = os.path.splitext(os.path.basename(str(name or "")))
     ext = ext.lower()
     if ext not in SOURCE_EXT:
-        raise ValueError(f"{ext or 'a file with no extension'} can't be a profile's source: a PDF, an image, a film, a deck or text")
+        raise ValueError(f"{ext or 'a file with no extension'} can't be a profile's source: a PDF, an image, a film, a deck, text, or JSON or HTML")
     if len(data) > SOURCE_MAX:
         raise ValueError("that file is too big (under 400 MB, please)")
     stem = re.sub(r"[^A-Za-z0-9._ -]+", "", base).strip(" .")[:80] or "source"
@@ -708,6 +760,17 @@ def brief(slug):
         lines += ["## Rules learned while making films", ""] + [f"{i}. {r['text']}{(' (from ' + r['from'] + ')') if r.get('from') else ''}" for i, r in enumerate(p["rules"], 1)] + [""]
     if p["sources"]:
         lines += ["## What it was drafted from", "", ", ".join(f"`{agent_path(x['file'])}`" for x in p["sources"]), ""]
+        st = digest_state(slug)
+        lines += ["## Digest", ""]
+        if st["state"] in ("current", "stale"):
+            lines += [f"Spliced digested the sources into `{home}/digest/`. Read `digest/README.md` there first: every picture with its size, "
+                      "kind (cutout, photo, backdrop) and subject box, a device's screen, the logos, colours, typefaces and products. A document's "
+                      "text is in `digest/pages/`, its pages at a glance on one image in `digest/sheets/`. Use the digest's files as the film's "
+                      "assets (copy them under remotion/public/) and don't open the sources themselves: a deck read page by page as pictures "
+                      "costs tens of thousands of tokens."
+                      + (f" The sources changed since it was made: `{paths.CLI} profile digest {slug}` brings it up to date." if st["state"] == "stale" else ""), ""]
+        else:
+            lines += [f"Not digested yet: run `{paths.CLI} profile digest {slug}`, then read `{home}/digest/README.md` instead of opening the sources.", ""]
     if p["scenes"]:
         lines += ["## Scenes that show the look", "", "Read each with `" + paths.CLI + " board scene <id>`: " + ", ".join(f"`{k}`" for k in p["scenes"]), ""]
     return "\n".join(lines).rstrip() + "\n"
@@ -738,6 +801,8 @@ def main():
         x = sub.add_parser(name); x.add_argument("profile"); x.add_argument("scene")
     x = sub.add_parser("remove"); x.add_argument("profile")
     x = sub.add_parser("move-home"); x.add_argument("profile")
+    x = sub.add_parser("digest", help="its sources digested into digest/; --fetch also downloads the image URLs they list, once each")
+    x.add_argument("profile"); x.add_argument("--fetch", action="store_true"); x.add_argument("--force", action="store_true")
     sub.add_parser("setup", help="spliced setup's step: a project from before profiles gets its first one")
     a = ap.parse_args()
     try:
@@ -786,6 +851,10 @@ def main():
                     continue
                 with open(os.path.expanduser(fp), "rb") as f:
                     print(f"  {add_source(a.profile, os.path.basename(fp), f.read())}")
+            try:   # digested now, so the agent that drafts it reads digest/README.md instead of the sources
+                digest(a.profile)
+            except (ValueError, OSError) as e:
+                print(f"  (not digested: {e})")
             j = draft(a.profile)
             print(f"Drafting the profile {a.profile} from {len(sources(a.profile))} source(s): import {j['id']} ({j['status']}). `{paths.CLI} imports list` follows it.")
         elif a.cmd == "ask":
@@ -808,6 +877,8 @@ def main():
             print(f"{p['slug']}: {len(p['scenes'])} scenes")
         elif a.cmd == "remove":
             print(f"Removed; kept in {shown(remove(a.profile))}")
+        elif a.cmd == "digest":
+            sys.exit(digest(a.profile, a.fetch, a.force))
         elif a.cmd == "move-home":
             print(f"Moved {a.profile} to the main checkout: {move_home(a.profile)}. Every worktree sees it now; commit it there.")
         elif a.cmd == "setup":

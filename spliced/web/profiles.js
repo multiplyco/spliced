@@ -463,7 +463,7 @@ const thumbs = (keys, n) => keys.slice(0, n).map((k) => { const s = CR.scene(k);
 const create = (film) => newSheet({ film });
 const dropZone = (label) => h(`<label class="pf-drop" title="Drop a brand book, a logo, screenshots, a film or a link to a website, or click to choose files. ${esc(SP.Ai)} reads them and fills the profile in">
   ${icon("upload")}<span><b>${label}</b><small>A brand book (PDF), a logo, screenshots, a film, a deck, or a link to a website. ${esc(SP.Ai)} reads them and fills in the palette, typefaces, motion and rules.</small></span>
-  <input type="file" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.svg,.mp4,.mov,.m4v,.webm,.txt,.md,.key,.pptx"></label>`);
+  <input type="file" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.svg,.mp4,.mov,.m4v,.webm,.txt,.md,.key,.pptx,.json,.html,.htm"></label>`);
 function wireDrop(el, onFiles, onSite) {
   el.querySelector("input").onchange = (e) => { onFiles(e.target.files); e.target.value = ""; };
   el.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); el.classList.add("over"); });

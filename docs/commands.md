@@ -47,7 +47,7 @@ Run commands from inside a project, or pass `--project <folder>`.
 | `spliced board` | Find scenes, read and edit a board's script, point the open app at one |
 | `spliced film` | Films in production: status, notes, render, the storyboard beside the render |
 | `spliced folders` | The project's folders: list, `add`, `remove` |
-| `spliced profile` | [Profiles](profiles.md): the looks your films are made in, the default, the rules learned. `show`, `new`, `set`, `motion`, `draft`, `learn`, `default`, `move-home` |
+| `spliced profile` | [Profiles](profiles.md): the looks your films are made in, the default, the rules learned. `show`, `new`, `set`, `motion`, `draft`, `digest`, `learn`, `default`, `move-home` |
 
 ## Making films
 

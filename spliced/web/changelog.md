@@ -4,6 +4,18 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+## Your AI reads a brand book without opening it
+2026-11-26
+*Spliced takes a profile's sources apart once, so your AI works from a short list instead of reading every page.*
+
+A brand book used to cost your AI a page-by-page read, and then the same handwork every time. Now Spliced digests a
+profile's sources into its `digest/` folder when you add one and before your AI drafts the profile: a PDF's text, all
+its pages on one small sheet, every picture in it taken out once (transparent ones kept transparent), and each picture
+measured: its size, whether it is a cut-out, a photo or a blurred backdrop, where the product sits in it, where a
+device's screen is, and its colours. SVG logos come out as clean files, and a JSON or HTML export gives its colours,
+typefaces, products and picture addresses. Your AI reads one short list instead. Run it yourself with
+`spliced profile digest <profile>`; `--fetch` also downloads the pictures a JSON file lists, once.
+
 ## One set of profiles in every workspace
 2026-11-26
 *A profile drafted in one git worktree is the one every other worktree, and the app, sees.*

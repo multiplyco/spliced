@@ -4,6 +4,18 @@ The newest change first. Each entry: a `## ` title, the date on the next line, o
 it in a sentence, then a paragraph or two, and a picture if it helps (`![what it shows](changelog/name.jpg)`).
 Written for the person using Spliced, not the person building it. The app shows this file under Settings.
 
+## A profile is code your films use as it is
+2026-11-26
+*A film made in a profile moves and colours itself from the profile, with nothing copied by hand.*
+
+Spliced now keeps every profile as code in your film kit (`remotion/src/profiles.generated.ts`): its motion, palette,
+typefaces and the logo its sources hold. A film made in the profile `acme` says `motion('acme')` and gets the profile's
+pace, bounce, stagger, scene changes, word style and float, worked out from the motion it starts from, and
+`profileTokens('acme')` for its colours by name, typefaces and logo. Your AI no longer rebuilds a profile by hand, and
+the film can't drift from it: change the profile and the next render follows. The file is rewritten whenever a profile
+changes, on `spliced kit update` and before a render; to fine-tune one by hand, add a motion profile with the same name
+to `remotion/src/profiles.ts`, and yours wins.
+
 ## Your AI reads a brand book without opening it
 2026-11-26
 *Spliced takes a profile's sources apart once, so your AI works from a short list instead of reading every page.*

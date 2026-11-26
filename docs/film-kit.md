@@ -31,6 +31,7 @@ spliced kit              # what is installed, and whether it is current
 | Whose | Which files | What `kit update` does |
 | --- | --- | --- |
 | The kit's | `remotion/src/lib`, `src/specimen`, the docs, the UI sounds | Replaces them. A file you changed by hand is listed and left alone |
+| Spliced's | `remotion/src/profiles.generated.ts`, your [profiles](profiles.md) as code | Writes it again, as every change to a profile does |
 | Yours | Your films, `Root.tsx`, `remotion/src/profiles.ts`, `remotion/docs/HOUSE.md` | Never touches them |
 
 ## Motion profiles
@@ -49,6 +50,8 @@ Add your own in `remotion/src/profiles.ts`, name it in `spliced.json`, and pick 
 ```json
 { "profiles": { "acme": "Quick arrivals, a hard stop, no bounce" }, "default_profile": "acme" }
 ```
+
+Every [profile](profiles.md) is a motion profile too, with no code to write. Spliced keeps your profiles in `remotion/src/profiles.generated.ts`: each one's motion (the motion it starts from and what it changes: pace, bounce, stagger, scene changes, how words arrive, float) and its palette, typefaces and logo. The kit works out the rest, so a film made in the profile `acme` uses `motion('acme')` for its moves and `profileTokens('acme')` for its colours, typefaces and logo, and follows the profile when you change it. The file is written whenever a profile changes, on `spliced kit update`, before a render, and with `spliced profile code`; don't edit it. To fine-tune one by hand, add a motion profile with the same name to `remotion/src/profiles.ts`: yours wins.
 
 `spliced motion` checks that a film's motion comes from its profile.
 

@@ -185,6 +185,8 @@ def profile_tool(a):
             if a.get(k) is not None:
                 args += [f"--{k.replace('_', '-')}", str(a[k])]
         return text(*run(*args))
+    if action == "code":
+        return text(*run("profile", "code"))
     if action in ("drafted", "move-home"):
         return text(*run("profile", action, prof))
     if action == "digest":
@@ -197,7 +199,7 @@ def profile_tool(a):
             if a.get(k) is not None:
                 args += [f"--{flag}", str(a[k])]
         return text(*run(*args))
-    raise Bad("`action` is list, show, set, learn, pin, unpin, motion, drafted, new, draft, digest or move-home")
+    raise Bad("`action` is list, show, set, learn, pin, unpin, motion, drafted, new, draft, digest, code or move-home")
 
 
 def folders_tool(a):
@@ -376,9 +378,10 @@ TOOLS = [
      "a film) or a website: Spliced reads a site's colours, typefaces, motion and screenshots into the profile's sources, then queues the drafting "
      "for you (imports next). digest: its sources taken apart once into digest/ (a PDF's text and pages on one sheet, every picture "
      "measured: size, kind, subject box, a device's screen; logos as clean SVG; colours, typefaces, products and image URLs from JSON): "
-     "read digest/README.md instead of opening the sources; fetch: true also downloads the image URLs listed, once. move-home: a profile a git worktree kept in its own profiles/ goes to the main checkout's, which every "
+     "read digest/README.md instead of opening the sources; fetch: true also downloads the image URLs listed, once. code: write every "
+     "profile into remotion/src/profiles.generated.ts now (kept current anyway), so a film uses motion('<profile>') and profileTokens('<profile>'). move-home: a profile a git worktree kept in its own profiles/ goes to the main checkout's, which every "
      "worktree shares. A build in no profile recreates its references as they are.",
-     S({"action": {"type": "string", "enum": ["list", "show", "set", "learn", "pin", "unpin", "motion", "drafted", "new", "draft", "digest", "move-home"]},
+     S({"action": {"type": "string", "enum": ["list", "show", "set", "learn", "pin", "unpin", "motion", "drafted", "new", "draft", "digest", "code", "move-home"]},
         "fetch": {"type": "boolean", "description": "digest: also download the image URLs the sources list, once each (goes online)"},
         "sources": {"type": "array", "items": STR, "description": "draft: files in the project, or websites (acme.com, https://acme.com/about)"},
         "about": {"type": "string"}, "palette": {"type": "string", "description": "set: \"#hex name, #hex name\""},

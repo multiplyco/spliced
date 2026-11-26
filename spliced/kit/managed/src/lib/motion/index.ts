@@ -7,4 +7,5 @@ export * from './apple';
 export * from './LiquidGlass';
 export * from './spec';
 export * from './profile';
+export * from './derive';
 export * from './hold';

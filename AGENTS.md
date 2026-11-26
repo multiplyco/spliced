@@ -129,7 +129,8 @@ Spliced is a tool that works on a project. Keep the two apart in everything you 
   `ffmpeg` and `ffprobe`). A hint that names a Spliced command writes it `paths.CLI`, never a bare `spliced`.
 - **The film kit is the source of the motion library.** Change motion, specimens, the craft or sound docs in
   `spliced/kit/managed/`, never in a project's copy: `spliced kit update` brings it there. A company's own profile
-  belongs in that project's `remotion/src/profiles.ts`, not in the kit. An example film in `starter/` shows only what
+  belongs in that project's `remotion/src/profiles.ts`, not in the kit; its Spliced profiles reach the kit as data
+  in `remotion/src/profiles.generated.ts` (written by `profiles.write_code`), derived by `lib/motion/derive.ts`. An example film in `starter/` shows only what
   is ours (no frames of other people's films, no citations of their films, no review history): `tests/test_kit.py`
   checks it.
 - **Keys never pass through an agent.** Service keys live in the project's `.env`, written by `apikeys.py` (Settings,

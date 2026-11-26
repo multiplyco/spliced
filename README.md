@@ -138,7 +138,9 @@ spliced kit update               # after updating Spliced: its files replaced wi
 
 The kit's files (`remotion/src/lib`, `src/specimen`, `docs/CRAFT.md`, `MOTION-SYSTEMS.md`, `SOUND.md`, the UI sounds)
 are Spliced's, and `update` replaces them; a file you changed by hand is listed and left alone. Your films, your
-`Root.tsx` and your own motion profiles (`remotion/src/profiles.ts`) are yours and never touched. Ask your AI to make
+`Root.tsx` and your own motion profiles (`remotion/src/profiles.ts`) are yours and never touched. Your profiles reach the
+kit as code in `remotion/src/profiles.generated.ts`, written by Spliced, so a film says `motion('acme')` and
+`profileTokens('acme')` and writes no profile by hand. Ask your AI to make
 a film and it follows the `make-film` skill (`spliced agents install` puts it in the project). Remotion is free for
 individuals and small teams and needs a paid licence above that.
 

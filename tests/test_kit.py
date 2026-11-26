@@ -1,5 +1,5 @@
 """spliced kit: the film kit copied into a project, kept current, and never written over a person's own changes."""
-import hashlib, json, os, re, subprocess, sys, unittest
+import hashlib, json, os, re, shutil, subprocess, sys, unittest
 
 import support
 
@@ -132,6 +132,130 @@ class Kit(unittest.TestCase):
                 sb = json.load(f)
             self.assertFalse([r for b in sb["beats"] for r in b.get("refs", []) if not r.startswith("system-moves/")], slug)
             self.assertFalse(sb.get("pins"), slug)
+
+
+# deriveProfile (derive.ts) run in Node on a tween base and a spring base: seconds scaled by pace, bounce on UI and
+# emphasis only, the first scene change and word style the kit draws, stagger and idle as given.
+DERIVE_CHECK = r"""
+import {deriveProfile} from './derive.ts';
+const tw = (s) => ({kind: 'tween', curve: 'land', seconds: s, source: 'x'});
+const sp = (omega, zeta) => ({kind: 'spring', spring: {omega, zeta}, source: 'x'});
+const soft = {name: 'soft', feel: 'f', stagger: 0.1, idle: 1, viewChange: {kind: 'cut', seconds: 0},
+  roles: {enter: tw(0.6), exit: tw(0.3), move: tw(0.75), ui: tw(0.45), emphasis: tw(0.5), camera: tw(1), textReveal: tw(0.5)}};
+const apple = {name: 'apple', feel: 'f', stagger: 0.06, idle: 0.6, viewChange: {kind: 'sharedAxisX', seconds: 0.6},
+  roles: {enter: sp(10, 1), exit: tw(0.3), move: sp(8, 1), ui: sp(12, 0.85), emphasis: sp(10, 0.7), camera: sp(6, 1), textReveal: sp(12, 1)}};
+const a = deriveProfile(soft, {base: 'soft', pace: 1.25, bounce: 0.2, stagger: 0.12, transition: ['whip', 'blur'], text: ['typewriter', 'grey-to-ink'], idle: 0.7}, 'acme');
+const b = deriveProfile(apple, {base: 'apple', pace: 2, bounce: 0}, 'globex');
+const c = deriveProfile(apple, {base: 'apple'}, 'same');
+console.log(JSON.stringify({a, b, c}));
+"""
+
+
+class ProfilesAsCode(unittest.TestCase):
+    def setUp(self):
+        self.root = support.project(self)
+        self.rem = os.path.join(self.root, "remotion")
+        self.gen = os.path.join(self.rem, "src", "profiles.generated.ts")
+
+    def cli(self, *args):
+        env = {k: v for k, v in os.environ.items() if not k.startswith(("SPLICED_", "CUTTING_ROOM_"))}
+        r = subprocess.run([sys.executable, os.path.join(support.TOOLS, "cli.py"), "--project", self.root, *args],
+                           env={**env, "SPLICED_OFFLINE": "1"}, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        return r.stdout
+
+    def read(self):
+        with open(self.gen, encoding="utf-8") as f:
+            return f.read()
+
+    def test_every_profile_is_written_as_code_and_kept_current(self):
+        self.cli("kit", "install", "--no-npm")
+        self.assertIn("export const GENERATED_PROFILES = {};", self.read(), "no profiles yet: an empty one, so the kit builds")
+        self.cli("profile", "new", "Acme house", "--motion", "material")
+        self.cli("profile", "motion", "acme-house", "--pace", "1.25", "--bounce", "0", "--transition", "cut, blur")
+        self.cli("profile", "set", "acme-house", "--palette", "#0B152B ink, #F4F1EC warm paper, #C34D7A", "--font", "Acme Sans", "--font-source", "google")
+        text = self.read()
+        self.assertIn('"acme-house": {', text)
+        self.assertIn('"motion": {"base": "material", "pace": 1.25, "bounce": 0.0, "transition": ["cut", "blur"]},', text)
+        self.assertIn('"colors": {"ink": "#0B152B", "warmPaper": "#F4F1EC", "color3": "#C34D7A"},', text)
+        self.assertIn('"fonts": {"headline": {"family": "Acme Sans", "source": "google"}},', text)
+        show = self.cli("profile", "show", "acme-house")
+        self.assertIn("motion('acme-house')", show)
+        self.assertIn("profileTokens('acme-house')", show)
+        self.assertNotIn("Build it as a motion profile", show)
+        # a file that went missing is the kit's to put back
+        os.remove(self.gen)
+        self.assertIn("differ from this Spliced", self.cli("kit"))
+        self.cli("kit", "update")
+        self.assertIn('"acme-house"', self.read())
+        self.cli("profile", "remove", "acme-house")
+        self.assertNotIn("acme-house", self.read())
+
+    def test_a_project_without_the_kit_gets_no_file(self):
+        shutil.rmtree(self.rem, ignore_errors=True)
+        self.cli("profile", "new", "Acme")
+        self.assertFalse(os.path.exists(self.gen))
+
+    def test_the_kit_draws_the_scene_changes_and_word_styles_spliced_says_it_has(self):
+        with open(os.path.join(support.TOOLS, "kit", "managed", "src", "lib", "motion", "derive.ts"), encoding="utf-8") as f:
+            ts = f.read()
+        kinds = re.search(r"TRANSITION_KINDS[^{]*\{(.*?)\}", ts, re.S).group(1)
+        styles = re.search(r"TEXT_STYLES[^=]*=\s*\{(.*?)\}", ts, re.S).group(1)
+        with open(os.path.join(support.TOOLS, "profiles.py"), encoding="utf-8") as f:
+            src = f.read()
+        for name, helper in re.findall(r'"([a-z-]+)": \("[^"]*", "(viewChange [^"]*)"', src):
+            self.assertRegex(kinds, rf"['\"]?{re.escape(name)}['\"]?:", name)
+        for name, helper in re.findall(r'"([a-z-]+)": \("[^"]*", "(text\.style [^"]*)"', src):
+            self.assertRegex(styles, rf"['\"]?{re.escape(name)}['\"]?:", name)
+
+    def test_a_profile_is_derived_from_its_base(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("no node")
+        d = os.path.join(os.path.dirname(self.root), "derive")
+        os.makedirs(d)
+        shutil.copy(os.path.join(support.TOOLS, "kit", "managed", "src", "lib", "motion", "derive.ts"), d)
+        with open(os.path.join(d, "check.mjs"), "w") as f:
+            f.write(DERIVE_CHECK)
+        r = subprocess.run([node, "--experimental-strip-types", "--no-warnings", "check.mjs"], cwd=d, capture_output=True, text=True, timeout=60)
+        if r.returncode and ("strip-types" in r.stderr or "Unknown file extension" in r.stderr):
+            self.skipTest("this Node can't run TypeScript")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        out = json.loads(r.stdout)
+        a, b, c = out["a"], out["b"], out["c"]
+        self.assertEqual(a["roles"]["enter"], {"kind": "tween", "curve": "land", "seconds": 0.75, "source": "x x1.25"}, "seconds times pace")
+        self.assertEqual(a["roles"]["camera"]["seconds"], 1.25)
+        ui = a["roles"]["ui"]
+        self.assertEqual(ui["kind"], "spring", "a bounce turns a UI tween into a spring of the same length")
+        self.assertAlmostEqual(ui["spring"]["zeta"], 0.8)
+        self.assertAlmostEqual(ui["spring"]["omega"], 2 * 3.141592653589793 / (0.45 * 1.25), places=6)
+        self.assertEqual(a["roles"]["move"]["kind"], "tween", "the bounce is only for UI and emphasis")
+        self.assertEqual(a["viewChange"], {"kind": "blurThrough", "seconds": 0.75}, "the first scene change the kit has: blur, over whip")
+        self.assertEqual(a["text"], {"style": "greyToInk"})
+        self.assertEqual((a["stagger"], a["idle"], a["name"]), (0.12, 0.7, "acme"))
+        self.assertAlmostEqual(b["roles"]["ui"]["spring"]["omega"], 6, msg="pace 2: a spring's frequency halves (twice as long)")
+        self.assertEqual(b["roles"]["emphasis"]["spring"]["zeta"], 1, "bounce 0: no overshoot")
+        self.assertEqual(b["roles"]["enter"]["spring"], {"omega": 5, "zeta": 1})
+        self.assertEqual(b["viewChange"], {"kind": "sharedAxisX", "seconds": 1.2})
+        self.assertEqual((c["roles"]["emphasis"]["spring"], c["viewChange"], c["stagger"]), ({"omega": 10, "zeta": 0.7}, {"kind": "sharedAxisX", "seconds": 0.6}, 0.06),
+                         "nothing changed: the base as it is")
+
+    def test_the_kit_typechecks_with_a_profile_as_code(self):
+        nm = os.environ.get("SPLICED_KIT_NODE_MODULES", "")
+        if not os.path.isfile(os.path.join(nm, ".bin", "tsc")):
+            self.skipTest("set SPLICED_KIT_NODE_MODULES to a remotion/node_modules with typescript to typecheck the kit")
+        self.cli("kit", "install", "--no-npm")
+        os.symlink(nm, os.path.join(self.rem, "node_modules"))
+        self.cli("profile", "new", "Acme house")
+        self.cli("profile", "motion", "acme-house", "--pace", "1.2", "--bounce", "0.15", "--text", "grey-to-ink")
+        self.cli("profile", "set", "acme-house", "--palette", "#0B152B ink")
+        os.makedirs(os.path.join(self.rem, "src", "films", "check"))
+        with open(os.path.join(self.rem, "src", "films", "check", "Check.tsx"), "w") as f:
+            f.write("import {motion, profileTokens} from '../../lib/motion';\n"
+                    "export const ink: string | undefined = profileTokens('acme-house').colors?.ink;\n"
+                    "export const enter = (t: number) => motion('acme-house').enter(t, 0);\n")
+        r = subprocess.run([os.path.join(nm, ".bin", "tsc"), "--noEmit", "-p", "."], cwd=self.rem, capture_output=True, text=True, timeout=600)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
 
 if __name__ == "__main__":

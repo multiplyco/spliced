@@ -710,6 +710,7 @@ def _build(slug, do_fetch, force):
         shutil.rmtree(gone, ignore_errors=True)
     else:
         os.rename(out, final)
+    profiles.write_code()   # a logo it found goes into the profile's code
     return idx, True
 
 

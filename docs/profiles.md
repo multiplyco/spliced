@@ -57,6 +57,10 @@ Your AI never has to open a brand book page by page. Spliced takes a profile's s
 
 A motion's settings each have a small picture of what they do, hovering a style plays it, and **Reset** takes you back. **New** makes a motion of your own that any profile can use.
 
+## In a film's code
+
+Your AI builds nothing by hand to use a profile in a film: Spliced keeps every profile as code in `remotion/src/profiles.generated.ts`, so a film made in `acme` moves with `motion('acme')` and takes its colours, typefaces and logo from `profileTokens('acme')`. Change the profile and the film follows on its next render. See [The film kit](film-kit.md#motion-profiles).
+
 ## Choosing one for a brief
 
 One profile can be the default (the switch at the top of its page): a brief starts in it. A board, a scene's brief and a whole film's brief each have a profile beside the copy button: pick another, or **No profile** to recreate the reference as it is, in its own look.
@@ -75,6 +79,7 @@ spliced profile motion acme --pace 1.2 --bounce 0 --transition "blur, whip"
 spliced profile draft acme brand-book.pdf logo.svg    # your AI fills it in
 spliced profile draft "Acme" acme.com               # from a website: its colours, type, motion and screenshots
 spliced profile digest acme                      # its sources taken apart for your AI (digest/README.md)
+spliced profile code                             # every profile as code in remotion/src/profiles.generated.ts
 spliced profile learn acme "never bounce the logo"
 spliced profile default none                     # briefs start in no profile
 ```

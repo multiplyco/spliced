@@ -78,6 +78,19 @@ view's Script tab shows them next to a frame of the render. When you change the 
 `vo` too. When you generate a still or clip, or pull stock footage, record it in the film's `assets.json` so the
 Assets view shows it.
 
+## Sessions (every call re-reads the whole conversation)
+
+- Start every session on a film that exists with `spliced film context <slug>`: the plan, open notes under their
+  beats with ids, the cues, the latest render, and a map of the film's files with what each holds and exports. Read
+  it instead of the film's code.
+- Open only the files a note touches, and only the lines you need (search, then read a range). Don't read another
+  film's code to copy a pattern unless the note needs it.
+- Start a new session for each round of notes, or after a break of more than an hour, rather than resuming a long one:
+  a long conversation is re-read on every call, and after an hour away all of it is written to the cache again.
+- Look at frames as one contact sheet (`spliced film sheet`) or crops of it, not many full-size stills.
+- Read a profile with `spliced profile show <profile>` (its digest, where it has one), never by opening its sources.
+- If the person asks why sessions are heavy, `spliced agents context` says what a session here loads.
+
 ## 0. Start from what you're given
 
 - **A build prompt from Spliced** (a board's "copy build prompt"): it has the beats, the scene IDs, the profile and

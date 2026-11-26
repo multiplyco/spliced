@@ -27,7 +27,7 @@ COMMANDS = {
     "doctor": ("doctor.py", "What this machine and project can do now, and the step that unlocks the next thing; --json"),
     "update": ("updates.py", "Is a newer Spliced out, and the command that gets it; --json"),
     "board": ("board.py", "Boards: find scenes, read and edit a board's script, point the open app at one"),
-    "film": ("film.py", "Films in production: status, notes, render, the storyboard beside the render"),
+    "film": ("film.py", "Films in production: status, context (a new session's brief), notes, render, the storyboard beside the render"),
     "folders": ("folders.py", "The project's folders (one per kind of video, or per client): list, add, remove"),
     "reference": ("add_reference.py", "Add a reference film from a link or a file, and run the machine pass"),
     "imports": ("importer.py", "The import queue: add, list, cancel; `next` and `done` for an agent picking a job up"),
@@ -51,7 +51,7 @@ BUILT_IN = {
     "setup": "Set everything up in one go, or bring a project up to date after an update: project, skills, film kit, a first film, the app",
     "init": "Start a new project in a folder (default: here): spliced.json and an empty library",
     "projects": "The projects opened on this machine, and which are running now; --json",
-    "agents": "`agents install`: Spliced's skills, a section in AGENTS.md and its MCP server (Claude Code, Codex, Cursor, Gemini CLI)",
+    "agents": "`agents install`: Spliced's skills, a section in AGENTS.md and its MCP server (Claude Code, Codex, Cursor, Gemini CLI); `--lean` for lean film sessions; `agents context`",
 }
 ALIASES = {"serve": "open", "profiles": "profile", "toolbox": "open", "boards": "board", "films": "film", "importer": "imports", "folder": "folders",
            "build": "library", "build_library": "library", "add_reference": "reference", "analyze_reference": "analyze", "check_motion": "motion"}
@@ -281,10 +281,15 @@ built from those scenes, and films in production. `spliced.json` holds its setti
 
 def agents(args, project, quiet=False):
     """Give the project's AI what it needs to work with Spliced: the skills, a section in AGENTS.md, and the MCP server."""
-    if args[:1] != ["install"]:
-        sys.exit("usage: spliced agents install [--force]")
+    if args[:1] not in (["install"], ["context"]):
+        sys.exit("usage: spliced agents install [--force] [--lean [off] [--keep <server>]... [--keep-connectors]]\n"
+                 "       spliced agents context    what a Claude Code session here loads, and how to slim it")
     if not project:
         sys.exit(locate.NO_PROJECT)
+    if args[0] == "context":   # sessions.py: read-only
+        os.environ["SPLICED_PROJECT"] = project
+        import sessions
+        return sessions.main(args)
     via = os.environ.get("SPLICED_VIA", "").strip()   # npx (bin/spliced.js): its `spliced` on the PATH is temporary
     installed = bool(shutil.which("spliced")) and not via
     app = os.environ.get("SPLICED_COMMAND", "")   # the command inside the Mac app, when that is how Spliced is installed
@@ -408,6 +413,14 @@ def agents(args, project, quiet=False):
         with open(ig, "a") as f:
             f.write(("\n" if have and have[-1] else "") + "\n".join(add) + "\n")
     print("keys       .geminiignore: Gemini CLI's file tools skip .env" + ("" if add else " (already current)"))
+    # 6. opt in: lean Claude Code sessions for film work (sessions.py), only Spliced's MCP server and what --keep names
+    if "--lean" in args:
+        os.environ["SPLICED_PROJECT"] = project
+        import sessions
+        i = args.index("--lean")
+        keep = [args[j + 1] for j, x in enumerate(args[:-1]) if x == "--keep"]
+        for line in sessions.lean(keep, "--keep-connectors" in args, off=args[i + 1:i + 2] == ["off"]):
+            print(line)
     if not quiet:
         print(f"\nOther agents: Codex registers it with `codex mcp add spliced -- {' '.join([entry['command']] + entry['args'])}`.\n"
               f"Check what is set up with: {cli} doctor")

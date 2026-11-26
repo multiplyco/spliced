@@ -38,6 +38,30 @@ edits made from a worktree land in the main checkout, ready to commit there. A p
 folder before this is still listed, marked Local, and left as it is: `spliced profile move-home <profile>` moves it
 to the main checkout. To keep profiles with each branch instead, set `"worktree_profiles": "worktree"` in spliced.json.
 
+## Lighter Claude Code sessions for film work
+2026-11-26
+*`spliced agents context` shows what a Claude Code session in your project loads, and `agents install --lean` trims it to Spliced's own tools.*
+
+Every tool a Claude Code session can reach is read again on every step: the MCP servers you added for other work,
+your claude.ai connectors, plugins and skills. `spliced agents context` lists them by where they come from, with the
+instruction files read on every call and, when Claude Code recorded it, what the last session here read, then says
+how to slim it. It only counts and names, and never shows a value from your settings. `spliced agents install --lean`
+is the opt-in: sessions in this folder then load only Spliced's own MCP server, plus a generator you name with
+`--keep <server>`, and your claude.ai connectors with `--keep-connectors`. It writes your settings for this folder
+(`.claude/settings.local.json`, kept out of git), never your own Claude Code config, and `--lean off` undoes it. The
+make-film skill now starts each session from `spliced film context` and starts a new one for each round of notes.
+
+## A short brief for each new AI session
+2026-11-26
+*`spliced film context <slug>` gives your AI a film in about 3,000 tokens, so a new conversation starts without reading the code.*
+
+When your AI picks a film up in a new conversation, it now reads one short brief instead of the film's code: the
+message, format and profile, the latest render and whether the code changed since, each beat in a line with its
+words, its cues and the open notes on it (with their ids), every file in the film's folder with what it holds and
+what it exports, the assets and the sound in a line or two, and the commands to render a beat and close notes. It
+then opens only the files a note touches. A long conversation is read again on every step, so a fresh one that
+starts from the brief costs a fraction. For agents without a shell it is the MCP tool `film_context`.
+
 <!-- release 1.4.0 2026-11-26 -->
 
 ## A profile from your website

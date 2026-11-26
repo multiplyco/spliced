@@ -31,6 +31,30 @@ It also keeps your keys out of reach: Claude Code is set to refuse to read `.env
 
 Several agents can work on one film in the same folder, each reading the same plan. Another agent that can run commands in your project can use the same `spliced` commands.
 
+## Lighter Claude Code sessions for film work
+
+A Claude Code session reads the names of every tool it can reach on every step: the MCP servers you added for other
+work, your claude.ai connectors, your plugins and skills. In a film session most of them are never used, and a long
+session pays for them on every call.
+
+```bash
+spliced agents context                                   # what a session here loads, and how to slim it; changes nothing
+spliced agents install --lean                            # sessions here load only Spliced's own MCP server
+spliced agents install --lean --keep acme-images         # and a generator you use
+spliced agents install --lean --keep-connectors          # and your claude.ai connectors (they go all together)
+spliced agents install --lean off                        # undo
+```
+
+`agents context` reads `~/.claude.json` only to count and name servers, never a value. `--lean` is never on by
+default. It writes Claude Code's own settings into `.claude/settings.local.json`, your settings for this folder, kept
+out of git because they name your servers: `deniedMcpServers` for your other servers, `disabledMcpjsonServers` for
+the project's other `.mcp.json` servers, and `disableClaudeAiConnectors`. It never edits `~/.claude.json`, and
+running it again replaces what it wrote before. A session that is already open keeps what it loaded: start a new
+one. Plugins and skills stay as they are; turn off the ones film work doesn't need in Claude Code (`/plugin`, `/skills`).
+
+The make-film skill keeps sessions short too: it starts each one with `spliced film context <slug>` instead of reading
+the film's code, and starts a new session for each round of notes.
+
 ## A chat app
 
 Chat apps don't open a folder, so they keep their own list of tools. `spliced connect` adds this project to that list, as `spliced-<project>`.
